@@ -1,0 +1,1 @@
+sphinx-apidoc -o -f ./docs/source ./pyNNsMD
