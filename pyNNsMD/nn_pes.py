@@ -20,9 +20,6 @@ from pyNNsMD.nn_pes_src.models_feat import create_feature_models
 from pyNNsMD.nn_pes_src.models_nac import create_model_nac_precomputed,NACModel
 from pyNNsMD.nn_pes_src.models_eg import create_model_energy_gradient_precomputed,EnergyModel
 from pyNNsMD.nn_pes_src.fit import fit_model_energy_gradient,fit_model_nac,fit_model_energy_gradient_async,fit_model_nac_async
-from pyNNsMD.nn_pes_src.predict import call_model_energy_gradient_precomputed,call_model_nac_precomputed
-from pyNNsMD.nn_pes_src.predict import predict_model_energy_gradient_precomputed,predict_model_nac_precomputed
-from pyNNsMD.nn_pes_src.predict import predict_model_energy_gradient,predict_model_nac
 from pyNNsMD.nn_pes_src.hyper import DEFAULT_HYPER_PARAM_ENERGY_GRADS,DEFAULT_HYPER_PARAM_NAC
 from pyNNsMD.nn_pes_src.hyper import _save_hyp,_load_hyp
 from pyNNsMD.nn_pes_src.data import model_save_data_to_folder,datalist_make_random_shuffle,merge_data_in_chunks,index_data_in_y_dict,index_make_random_shuffle
@@ -72,8 +69,6 @@ class NeuralNetPes:
         
         # Private memebers
         self._models = {}
-        self._models_features = {} # will be removed
-        self._models_precomputed = {} # Will be removed
         self._models_hyper = {}
         
         self._directory = directory
@@ -86,14 +81,16 @@ class NeuralNetPes:
         temp = {}
         temp.update(dictold)
         for hkey in dictnew.keys():
+            is_new_category = False
             if(hkey not in temp):
-                print("Warning: Unknown category:", hkey)
+                print("Warning: Unknown category:", hkey, ". For new category check necessary hyper parameters, warnings for dict-keys are suppressed.")
+                is_new_category = True
                 temp[hkey] = {}
             if(hkey in exclude_category):
                 print("Error: Can not update specific category",hkey)
             else:
                 for hhkey in dictnew[hkey].keys():
-                    if(hhkey not in temp[hkey]):
+                    if(hhkey not in temp[hkey] and is_new_category == False):
                         print("Warning: Unknown key:", hhkey , "in", hkey)
                     temp[hkey][hhkey] = dictnew[hkey][hhkey]
         return temp
@@ -167,9 +164,7 @@ class NeuralNetPes:
             mod,modprec,hyp,feat = self._create_models(key,value)
             self._models.update(mod)
             self._models_hyper[key] = hyp
-            self._models_features.update(feat)
-            self._models_precomputed.update(modprec)
-        
+
         return self._models
    
     
@@ -205,7 +200,7 @@ class NeuralNetPes:
     
     def _save(self,directory,name):
         # Check if model name can be saved
-        if(name not in self._models_precomputed):
+        if(name not in self._models):
             raise TypeError("Cannot save model before init.")
             
         # Folder to store model in
@@ -257,6 +252,58 @@ class NeuralNetPes:
                 out_dirs.append(self._save(directory,name))
         
         return out_dirs
+
+    def _export(self,directory,name):
+        # Check if model name can be saved
+        if(name not in self._models):
+            raise TypeError("Cannot save model before init.")
+            
+        # Folder to store model in
+        filename = os.path.abspath(os.path.join(directory,name))
+        os.makedirs(filename,exist_ok=True)
+        
+        #Store model
+        for i,x in enumerate(self._models[name]):
+            x.save(os.path.join(filename,'SavedModel'+'_v%i'%i))
+        
+        return filename
+        
+
+
+    def export(self,model_name=None):
+        """
+        Save SavedModel file into class folder with a certain name.
+
+        Parameters
+        ----------
+        model_name : str, optional
+            Name of the Model to save. The default is None, which means save all
+
+        Returns
+        -------
+        out_dirs : list
+            Saved directories.
+
+        """
+        dirname = self._directory
+        directory = os.path.abspath(dirname)
+        os.makedirs(directory, exist_ok=True)
+        
+        # Safe model_name 
+        out_dirs = []
+        if(isinstance(model_name, str)):
+            out_dirs.append(self._export(directory,model_name))
+            
+        elif(isinstance(model_name, list)):
+            for name in model_name:
+                out_dirs.append(self._export(directory,name))
+        
+        #Default just save all
+        else:    
+            for name in self._models.keys():
+                out_dirs.append(self._export(directory,name))
+        
+        return out_dirs
    
     
     def _load(self, folder, model_name):
@@ -275,7 +322,6 @@ class NeuralNetPes:
         
         #Load weights
         for i in range(self._addNN):
-            self._models_precomputed[model_name][i].load_weights(os.path.join(fname,'weights'+'_v%i'%i+'.h5'))
             self._models[model_name][i].load_weights(os.path.join(fname,'weights'+'_v%i'%i+'.h5'))
             self.logger.info("Imported weights for: %s"%(model_name+'_v%i'%i))
                      
@@ -446,12 +492,7 @@ class NeuralNetPes:
             energy = []
             gradient = []
             for i in range(self._addNN):
-                temp =  predict_model_energy_gradient(self._models[name][i],x,
-                                                      batch_size_predict=self._models_hyper[name][i]['predict']['batch_size_predict'])
-                # temp =  predict_model_energy_gradient_precomputed(self._models_precomputed[name][i],
-                #                                      self._models_features[name][i],
-                #                                      x,
-                #                                      hyper=self._models_hyper[name][i])
+                temp = self._models[name][i].predict(x,batch_size = self._models_hyper[name][i]['predict']['batch_size_predict'] )
                 energy.append(temp[0])
                 gradient.append(temp[1])
             energy = np.array(energy)
@@ -465,12 +506,7 @@ class NeuralNetPes:
         if(self._models_hyper[name][0]['general']['model_type'] == 'nac'):
             nac = []
             for i in range(self._addNN):
-                temp = predict_model_nac(self._models[name][i],x,
-                                         batch_size_predict=self._models_hyper[name][i]['predict']['batch_size_predict'])
-                # temp = predict_model_nac_precomputed(self._models_precomputed[name][i],
-                #                          self._models_features[name][i],
-                #                          x,
-                #                          hyper=self._models_hyper[name][i])
+                temp = self._models[name][i].predict(x,batch_size = self._models_hyper[name][i]['predict']['batch_size_predict'] )
                 nac.append(temp)
             nac = np.array(nac)
             nac_mean = np.mean(nac,axis=0)
@@ -515,7 +551,7 @@ class NeuralNetPes:
                 #                                       self._models_features[name][i],
                 #                                       x,
                 #                                       hyper=self._models_hyper[name][i])
-                temp = self._models[name][i](x)
+                temp = self._models[name][i](x,training=False)
                 energy.append(tf.expand_dims(temp[0],axis=0))
                 gradient.append(tf.expand_dims(temp[1],axis=0))
             energy = tf.concat(energy,axis=0)
@@ -533,7 +569,7 @@ class NeuralNetPes:
                 #                           self._models_features[name][i],
                 #                           x,
                 #                           hyper=self._models_hyper[name][i])
-                temp = self._models[name][i](x)
+                temp = self._models[name][i](x,training=False)
                 nac.append(tf.expand_dims(temp,axis=0))
             nac = tf.concat(nac,axis=0)
             nac_mean = tf.math.reduce_mean(nac,axis=0)
@@ -748,7 +784,7 @@ class NeuralNetPes:
             x_active = x[ind_activ]
             y_active = index_data_in_y_dict(y,ind_activ)
             #Make fit
-            fiterrfun = self.fit(x_active,y_active,gpu_dist,proc_async,fitmode='resample',random_shuffle=False)
+            fiterrfun = self.fit(x_active,y_active,gpu_dist,proc_async,fitmode='training',random_shuffle=False)
             out_fiterr.append(fiterrfun)
             #Get test error
             _, ertestd = find_samples_with_max_error(y_test,self.predict(x_test)[0])
