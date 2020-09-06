@@ -168,8 +168,8 @@ class MLP(ks.layers.Layer):
                        'dense_depth': self.dense_depth,
                        'dense_bias': self.dense_bias,
                        'dense_bias_last': self.dense_bias_last,
-                       'dense_activ' : self.dense_activ_serialize
-                       'dense_activ_last' : self.dense_activ_last_serialize
+                       'dense_activ' : self.dense_activ_serialize,
+                       'dense_activ_last' : self.dense_activ_last_serialize,
                        'dense_activity_regularizer': ks.regularizers.serialize(self.dense_activity_regularizer),
                        'dense_kernel_regularizer': ks.regularizers.serialize(self.dense_kernel_regularizer),
                        'dense_bias_regularizer': ks.regularizers.serialize(self.dense_bias_regularizer),
