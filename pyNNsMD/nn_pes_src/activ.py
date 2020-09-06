@@ -24,7 +24,9 @@ def leaky_softplus(alpha = 0.3):
     """
     return lambda x : ks.activations.softplus(x)*(1-alpha)+alpha*x
 
-def shifted_sofplus(x):
+
+
+def shifted_softplus(x):
     """
     Softplus function from tf.keras shifted downwards.
 

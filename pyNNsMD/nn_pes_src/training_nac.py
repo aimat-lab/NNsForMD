@@ -41,8 +41,8 @@ print("Logic Devices:",tf.config.experimental.list_logical_devices('GPU'))
 from pyNNsMD.nn_pes_src.callbacks import EarlyStopping,lr_lin_reduction,lr_exp_reduction,lr_step_reduction
 from pyNNsMD.nn_pes_src.plot import plot_nac_fit_result
 from pyNNsMD.nn_pes_src.models_feat import create_feature_models
-from pyNNsMD.nn_pes_src.models_nac import create_model_nac_precomputed
-from pyNNsMD.nn_pes_src.legacy import compute_feature_derivative
+from pyNNsMD.nn_pes_src.models_nac import create_model_nac_precomputed,NACModel
+#from pyNNsMD.nn_pes_src.legacy import compute_feature_derivative
 from pyNNsMD.nn_pes_src.hyper import _load_hyp
 from pyNNsMD.nn_pes_src.data import split_validation_training_index
 
@@ -82,34 +82,43 @@ def train_model_nac(i=0, outdir=None, mode = 'training'):
     
     #Model
     hypermodel = hyperall['model']
-    y_nac_unit_conv = hypermodel['y_nac_unit_conv']
-    y_nac_std = hypermodel['y_nac_std'] 
-    y_nac_mean = hypermodel['y_nac_mean']
     #plots
     unit_label_nac = hyperall['plots']['unit_nac']
     #Fit
     hyper = hyperall[mode]
+    phase_less_loss= ['phase_less_loss']
     epo = hyper['epo']
     batch_size = hyper['batch_size']
     epostep = hyper['epostep']
-    learning_rate_start = hyper['learning_rate_start']
-    learning_rate_stop = hyper['learning_rate_stop']
-    use_early_callback = hyper['use_early_callback'] 
-    use_linear_callback = hyper['use_linear_callback']
-    use_exp_callback = hyper['use_exp_callback']     
-    use_step_callback = hyper['use_step_callback'] 
-    epomin = hyper['epomin']
-    factor_lr = hyper['factor_lr']
-    learning_rate_step = hyper['learning_rate_step']
-    epoch_step_reduction = hyper['epoch_step_reduction']
-    patience =  hyper['patience']
-    max_time = hyper['max_time']
-    delta_loss = hyper['delta_loss']
-    loss_monitor = hyper['loss_monitor']
     pre_epo = hyper['pre_epo']
     val_disjoint = hyper['val_disjoint']
     val_split = hyper['val_split'] 
     reinit_weights = hyper['reinit_weights']
+    learning_rate = hyper['learning_rate']
+    #step
+    use_step_callback = hyper['step_callback']['use']
+    epoch_step_reduction = hyper['step_callback']['epoch_step_reduction']
+    learning_rate_step = hyper['step_callback']['learning_rate_step']
+    #lin
+    use_linear_callback = hyper['linear_callback']['use']
+    learning_rate_start = hyper['linear_callback']['learning_rate_start']
+    learning_rate_stop = hyper['linear_callback']['learning_rate_stop']
+    epomin_lin = hyper['linear_callback']['epomin']
+    #exp
+    use_exp_callback = hyper['exp_callback']['use']    
+    epomin_exp = hyper['exp_callback']['epomin']
+    factor_lr_exp = hyper['exp_callback']['factor_lr']
+    #early
+    use_early_callback = hyper['early_callback']['use']
+    epomin_early = hyper['early_callback']['epomin']
+    factor_lr_early = hyper['early_callback']['factor_lr']
+    patience =  hyper['early_callback']['patience']
+    max_time = hyper['early_callback']['max_time']
+    delta_loss = hyper['early_callback']['delta_loss']
+    loss_monitor = hyper['early_callback']['loss_monitor']
+    learning_rate_start_early = hyper['linear_callback']['learning_rate_start']
+    learning_rate_stop_early = hyper['linear_callback']['learning_rate_stop']
+
     
     #Data Check here:
     if(len(x.shape) != 3):
@@ -120,37 +129,30 @@ def train_model_nac(i=0, outdir=None, mode = 'training'):
         raise ValueError("Input nac-shape must be (batch,states,atoms,3)")
     else:
         print("Found nac-shape of",y_in.shape)
-
-    #print(hyper)    
-    y = (y_in - y_nac_mean) / y_nac_std * y_nac_unit_conv
     
     #Set stat dir    
     dir_save = os.path.join(outdir,"fit_stats")
     os.makedirs(dir_save,exist_ok=True)
-    
-    #Features precompute layer
-    temp_model_feat = create_feature_models(hypermodel)
-    np_x, np_grad = temp_model_feat.predict_in_chunks(x,batch_size=batch_size)
-
 
     #Learning rate schedule        
-    lr_sched = lr_lin_reduction(learning_rate_start,learning_rate_stop,epo,epomin)
-    lr_exp = lr_exp_reduction(learning_rate_start,epomin,epostep,factor_lr)
+    lr_sched = lr_lin_reduction(learning_rate_start,learning_rate_stop,epo,epomin_lin)
+    lr_exp = lr_exp_reduction(learning_rate_start,epomin_exp,epostep,factor_lr_exp)
     lr_step = lr_step_reduction(learning_rate_step,epoch_step_reduction)
+    
     #cbks
-    lr_cbk = tf.keras.callbacks.LearningRateScheduler(lr_sched) 
     step_cbk = tf.keras.callbacks.LearningRateScheduler(lr_step)
+    lr_cbk = tf.keras.callbacks.LearningRateScheduler(lr_sched)
     exp_cbk = tf.keras.callbacks.LearningRateScheduler(lr_exp)
     es_cbk = EarlyStopping(patience = patience,
                            minutes=max_time,
                            epochs=epo,
-                           learning_rate=learning_rate_start,
+                           learning_rate=learning_rate_start_early,
                            min_delta=delta_loss,
                            epostep=epostep,
-                           min_lr=learning_rate_stop,
+                           min_lr=learning_rate_stop_early,
                            monitor=loss_monitor,
-                           factor=factor_lr,
-                           minEpoch=epomin ) 
+                           factor=factor_lr_early,
+                           minEpoch=epomin_early) 
     cbks = []
     if(use_early_callback == True):
         cbks.append(es_cbk)
@@ -161,56 +163,114 @@ def train_model_nac(i=0, outdir=None, mode = 'training'):
     if(use_step_callback == True):
         cbks.append(step_cbk)
     
+    
     #Data selection
     lval = int(len(x)*val_split)
     allind = np.arange(0,len(x))
     i_train,i_val = split_validation_training_index(allind,lval,val_disjoint,i)
-    print("Train-Test split at Train:",len(i_train),"Test",len(i_val),"Total",len(x))
+    print("Info: Train-Test split at Train:",len(i_train),"Test",len(i_val),"Total",len(x))
     
-    xtrain = [np_x[i_train],np_grad[i_train]]
-    ytrain = y[i_train]
-    xval = [np_x[i_val],np_grad[i_val]]
-    yval = y[i_val]
+    #Make all Models
+    out_model = NACModel(hypermodel)
+    temp_model_feat = create_feature_models(hypermodel)
+    temp_model = create_model_nac_precomputed(hypermodel,learning_rate,phase_less_loss)
     
-
-    #Actutal Fitting
-    temp_model = create_model_nac_precomputed(hypermodel )
+    npeps = np.finfo(float).eps
     if(reinit_weights==False):
         try:
-            temp_model.load_weights(os.path.join(outdir,"weights"+'_v%i'%i+'.h5'))
+            out_model.load_weights(os.path.join(outdir,"weights"+'_v%i'%i+'.h5'))
             print("Info: Load old weights at:",os.path.join(outdir,"weights"+'_v%i'%i+'.h5'))
+            #Transfer weights
+            print("Info: Transferring weights...")
+            temp_model.get_layer('mlp').set_weights(out_model.get_layer('mlp').get_weights())
+            temp_model.get_layer('virt').set_weights(out_model.get_layer('virt').get_weights())
+            print("Info: Reading standardization...")
+            feat_x_mean,feat_x_std = out_model.get_layer('feat_std').get_weights()
+            x_mean,x_std = out_model.get_layer('scale_coord').get_weights()
+            y_nac_mean, y_nac_std = out_model.get_layer('rev_std_nac').get_weights()
         except:
             print("Error: Can't load old weights...")
+    else:
+        print("Info: Keeping newly initialized weights.")
+        print("Info: Calculating std-values.")
+        yit = y_in[i_train]
+        y_nac_std = np.std(yit,axis=(0,3),keepdims=True)
+        y_nac_mean = np.zeros_like(y_nac_std)
+        feat_x_mean = None
+        feat_x_std = None
+        x_mean,x_std = np.array(0.0),np.array(1.0)
+        
+    #print(hyper)    
+
+    y = (y_in - y_nac_mean) / (y_nac_std + npeps)
+    
+    #Calculate features
+    feat_x, feat_grad = temp_model_feat.predict_in_chunks(x,batch_size=batch_size)
+    
+    #Finding std.
+    if(feat_x_mean is None):
+        feat_x_mean = np.mean(feat_x[i_train],axis=0,keepdims=True)
+    if(feat_x_std is None):
+        feat_x_std = np.std(feat_x[i_train],axis=0,keepdims=True)
+        
+    xtrain = [feat_x[i_train],feat_grad[i_train]]
+    ytrain = y[i_train]
+    xval = [feat_x[i_val],feat_grad[i_val]]
+    yval = y[i_val]
+    
+    #Actutal Fitting
+    temp_model.get_layer('feat_std').set_weights([feat_x_mean,feat_x_std])   
+    temp_model.y_nac_std = tf.constant(y_nac_std,dtype=tf.float32) # For metrics
     temp_model.summary()
+    
+    print("Info: All-data NAC std",np.std(y_in,axis=(0,3),keepdims=True)[0,:,:,0])
+    print("Info: Using nac-std:", y_nac_std.shape, y_nac_std[0,:,:,0])
+    print("Info: Using x-scale:" , x_std)
+    print("Info: Using x-offset:" , x_mean)
+    print("Info: Using feature-scale:" , feat_x_std)
+    print("Info: Using feature-offset:" , feat_x_mean)
+    
+    print("")
+    print("Start fit.")   
+    
     #Prefit if necessary
     if(pre_epo>0):
-        temp_model_prefit = create_model_nac_precomputed(hypermodel,True)
+        temp_model_prefit = create_model_nac_precomputed(hypermodel,learning_rate,False)
         temp_model_prefit.set_weights(temp_model.get_weights())
         temp_model_prefit.fit(x=xtrain, y=ytrain, epochs=pre_epo,batch_size=batch_size,verbose=2)
         temp_model.set_weights(temp_model_prefit.get_weights())
-        
+    
     hist = temp_model.fit(x=xtrain, y=ytrain, epochs=epo,batch_size=batch_size,callbacks=cbks,validation_freq=epostep,validation_data=(xval,yval),verbose=2)
-            
+    
     try:
-        #Save Weights
-        temp_model.save_weights(os.path.join(outdir,'weights'+'_v%i'%i+'.h5'))
         outname = os.path.join(dir_save,"history_"+".json")
         outhist = {a: np.array(b,dtype=np.float64).tolist() for a,b in hist.history.items()}
         with open(outname, 'w') as f:
             json.dump(outhist, f)
     except:
-        print("Warning: Cant save weights or history")
+          print("Warning: Cant save history")
+        
+    try:
+        #Save Weights
+        out_model.get_layer('mlp').set_weights(temp_model.get_layer('mlp').get_weights())
+        out_model.get_layer('virt').set_weights(temp_model.get_layer('virt').get_weights())
+        out_model.get_layer('feat_std').set_weights([feat_x_mean,feat_x_std])
+        out_model.get_layer('scale_coord').set_weights([x_mean,x_std])
+        out_model.get_layer('rev_std_nac').set_weights([y_nac_mean, y_nac_std])
+        out_model.save_weights(os.path.join(outdir,"weights"+'_v%i'%i+'.h5'))
+    except:
+        print("Warning: Cant save weights")
         
    
     try:
         #Plot stats
-        yval_plot = y_in[i_val] * y_nac_unit_conv
-        ytrain_plot  = y_in[i_train] * y_nac_unit_conv
+        yval_plot = y_in[i_val] 
+        ytrain_plot  = y_in[i_train] 
         #Revert standard but keep unit conversion
-        pval = temp_model.predict(x=xval)
-        ptrain = temp_model.predict(x=xtrain)
-        pval = pval * y_nac_std + y_nac_mean * y_nac_unit_conv
-        ptrain = ptrain * y_nac_std + y_nac_mean * y_nac_unit_conv
+        pval = temp_model.predict(xval)
+        ptrain = temp_model.predict(xtrain)
+        pval = pval * y_nac_std + y_nac_mean 
+        ptrain = ptrain * y_nac_std + y_nac_mean 
         
         print("")
         print("Predicted NAC shape:",ptrain.shape)
@@ -229,26 +289,20 @@ def train_model_nac(i=0, outdir=None, mode = 'training'):
     
     #error out
     error_val = None
-    try:
-        testlossall_nac = hist.history['val_mean_absolute_error']
-        trainlossall_nac = hist.history['mean_absolute_error']
-        error_val = testlossall_nac[-1]
-        error_train = trainlossall_nac[-1]
-        #Have to do sacline here too
-        error_val *= y_nac_std/y_nac_unit_conv
-        error_train *= y_nac_std/y_nac_unit_conv
-    except:
-        print("Error: Can not evaluate fiterror from history")
-        
 
     try:
         #Safe fitting Error MAE
-        # pval = temp_model.predict(x=xval)
-        # ptrain = temp_model.predict(x=xtrain)
-        # pval = pval /y_nac_unit_conv* y_nac_std + y_nac_mean
-        # ptrain = ptrain /y_nac_unit_conv * y_nac_std + y_nac_mean
-        # error_val = np.mean(np.abs(pval-y_in[i_val]))
-        # error_train = np.mean(np.abs(pval-y_in[i_train]))
+        pval = temp_model.predict(xval)
+        ptrain = temp_model.predict(xtrain)
+        pval = pval * y_nac_std + y_nac_mean
+        ptrain = ptrain  * y_nac_std + y_nac_mean
+        ptrain2 = out_model.predict(x[i_train])
+        print("MAE between precomputed and full keras model:")      
+        print("NAC", np.mean(np.abs(ptrain-ptrain2))) 
+        error_val = np.mean(np.abs(pval-y_in[i_val]))
+        error_train = np.mean(np.abs(ptrain-y_in[i_train]))
+        print("error_val:" ,error_val)
+        print("error_train:",error_train )
         np.save(os.path.join(outdir,"fiterr_valid" +'_v%i'%i+ ".npy"),error_val)
         np.save(os.path.join(outdir,"fiterr_train" +'_v%i'%i+".npy"),error_train)
     except:
