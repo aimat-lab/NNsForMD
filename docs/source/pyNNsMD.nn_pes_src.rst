@@ -116,22 +116,6 @@ pyNNsMD.nn\_pes\_src.plot module
    :undoc-members:
    :show-inheritance:
 
-pyNNsMD.nn\_pes\_src.predict module
------------------------------------
-
-.. automodule:: pyNNsMD.nn_pes_src.predict
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-pyNNsMD.nn\_pes\_src.reg module
--------------------------------
-
-.. automodule:: pyNNsMD.nn_pes_src.reg
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 pyNNsMD.nn\_pes\_src.training\_eg module
 ----------------------------------------
 

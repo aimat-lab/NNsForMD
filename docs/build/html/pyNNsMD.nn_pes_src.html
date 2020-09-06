@@ -90,8 +90,8 @@
 </dd></dl>
 
 <dl class="py function">
-<dt id="pyNNsMD.nn_pes_src.activ.shifted_sofplus">
-<code class="sig-prename descclassname">pyNNsMD.nn_pes_src.activ.</code><code class="sig-name descname">shifted_sofplus</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">x</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyNNsMD.nn_pes_src.activ.shifted_sofplus" title="Permalink to this definition">¶</a></dt>
+<dt id="pyNNsMD.nn_pes_src.activ.shifted_softplus">
+<code class="sig-prename descclassname">pyNNsMD.nn_pes_src.activ.</code><code class="sig-name descname">shifted_softplus</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">x</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyNNsMD.nn_pes_src.activ.shifted_softplus" title="Permalink to this definition">¶</a></dt>
 <dd><p>Softplus function from tf.keras shifted downwards.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -389,7 +389,7 @@ GPU memory, so two fits can not run on same GPU.</p>
 </div>
 <div class="section" id="module-pyNNsMD.nn_pes_src.fit">
 <span id="pynnsmd-nn-pes-src-fit-module"></span><h2>pyNNsMD.nn_pes_src.fit module<a class="headerlink" href="#module-pyNNsMD.nn_pes_src.fit" title="Permalink to this headline">¶</a></h2>
-<p>Main interface to start <a href="#id35"><span class="problematic" id="id36">training_</span></a>??.py scripts in parallel. This can be solved in many different ways.
+<p>Main interface to start <a href="#id39"><span class="problematic" id="id40">training_</span></a>??.py scripts in parallel. This can be solved in many different ways.
 Possible are server solutions with slurm and MPI. Here only python subprocess are started to local machine.
 The training scripts are supposed to read all necessary information from folder.
 NOTE: Path information of folder and training scripts as well as os info are made fetchable but could fail in certain
@@ -791,23 +791,6 @@ method to support masking.</p>
 </dl>
 </dd></dl>
 
-<dl class="py method">
-<dt id="pyNNsMD.nn_pes_src.layers.InverseDistance.get_config">
-<code class="sig-name descname">get_config</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyNNsMD.nn_pes_src.layers.InverseDistance.get_config" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the config of the layer.</p>
-<p>A layer config is a Python dictionary (serializable)
-containing the configuration of a layer.
-The same layer can be reinstantiated later
-(without its trained weights) from this configuration.</p>
-<p>The config of a layer does not include connectivity
-information, nor the layer class name. These are handled
-by <cite>Network</cite> (one layer of abstraction above).</p>
-<dl class="simple">
-<dt>Returns:</dt><dd><p>Python dictionary.</p>
-</dd>
-</dl>
-</dd></dl>
-
 </dd></dl>
 
 <dl class="py class">
@@ -1043,12 +1026,12 @@ by <cite>Network</cite> (one layer of abstraction above).</p>
 </dd></dl>
 
 <dl class="py class">
-<dt id="pyNNsMD.nn_pes_src.layers.RevertStandardize">
-<em class="property">class </em><code class="sig-prename descclassname">pyNNsMD.nn_pes_src.layers.</code><code class="sig-name descname">RevertStandardize</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyNNsMD.nn_pes_src.layers.RevertStandardize" title="Permalink to this definition">¶</a></dt>
+<dt id="pyNNsMD.nn_pes_src.layers.RevertStandardizeLabels">
+<em class="property">class </em><code class="sig-prename descclassname">pyNNsMD.nn_pes_src.layers.</code><code class="sig-name descname">RevertStandardizeLabels</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyNNsMD.nn_pes_src.layers.RevertStandardizeLabels" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tensorflow.python.keras.engine.base_layer.Layer</span></code></p>
 <dl class="py method">
-<dt id="pyNNsMD.nn_pes_src.layers.RevertStandardize.build">
-<code class="sig-name descname">build</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">input_shape</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyNNsMD.nn_pes_src.layers.RevertStandardize.build" title="Permalink to this definition">¶</a></dt>
+<dt id="pyNNsMD.nn_pes_src.layers.RevertStandardizeLabels.build">
+<code class="sig-name descname">build</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">input_shape</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyNNsMD.nn_pes_src.layers.RevertStandardizeLabels.build" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates the variables of the layer (optional, for subclass implementers).</p>
 <p>This is a method that implementers of subclasses of <cite>Layer</cite> or <cite>Model</cite>
 can override if they need a state-creation step in-between
@@ -1065,8 +1048,8 @@ layer instantiation and layer call.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="pyNNsMD.nn_pes_src.layers.RevertStandardize.call">
-<code class="sig-name descname">call</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">inputs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyNNsMD.nn_pes_src.layers.RevertStandardize.call" title="Permalink to this definition">¶</a></dt>
+<dt id="pyNNsMD.nn_pes_src.layers.RevertStandardizeLabels.call">
+<code class="sig-name descname">call</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">inputs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyNNsMD.nn_pes_src.layers.RevertStandardizeLabels.call" title="Permalink to this definition">¶</a></dt>
 <dd><p>This is where the layer’s logic lives.</p>
 <p>Note here that <cite>call()</cite> method in <cite>tf.keras</cite> is little bit different
 from <cite>keras</cite> API. In <cite>keras</cite> API, you can pass support masking for
@@ -1082,8 +1065,107 @@ method to support masking.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="pyNNsMD.nn_pes_src.layers.RevertStandardize.get_config">
-<code class="sig-name descname">get_config</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyNNsMD.nn_pes_src.layers.RevertStandardize.get_config" title="Permalink to this definition">¶</a></dt>
+<dt id="pyNNsMD.nn_pes_src.layers.RevertStandardizeLabels.get_config">
+<code class="sig-name descname">get_config</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyNNsMD.nn_pes_src.layers.RevertStandardizeLabels.get_config" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the config of the layer.</p>
+<p>A layer config is a Python dictionary (serializable)
+containing the configuration of a layer.
+The same layer can be reinstantiated later
+(without its trained weights) from this configuration.</p>
+<p>The config of a layer does not include connectivity
+information, nor the layer class name. These are handled
+by <cite>Network</cite> (one layer of abstraction above).</p>
+<dl class="simple">
+<dt>Returns:</dt><dd><p>Python dictionary.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="pyNNsMD.nn_pes_src.layers.ScalarStandardize">
+<em class="property">class </em><code class="sig-prename descclassname">pyNNsMD.nn_pes_src.layers.</code><code class="sig-name descname">ScalarStandardize</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyNNsMD.nn_pes_src.layers.ScalarStandardize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tensorflow.python.keras.engine.base_layer.Layer</span></code></p>
+<dl class="py method">
+<dt id="pyNNsMD.nn_pes_src.layers.ScalarStandardize.build">
+<code class="sig-name descname">build</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">input_shape</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyNNsMD.nn_pes_src.layers.ScalarStandardize.build" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates the variables of the layer (optional, for subclass implementers).</p>
+<p>This is a method that implementers of subclasses of <cite>Layer</cite> or <cite>Model</cite>
+can override if they need a state-creation step in-between
+layer instantiation and layer call.</p>
+<p>This is typically used to create the weights of <cite>Layer</cite> subclasses.</p>
+<dl class="simple">
+<dt>Arguments:</dt><dd><dl class="simple">
+<dt>input_shape: Instance of <cite>TensorShape</cite>, or list of instances of</dt><dd><p><cite>TensorShape</cite> if the layer expects a list of inputs
+(one instance per input).</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyNNsMD.nn_pes_src.layers.ScalarStandardize.call">
+<code class="sig-name descname">call</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">inputs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyNNsMD.nn_pes_src.layers.ScalarStandardize.call" title="Permalink to this definition">¶</a></dt>
+<dd><p>This is where the layer’s logic lives.</p>
+<p>Note here that <cite>call()</cite> method in <cite>tf.keras</cite> is little bit different
+from <cite>keras</cite> API. In <cite>keras</cite> API, you can pass support masking for
+layers as additional arguments. Whereas <cite>tf.keras</cite> has <cite>compute_mask()</cite>
+method to support masking.</p>
+<dl class="simple">
+<dt>Arguments:</dt><dd><p>inputs: Input tensor, or list/tuple of input tensors.
+<a href="#id21"><span class="problematic" id="id22">**</span></a>kwargs: Additional keyword arguments. Currently unused.</p>
+</dd>
+<dt>Returns:</dt><dd><p>A tensor or list/tuple of tensors.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="pyNNsMD.nn_pes_src.layers.StandardizeFeatures">
+<em class="property">class </em><code class="sig-prename descclassname">pyNNsMD.nn_pes_src.layers.</code><code class="sig-name descname">StandardizeFeatures</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyNNsMD.nn_pes_src.layers.StandardizeFeatures" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tensorflow.python.keras.engine.base_layer.Layer</span></code></p>
+<dl class="py method">
+<dt id="pyNNsMD.nn_pes_src.layers.StandardizeFeatures.build">
+<code class="sig-name descname">build</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">input_shape</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyNNsMD.nn_pes_src.layers.StandardizeFeatures.build" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates the variables of the layer (optional, for subclass implementers).</p>
+<p>This is a method that implementers of subclasses of <cite>Layer</cite> or <cite>Model</cite>
+can override if they need a state-creation step in-between
+layer instantiation and layer call.</p>
+<p>This is typically used to create the weights of <cite>Layer</cite> subclasses.</p>
+<dl class="simple">
+<dt>Arguments:</dt><dd><dl class="simple">
+<dt>input_shape: Instance of <cite>TensorShape</cite>, or list of instances of</dt><dd><p><cite>TensorShape</cite> if the layer expects a list of inputs
+(one instance per input).</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyNNsMD.nn_pes_src.layers.StandardizeFeatures.call">
+<code class="sig-name descname">call</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">inputs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyNNsMD.nn_pes_src.layers.StandardizeFeatures.call" title="Permalink to this definition">¶</a></dt>
+<dd><p>This is where the layer’s logic lives.</p>
+<p>Note here that <cite>call()</cite> method in <cite>tf.keras</cite> is little bit different
+from <cite>keras</cite> API. In <cite>keras</cite> API, you can pass support masking for
+layers as additional arguments. Whereas <cite>tf.keras</cite> has <cite>compute_mask()</cite>
+method to support masking.</p>
+<dl class="simple">
+<dt>Arguments:</dt><dd><p>inputs: Input tensor, or list/tuple of input tensors.
+<a href="#id23"><span class="problematic" id="id24">**</span></a>kwargs: Additional keyword arguments. Currently unused.</p>
+</dd>
+<dt>Returns:</dt><dd><p>A tensor or list/tuple of tensors.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pyNNsMD.nn_pes_src.layers.StandardizeFeatures.get_config">
+<code class="sig-name descname">get_config</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyNNsMD.nn_pes_src.layers.StandardizeFeatures.get_config" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the config of the layer.</p>
 <p>A layer config is a Python dictionary (serializable)
 containing the configuration of a layer.
@@ -1104,11 +1186,143 @@ by <cite>Network</cite> (one layer of abstraction above).</p>
 <div class="section" id="module-pyNNsMD.nn_pes_src.legacy">
 <span id="pynnsmd-nn-pes-src-legacy-module"></span><h2>pyNNsMD.nn_pes_src.legacy module<a class="headerlink" href="#module-pyNNsMD.nn_pes_src.legacy" title="Permalink to this headline">¶</a></h2>
 <p>Old unused functions. May not be working anymore.</p>
-<p>&#64;author: Patrick</p>
+<dl class="py function">
+<dt id="pyNNsMD.nn_pes_src.legacy.call_model_energy_gradient_precomputed">
+<code class="sig-prename descclassname">pyNNsMD.nn_pes_src.legacy.</code><code class="sig-name descname">call_model_energy_gradient_precomputed</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ml</span></em>, <em class="sig-param"><span class="n">mf</span></em>, <em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">hyper</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyNNsMD.nn_pes_src.legacy.call_model_energy_gradient_precomputed" title="Permalink to this definition">¶</a></dt>
+<dd><p>Call energy plus gradient from separate FeatureModel and EnergyModelPrecomputed. Scales to original y.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ml</strong> (<em>tf.keras.model</em>) – Model for energy.</p></li>
+<li><p><strong>mf</strong> (<em>tf.keras.model</em>) – Model for features.</p></li>
+<li><p><strong>x</strong> (<em>tf.tensor</em>) – Coordinates in shape (batch,Atoms,3).</p></li>
+<li><p><strong>hyper</strong> (<em>dict</em>) – Hyperparameter dictionary. The default is hyper_predict_model_energy_gradient.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>temp_e</strong> (<em>tf.tensor</em>) – Calculated and rescaled energy.</p></li>
+<li><p><strong>temp_g</strong> (<em>tf.tensor</em>) – Calculated and rescaled gradient.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pyNNsMD.nn_pes_src.legacy.call_model_nac_precomputed">
+<code class="sig-prename descclassname">pyNNsMD.nn_pes_src.legacy.</code><code class="sig-name descname">call_model_nac_precomputed</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ml</span></em>, <em class="sig-param"><span class="n">mf</span></em>, <em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">hyper</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyNNsMD.nn_pes_src.legacy.call_model_nac_precomputed" title="Permalink to this definition">¶</a></dt>
+<dd><p>Call NAC from separate FeatureModel and NACModelPrecomputed. Scales to original y.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ml</strong> (<em>tf.keras.model</em>) – Model for NAC virutal potential.</p></li>
+<li><p><strong>mf</strong> (<em>tf.keras.model</em>) – Model for features.</p></li>
+<li><p><strong>x</strong> (<em>tf.tensor</em>) – Coordinates in shape (batch,Atoms,3).</p></li>
+<li><p><strong>hyper</strong> (<em>dict</em>) – Hyperparameter dictionary. The default is hyper_predict_model_nac.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>temp</strong> – Calculated and rescaled NAC.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>tf.tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py function">
 <dt id="pyNNsMD.nn_pes_src.legacy.compute_feature_derivative">
 <code class="sig-prename descclassname">pyNNsMD.nn_pes_src.legacy.</code><code class="sig-name descname">compute_feature_derivative</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">hyper</span></em>, <em class="sig-param"><span class="n">batch_size</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyNNsMD.nn_pes_src.legacy.compute_feature_derivative" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="py function">
+<dt id="pyNNsMD.nn_pes_src.legacy.predict_model_energy_gradient">
+<code class="sig-prename descclassname">pyNNsMD.nn_pes_src.legacy.</code><code class="sig-name descname">predict_model_energy_gradient</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ml</span></em>, <em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">batch_size_predict</span><span class="o">=</span><span class="default_value">32</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyNNsMD.nn_pes_src.legacy.predict_model_energy_gradient" title="Permalink to this definition">¶</a></dt>
+<dd><p>Predict energy plus gradient from EnergyModel. Scales to original y.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ml</strong> (<em>tf.keras.model</em>) – Model for energy.</p></li>
+<li><p><strong>x</strong> (<em>np.array</em>) – Coordinates in shape (batch,Atoms,3).</p></li>
+<li><p><strong>batch_size_predict</strong> (<em>int</em><em>, </em><em>optional</em>) – The batch size used in prediction.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>temp_e</strong> (<em>np.array</em>) – Calculated and rescaled energy.</p></li>
+<li><p><strong>temp_g</strong> (<em>np.arry</em>) – Calculated and rescaled gradient.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pyNNsMD.nn_pes_src.legacy.predict_model_energy_gradient_precomputed">
+<code class="sig-prename descclassname">pyNNsMD.nn_pes_src.legacy.</code><code class="sig-name descname">predict_model_energy_gradient_precomputed</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ml</span></em>, <em class="sig-param"><span class="n">mf</span></em>, <em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">hyper</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyNNsMD.nn_pes_src.legacy.predict_model_energy_gradient_precomputed" title="Permalink to this definition">¶</a></dt>
+<dd><p>Predict energy plus gradient from separate FeatureModel and EnergyModelPrecomputed. Scales to original y.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ml</strong> (<em>tf.keras.model</em>) – Model that accepts features and returns energy.</p></li>
+<li><p><strong>mf</strong> (<em>tf.keras.model</em>) – Model for features.</p></li>
+<li><p><strong>x</strong> (<em>np.array</em>) – Coordinates in shape (batch,Atoms,3).</p></li>
+<li><p><strong>hyper</strong> (<em>dict</em>) – Hyperparameter dictionary. The default is hyper_predict_model_energy_gradient.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>temp_e</strong> (<em>np.array</em>) – Calculated and scaled energy.</p></li>
+<li><p><strong>temp_g</strong> (<em>np.arry</em>) – Calculated and scaled gradient.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pyNNsMD.nn_pes_src.legacy.predict_model_nac">
+<code class="sig-prename descclassname">pyNNsMD.nn_pes_src.legacy.</code><code class="sig-name descname">predict_model_nac</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ml</span></em>, <em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">batch_size_predict</span><span class="o">=</span><span class="default_value">32</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyNNsMD.nn_pes_src.legacy.predict_model_nac" title="Permalink to this definition">¶</a></dt>
+<dd><p>Predict NAC. Scales to original y.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ml</strong> (<em>tf.keras.model</em>) – Model for NAC virutal potential.</p></li>
+<li><p><strong>x</strong> (<em>np.array</em>) – Coordinates in shape (batch,Atoms,3).</p></li>
+<li><p><strong>batch_size_predict</strong> (<em>int</em><em>, </em><em>optional</em>) – The batch size used in prediction.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>temp</strong> – Calculated and rescaled NAC.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>np.array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pyNNsMD.nn_pes_src.legacy.predict_model_nac_precomputed">
+<code class="sig-prename descclassname">pyNNsMD.nn_pes_src.legacy.</code><code class="sig-name descname">predict_model_nac_precomputed</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ml</span></em>, <em class="sig-param"><span class="n">mf</span></em>, <em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">hyper</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyNNsMD.nn_pes_src.legacy.predict_model_nac_precomputed" title="Permalink to this definition">¶</a></dt>
+<dd><p>Predict NAC from separate FeatureModel and NACModelPrecomputed. Scales to original y.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ml</strong> (<em>tf.keras.model</em>) – Model that accepts features and returns NAC virutal potential.</p></li>
+<li><p><strong>mf</strong> (<em>tf.keras.model</em>) – Model for features.</p></li>
+<li><p><strong>x</strong> (<em>np.array</em>) – Coordinates in shape (batch,Atoms,3).</p></li>
+<li><p><strong>hyper</strong> (<em>dict</em>) – Hyperparameter dictionary. The default is hyper_predict_model_nac.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>temp</strong> – Calculated and rescaled NAC.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>np.array</p>
+</dd>
+</dl>
+</dd></dl>
 
 </div>
 <div class="section" id="module-pyNNsMD.nn_pes_src.loss">
@@ -1244,7 +1458,7 @@ This typically includes the forward pass.</p>
 <cite>tf.distribute.Strategy</cite> settings), should be left to
 <cite>Model.make_predict_function</cite>, which can also be overridden.</p>
 <dl class="simple">
-<dt>Arguments:</dt><dd><p>data: A nested structure of <a href="#id21"><span class="problematic" id="id22">`</span></a>Tensor`s.</p>
+<dt>Arguments:</dt><dd><p>data: A nested structure of <a href="#id25"><span class="problematic" id="id26">`</span></a>Tensor`s.</p>
 </dd>
 <dt>Returns:</dt><dd><p>The result of one inference step, typically the output of calling the
 <cite>Model</cite> on data.</p>
@@ -1266,7 +1480,7 @@ updates.</p>
 <cite>tf.distribute.Strategy</cite> settings), should be left to
 <cite>Model.make_test_function</cite>, which can also be overridden.</p>
 <dl class="simple">
-<dt>Arguments:</dt><dd><p>data: A nested structure of <a href="#id23"><span class="problematic" id="id24">`</span></a>Tensor`s.</p>
+<dt>Arguments:</dt><dd><p>data: A nested structure of <a href="#id27"><span class="problematic" id="id28">`</span></a>Tensor`s.</p>
 </dd>
 <dt>Returns:</dt><dd><p>A <cite>dict</cite> containing values that will be passed to
 <cite>tf.keras.callbacks.CallbackList.on_train_batch_end</cite>. Typically, the
@@ -1288,7 +1502,7 @@ and metric updates.</p>
 <cite>tf.distribute.Strategy</cite> settings), should be left to
 <cite>Model.make_train_function</cite>, which can also be overridden.</p>
 <dl class="simple">
-<dt>Arguments:</dt><dd><p>data: A nested structure of <a href="#id25"><span class="problematic" id="id26">`</span></a>Tensor`s.</p>
+<dt>Arguments:</dt><dd><p>data: A nested structure of <a href="#id29"><span class="problematic" id="id30">`</span></a>Tensor`s.</p>
 </dd>
 <dt>Returns:</dt><dd><p>A <cite>dict</cite> containing values that will be passed to
 <cite>tf.keras.callbacks.CallbackList.on_train_batch_end</cite>. Typically, the
@@ -1302,11 +1516,15 @@ values of the <cite>Model</cite>’s metrics are returned. Example:
 
 <dl class="py function">
 <dt id="pyNNsMD.nn_pes_src.models_eg.create_model_energy_gradient_precomputed">
-<code class="sig-prename descclassname">pyNNsMD.nn_pes_src.models_eg.</code><code class="sig-name descname">create_model_energy_gradient_precomputed</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">hyper</span><span class="o">=</span><span class="default_value">{'general': {'info': '', 'main_dir': '', 'model_dir': '', 'model_type': 'energy_gradient', 'pyr_version': None}, 'model': {'Depth': 3, 'activ': 'leaky_softplus', 'activ_alpha': 0.03, 'angle_index': [], 'angle_mean': 0, 'angle_std': 1, 'atoms': 2, 'dihyd_index': [], 'dihyd_mean': 0, 'dihyd_std': 1, 'dropout': 0.005, 'invd_index': [], 'invd_mean': 0, 'invd_std': 1, 'learning_rate_compile': 0.001, 'loss_weights': [1, 10], 'nn_size': 1000, 'reg_l1': 1e-05, 'reg_l2': 1e-05, 'states': 1, 'use_bond_angles': False, 'use_dihyd_angles': False, 'use_dropout': False, 'use_invdist': True, 'use_reg_activ': None, 'use_reg_bias': None, 'use_reg_weight': None, 'y_energy_mean': 0, 'y_energy_std': 1, 'y_energy_unit_conv': 27.21138624598853, 'y_gradient_unit_conv': 51.42206747624915}, 'plots': {'unit_energy': 'eV', 'unit_gradient': 'eV/A'}, 'predict': {'batch_size_predict': 265, 'try_predict_hessian': False}, 'resample': {'batch_size': 64, 'delta_loss': 1e-05, 'epo': 10000, 'epoch_step_reduction': [4000, 3000, 2000, 1000], 'epomin': 5000, 'epostep': 10, 'factor_lr': 0.1, 'learning_rate_start': 0.001, 'learning_rate_step': [0.001, 0.0001, 1e-05, 1e-06], 'learning_rate_stop': 1e-06, 'loss_monitor': 'val_loss', 'max_time': 600, 'patience': 600, 'reinit_weights': True, 'use_early_callback': False, 'use_exp_callback': False, 'use_linear_callback': False, 'use_step_callback': True, 'val_disjoint': False, 'val_split': 0.05}, 'retraining': {'batch_size': 64, 'delta_loss': 1e-05, 'epo': 2000, 'epoch_step_reduction': [1000, 500, 250], 'epomin': 1000, 'epostep': 10, 'factor_lr': 0.1, 'learning_rate_start': 0.001, 'learning_rate_step': [0.0001, 1e-05, 1e-06], 'learning_rate_stop': 1e-06, 'loss_monitor': 'val_loss', 'max_time': 600, 'patience': 600, 'reinit_weights': False, 'use_early_callback': False, 'use_exp_callback': False, 'use_linear_callback': False, 'use_step_callback': True, 'val_disjoint': True, 'val_split': 0.1}, 'training': {'batch_size': 64, 'delta_loss': 1e-05, 'epo': 10000, 'epoch_step_reduction': [4000, 3000, 2000, 1000], 'epomin': 5000, 'epostep': 10, 'factor_lr': 0.1, 'learning_rate_start': 0.001, 'learning_rate_step': [0.001, 0.0001, 1e-05, 1e-06], 'learning_rate_stop': 1e-06, 'loss_monitor': 'val_loss', 'max_time': 600, 'patience': 600, 'reinit_weights': True, 'use_early_callback': False, 'use_exp_callback': False, 'use_linear_callback': False, 'use_step_callback': True, 'val_disjoint': True, 'val_split': 0.1}}</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyNNsMD.nn_pes_src.models_eg.create_model_energy_gradient_precomputed" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">pyNNsMD.nn_pes_src.models_eg.</code><code class="sig-name descname">create_model_energy_gradient_precomputed</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">hyper</span><span class="o">=</span><span class="default_value">{'Depth': 3, 'activ': {'class_name': 'leaky_softplus', 'config': {'alpha': 0.03}}, 'angle_index': [], 'atoms': 2, 'dihyd_index': [], 'dropout': 0.005, 'invd_index': True, 'nn_size': 1000, 'states': 1, 'use_dropout': False, 'use_reg_activ': None, 'use_reg_bias': None, 'use_reg_weight': None}</span></em>, <em class="sig-param"><span class="n">learning_rate_start</span><span class="o">=</span><span class="default_value">0.001</span></em>, <em class="sig-param"><span class="n">loss_weights</span><span class="o">=</span><span class="default_value">[1, 1]</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyNNsMD.nn_pes_src.models_eg.create_model_energy_gradient_precomputed" title="Permalink to this definition">¶</a></dt>
 <dd><p>Full Model y = model(feat) with feat=[f,df/dx] features and its derivative to coordinates x.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>hyper</strong> (<em>dict</em><em>, </em><em>optional</em>) – Hyper dictionary. The default is hyper_model_energy_gradient.</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>hyper</strong> (<em>dict</em><em>, </em><em>optional</em>) – Hyper dictionary. The default is hyper_model_energy_gradient.</p></li>
+<li><p><strong>learning_rate_start</strong> (<em>float</em><em>, </em><em>optional</em>) – Initial Learning rate in compile.</p></li>
+<li><p><strong>loss_weights</strong> (<em>list</em><em>, </em><em>optional</em>) – Weights between energy and gradient. defualt is [1,1]</p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p><strong>model</strong> – tf.keras model with coordinate input.</p>
@@ -1342,7 +1560,7 @@ This typically includes the forward pass.</p>
 <cite>tf.distribute.Strategy</cite> settings), should be left to
 <cite>Model.make_predict_function</cite>, which can also be overridden.</p>
 <dl class="simple">
-<dt>Arguments:</dt><dd><p>data: A nested structure of <a href="#id27"><span class="problematic" id="id28">`</span></a>Tensor`s.</p>
+<dt>Arguments:</dt><dd><p>data: A nested structure of <a href="#id31"><span class="problematic" id="id32">`</span></a>Tensor`s.</p>
 </dd>
 <dt>Returns:</dt><dd><p>The result of one inference step, typically the output of calling the
 <cite>Model</cite> on data.</p>
@@ -1425,7 +1643,7 @@ This typically includes the forward pass.</p>
 <cite>tf.distribute.Strategy</cite> settings), should be left to
 <cite>Model.make_predict_function</cite>, which can also be overridden.</p>
 <dl class="simple">
-<dt>Arguments:</dt><dd><p>data: A nested structure of <a href="#id29"><span class="problematic" id="id30">`</span></a>Tensor`s.</p>
+<dt>Arguments:</dt><dd><p>data: A nested structure of <a href="#id33"><span class="problematic" id="id34">`</span></a>Tensor`s.</p>
 </dd>
 <dt>Returns:</dt><dd><p>The result of one inference step, typically the output of calling the
 <cite>Model</cite> on data.</p>
@@ -1447,7 +1665,7 @@ updates.</p>
 <cite>tf.distribute.Strategy</cite> settings), should be left to
 <cite>Model.make_test_function</cite>, which can also be overridden.</p>
 <dl class="simple">
-<dt>Arguments:</dt><dd><p>data: A nested structure of <a href="#id31"><span class="problematic" id="id32">`</span></a>Tensor`s.</p>
+<dt>Arguments:</dt><dd><p>data: A nested structure of <a href="#id35"><span class="problematic" id="id36">`</span></a>Tensor`s.</p>
 </dd>
 <dt>Returns:</dt><dd><p>A <cite>dict</cite> containing values that will be passed to
 <cite>tf.keras.callbacks.CallbackList.on_train_batch_end</cite>. Typically, the
@@ -1469,7 +1687,7 @@ and metric updates.</p>
 <cite>tf.distribute.Strategy</cite> settings), should be left to
 <cite>Model.make_train_function</cite>, which can also be overridden.</p>
 <dl class="simple">
-<dt>Arguments:</dt><dd><p>data: A nested structure of <a href="#id33"><span class="problematic" id="id34">`</span></a>Tensor`s.</p>
+<dt>Arguments:</dt><dd><p>data: A nested structure of <a href="#id37"><span class="problematic" id="id38">`</span></a>Tensor`s.</p>
 </dd>
 <dt>Returns:</dt><dd><p>A <cite>dict</cite> containing values that will be passed to
 <cite>tf.keras.callbacks.CallbackList.on_train_batch_end</cite>. Typically, the
@@ -1482,33 +1700,15 @@ values of the <cite>Model</cite>’s metrics are returned. Example:
 </dd></dl>
 
 <dl class="py function">
-<dt id="pyNNsMD.nn_pes_src.models_nac.create_model_nac">
-<code class="sig-prename descclassname">pyNNsMD.nn_pes_src.models_nac.</code><code class="sig-name descname">create_model_nac</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">hyper</span><span class="o">=</span><span class="default_value">{'general': {'info': '', 'main_dir': '', 'model_dir': '', 'model_type': 'nac', 'pyr_version': None}, 'model': {'Depth': 3, 'activ': 'leaky_softplus', 'activ_alpha': 0.05, 'angle_index': [], 'angle_mean': 0, 'angle_std': 1, 'atoms': 2, 'dihyd_index': [], 'dihyd_mean': 0, 'dihyd_std': 1, 'dropout': 0.005, 'invd_index': [], 'invd_mean': 0, 'invd_std': 1, 'learning_rate_compile': 0.001, 'nn_size': 1000, 'phase_less_loss': True, 'reg_l1': 1e-05, 'reg_l2': 1e-05, 'states': 1, 'use_bond_angles': False, 'use_dihyd_angles': False, 'use_dropout': False, 'use_invdist': True, 'use_reg_activ': None, 'use_reg_bias': None, 'use_reg_weight': None, 'y_nac_mean': 0, 'y_nac_std': 1, 'y_nac_unit_conv': 1.8897261246229133}, 'plots': {'unit_nac': '1/A'}, 'predict': {'batch_size_predict': 265, 'try_predict_hessian': False}, 'resample': {'batch_size': 64, 'delta_loss': 1e-05, 'epo': 10000, 'epoch_step_reduction': [4000, 3000, 2000, 1000], 'epomin': 5000, 'epostep': 10, 'factor_lr': 0.1, 'learning_rate_start': 0.001, 'learning_rate_step': [0.001, 0.0001, 1e-05, 1e-06], 'learning_rate_stop': 1e-06, 'loss_monitor': 'val_loss', 'max_time': 600, 'patience': 600, 'phase_less_loss': True, 'pre_epo': 100, 'reinit_weights': True, 'use_early_callback': False, 'use_exp_callback': False, 'use_linear_callback': False, 'use_step_callback': True, 'val_disjoint': False, 'val_split': 0.05}, 'retraining': {'batch_size': 64, 'delta_loss': 1e-05, 'epo': 2000, 'epoch_step_reduction': [1000, 500, 250], 'epomin': 1000, 'epostep': 10, 'factor_lr': 0.1, 'learning_rate_start': 0.001, 'learning_rate_step': [0.0001, 1e-05, 1e-06], 'learning_rate_stop': 1e-06, 'loss_monitor': 'val_loss', 'max_time': 600, 'patience': 600, 'phase_less_loss': True, 'pre_epo': 100, 'reinit_weights': False, 'use_early_callback': False, 'use_exp_callback': False, 'use_linear_callback': False, 'use_step_callback': True, 'val_disjoint': True, 'val_split': 0.1}, 'training': {'batch_size': 64, 'delta_loss': 1e-05, 'epo': 10000, 'epoch_step_reduction': [4000, 3000, 2000, 1000], 'epomin': 5000, 'epostep': 10, 'factor_lr': 0.1, 'learning_rate_start': 0.001, 'learning_rate_step': [0.001, 0.0001, 1e-05, 1e-06], 'learning_rate_stop': 1e-06, 'loss_monitor': 'val_loss', 'max_time': 600, 'patience': 600, 'pre_epo': 100, 'reinit_weights': True, 'use_early_callback': False, 'use_exp_callback': False, 'use_linear_callback': False, 'use_step_callback': True, 'val_disjoint': True, 'val_split': 0.1}}</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyNNsMD.nn_pes_src.models_nac.create_model_nac" title="Permalink to this definition">¶</a></dt>
-<dd><p>Get full model with potential = model(x) with coordinates x. The gradients are computed
-by predict_step() or seperately in tf.GradientTape(). See subclassed NACModel().</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>hyper</strong> (<em>dict</em><em>, </em><em>optional</em>) – Hyper dictionary. The default is hyper_create_model_nac.</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p><strong>model</strong> – tf.keras model.</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>tf.keras.model</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
 <dt id="pyNNsMD.nn_pes_src.models_nac.create_model_nac_precomputed">
-<code class="sig-prename descclassname">pyNNsMD.nn_pes_src.models_nac.</code><code class="sig-name descname">create_model_nac_precomputed</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">hyper</span><span class="o">=</span><span class="default_value">{'general': {'info': '', 'main_dir': '', 'model_dir': '', 'model_type': 'nac', 'pyr_version': None}, 'model': {'Depth': 3, 'activ': 'leaky_softplus', 'activ_alpha': 0.05, 'angle_index': [], 'angle_mean': 0, 'angle_std': 1, 'atoms': 2, 'dihyd_index': [], 'dihyd_mean': 0, 'dihyd_std': 1, 'dropout': 0.005, 'invd_index': [], 'invd_mean': 0, 'invd_std': 1, 'learning_rate_compile': 0.001, 'nn_size': 1000, 'phase_less_loss': True, 'reg_l1': 1e-05, 'reg_l2': 1e-05, 'states': 1, 'use_bond_angles': False, 'use_dihyd_angles': False, 'use_dropout': False, 'use_invdist': True, 'use_reg_activ': None, 'use_reg_bias': None, 'use_reg_weight': None, 'y_nac_mean': 0, 'y_nac_std': 1, 'y_nac_unit_conv': 1.8897261246229133}, 'plots': {'unit_nac': '1/A'}, 'predict': {'batch_size_predict': 265, 'try_predict_hessian': False}, 'resample': {'batch_size': 64, 'delta_loss': 1e-05, 'epo': 10000, 'epoch_step_reduction': [4000, 3000, 2000, 1000], 'epomin': 5000, 'epostep': 10, 'factor_lr': 0.1, 'learning_rate_start': 0.001, 'learning_rate_step': [0.001, 0.0001, 1e-05, 1e-06], 'learning_rate_stop': 1e-06, 'loss_monitor': 'val_loss', 'max_time': 600, 'patience': 600, 'phase_less_loss': True, 'pre_epo': 100, 'reinit_weights': True, 'use_early_callback': False, 'use_exp_callback': False, 'use_linear_callback': False, 'use_step_callback': True, 'val_disjoint': False, 'val_split': 0.05}, 'retraining': {'batch_size': 64, 'delta_loss': 1e-05, 'epo': 2000, 'epoch_step_reduction': [1000, 500, 250], 'epomin': 1000, 'epostep': 10, 'factor_lr': 0.1, 'learning_rate_start': 0.001, 'learning_rate_step': [0.0001, 1e-05, 1e-06], 'learning_rate_stop': 1e-06, 'loss_monitor': 'val_loss', 'max_time': 600, 'patience': 600, 'phase_less_loss': True, 'pre_epo': 100, 'reinit_weights': False, 'use_early_callback': False, 'use_exp_callback': False, 'use_linear_callback': False, 'use_step_callback': True, 'val_disjoint': True, 'val_split': 0.1}, 'training': {'batch_size': 64, 'delta_loss': 1e-05, 'epo': 10000, 'epoch_step_reduction': [4000, 3000, 2000, 1000], 'epomin': 5000, 'epostep': 10, 'factor_lr': 0.1, 'learning_rate_start': 0.001, 'learning_rate_step': [0.001, 0.0001, 1e-05, 1e-06], 'learning_rate_stop': 1e-06, 'loss_monitor': 'val_loss', 'max_time': 600, 'patience': 600, 'pre_epo': 100, 'reinit_weights': True, 'use_early_callback': False, 'use_exp_callback': False, 'use_linear_callback': False, 'use_step_callback': True, 'val_disjoint': True, 'val_split': 0.1}}</span></em>, <em class="sig-param"><span class="n">force_phase_loss</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyNNsMD.nn_pes_src.models_nac.create_model_nac_precomputed" title="Permalink to this definition">¶</a></dt>
-<dd><p>Get precomputed withmodel y = model(feat) with feat=[f,df/dx] features
-and its derivative to coordinates x.</p>
+<code class="sig-prename descclassname">pyNNsMD.nn_pes_src.models_nac.</code><code class="sig-name descname">create_model_nac_precomputed</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">hyper</span><span class="o">=</span><span class="default_value">{'Depth': 3, 'activ': {'class_name': 'leaky_softplus', 'config': {'alpha': 0.03}}, 'angle_index': [], 'atoms': 2, 'dihyd_index': [], 'dropout': 0.005, 'invd_index': True, 'nn_size': 1000, 'states': 1, 'use_dropout': False, 'use_reg_activ': None, 'use_reg_bias': None, 'use_reg_weight': None}</span></em>, <em class="sig-param"><span class="n">learning_rate_start</span><span class="o">=</span><span class="default_value">0.001</span></em>, <em class="sig-param"><span class="n">make_phase_loss</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyNNsMD.nn_pes_src.models_nac.create_model_nac_precomputed" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get precomputed withmodel y = model(feat) with feat=[f,df/dx] features and its derivative to coordinates x.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>hyper</strong> (<em>dict</em><em>, </em><em>optional</em>) – Hyper dictionary. The default is hyper_create_model_nac.</p></li>
-<li><p><strong>force_phase_loss</strong> (<em>bool</em><em>, </em><em>optional</em>) – Use normal loss MSE regardless of hyper. The default is False.</p></li>
+<li><p><strong>hyper</strong> (<em>dict</em><em>, </em><em>optional</em>) – Hyper model dictionary. The default is hyper_create_model_nac.</p></li>
+<li><p><strong>learning_rate_start</strong> (<em>float</em><em>, </em><em>optional</em>) – Initial learning rate. Default is 1e-3,</p></li>
+<li><p><strong>make_phase_loss</strong> (<em>bool</em><em>, </em><em>optional</em>) – Use normal loss MSE regardless of hyper. The default is False.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -1692,153 +1892,6 @@ y_pred may have more models. Each np.array in y and y_pred must have same size.<
 </dd></dl>
 
 </div>
-<div class="section" id="module-pyNNsMD.nn_pes_src.predict">
-<span id="pynnsmd-nn-pes-src-predict-module"></span><h2>pyNNsMD.nn_pes_src.predict module<a class="headerlink" href="#module-pyNNsMD.nn_pes_src.predict" title="Permalink to this headline">¶</a></h2>
-<p>Functions for Model prediction that handles scaling for precomputed models.</p>
-<dl class="py function">
-<dt id="pyNNsMD.nn_pes_src.predict.call_model_energy_gradient_precomputed">
-<code class="sig-prename descclassname">pyNNsMD.nn_pes_src.predict.</code><code class="sig-name descname">call_model_energy_gradient_precomputed</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ml</span></em>, <em class="sig-param"><span class="n">mf</span></em>, <em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">hyper</span><span class="o">=</span><span class="default_value">{'general': {'info': '', 'main_dir': '', 'model_dir': '', 'model_type': 'energy_gradient', 'pyr_version': None}, 'model': {'Depth': 3, 'activ': 'leaky_softplus', 'activ_alpha': 0.03, 'angle_index': [], 'angle_mean': 0, 'angle_std': 1, 'atoms': 2, 'dihyd_index': [], 'dihyd_mean': 0, 'dihyd_std': 1, 'dropout': 0.005, 'invd_index': [], 'invd_mean': 0, 'invd_std': 1, 'learning_rate_compile': 0.001, 'loss_weights': [1, 10], 'nn_size': 1000, 'reg_l1': 1e-05, 'reg_l2': 1e-05, 'states': 1, 'use_bond_angles': False, 'use_dihyd_angles': False, 'use_dropout': False, 'use_invdist': True, 'use_reg_activ': None, 'use_reg_bias': None, 'use_reg_weight': None, 'y_energy_mean': 0, 'y_energy_std': 1, 'y_energy_unit_conv': 27.21138624598853, 'y_gradient_unit_conv': 51.42206747624915}, 'plots': {'unit_energy': 'eV', 'unit_gradient': 'eV/A'}, 'predict': {'batch_size_predict': 265, 'try_predict_hessian': False}, 'resample': {'batch_size': 64, 'delta_loss': 1e-05, 'epo': 10000, 'epoch_step_reduction': [4000, 3000, 2000, 1000], 'epomin': 5000, 'epostep': 10, 'factor_lr': 0.1, 'learning_rate_start': 0.001, 'learning_rate_step': [0.001, 0.0001, 1e-05, 1e-06], 'learning_rate_stop': 1e-06, 'loss_monitor': 'val_loss', 'max_time': 600, 'patience': 600, 'reinit_weights': True, 'use_early_callback': False, 'use_exp_callback': False, 'use_linear_callback': False, 'use_step_callback': True, 'val_disjoint': False, 'val_split': 0.05}, 'retraining': {'batch_size': 64, 'delta_loss': 1e-05, 'epo': 2000, 'epoch_step_reduction': [1000, 500, 250], 'epomin': 1000, 'epostep': 10, 'factor_lr': 0.1, 'learning_rate_start': 0.001, 'learning_rate_step': [0.0001, 1e-05, 1e-06], 'learning_rate_stop': 1e-06, 'loss_monitor': 'val_loss', 'max_time': 600, 'patience': 600, 'reinit_weights': False, 'use_early_callback': False, 'use_exp_callback': False, 'use_linear_callback': False, 'use_step_callback': True, 'val_disjoint': True, 'val_split': 0.1}, 'training': {'batch_size': 64, 'delta_loss': 1e-05, 'epo': 10000, 'epoch_step_reduction': [4000, 3000, 2000, 1000], 'epomin': 5000, 'epostep': 10, 'factor_lr': 0.1, 'learning_rate_start': 0.001, 'learning_rate_step': [0.001, 0.0001, 1e-05, 1e-06], 'learning_rate_stop': 1e-06, 'loss_monitor': 'val_loss', 'max_time': 600, 'patience': 600, 'reinit_weights': True, 'use_early_callback': False, 'use_exp_callback': False, 'use_linear_callback': False, 'use_step_callback': True, 'val_disjoint': True, 'val_split': 0.1}}</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyNNsMD.nn_pes_src.predict.call_model_energy_gradient_precomputed" title="Permalink to this definition">¶</a></dt>
-<dd><p>Call energy plus gradient from separate FeatureModel and EnergyModelPrecomputed. Scales to original y.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>ml</strong> (<em>tf.keras.model</em>) – Model for energy.</p></li>
-<li><p><strong>mf</strong> (<em>tf.keras.model</em>) – Model for features.</p></li>
-<li><p><strong>x</strong> (<em>tf.tensor</em>) – Coordinates in shape (batch,Atoms,3).</p></li>
-<li><p><strong>hyper</strong> (<em>dict</em><em>, </em><em>optional</em>) – Hyperparameter dictionary. The default is hyper_predict_model_energy_gradient.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p><ul class="simple">
-<li><p><strong>temp_e</strong> (<em>tf.tensor</em>) – Calculated and rescaled energy.</p></li>
-<li><p><strong>temp_g</strong> (<em>tf.tensor</em>) – Calculated and rescaled gradient.</p></li>
-</ul>
-</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt id="pyNNsMD.nn_pes_src.predict.call_model_nac_precomputed">
-<code class="sig-prename descclassname">pyNNsMD.nn_pes_src.predict.</code><code class="sig-name descname">call_model_nac_precomputed</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ml</span></em>, <em class="sig-param"><span class="n">mf</span></em>, <em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">hyper</span><span class="o">=</span><span class="default_value">{'general': {'info': '', 'main_dir': '', 'model_dir': '', 'model_type': 'nac', 'pyr_version': None}, 'model': {'Depth': 3, 'activ': 'leaky_softplus', 'activ_alpha': 0.05, 'angle_index': [], 'angle_mean': 0, 'angle_std': 1, 'atoms': 2, 'dihyd_index': [], 'dihyd_mean': 0, 'dihyd_std': 1, 'dropout': 0.005, 'invd_index': [], 'invd_mean': 0, 'invd_std': 1, 'learning_rate_compile': 0.001, 'nn_size': 1000, 'phase_less_loss': True, 'reg_l1': 1e-05, 'reg_l2': 1e-05, 'states': 1, 'use_bond_angles': False, 'use_dihyd_angles': False, 'use_dropout': False, 'use_invdist': True, 'use_reg_activ': None, 'use_reg_bias': None, 'use_reg_weight': None, 'y_nac_mean': 0, 'y_nac_std': 1, 'y_nac_unit_conv': 1.8897261246229133}, 'plots': {'unit_nac': '1/A'}, 'predict': {'batch_size_predict': 265, 'try_predict_hessian': False}, 'resample': {'batch_size': 64, 'delta_loss': 1e-05, 'epo': 10000, 'epoch_step_reduction': [4000, 3000, 2000, 1000], 'epomin': 5000, 'epostep': 10, 'factor_lr': 0.1, 'learning_rate_start': 0.001, 'learning_rate_step': [0.001, 0.0001, 1e-05, 1e-06], 'learning_rate_stop': 1e-06, 'loss_monitor': 'val_loss', 'max_time': 600, 'patience': 600, 'phase_less_loss': True, 'pre_epo': 100, 'reinit_weights': True, 'use_early_callback': False, 'use_exp_callback': False, 'use_linear_callback': False, 'use_step_callback': True, 'val_disjoint': False, 'val_split': 0.05}, 'retraining': {'batch_size': 64, 'delta_loss': 1e-05, 'epo': 2000, 'epoch_step_reduction': [1000, 500, 250], 'epomin': 1000, 'epostep': 10, 'factor_lr': 0.1, 'learning_rate_start': 0.001, 'learning_rate_step': [0.0001, 1e-05, 1e-06], 'learning_rate_stop': 1e-06, 'loss_monitor': 'val_loss', 'max_time': 600, 'patience': 600, 'phase_less_loss': True, 'pre_epo': 100, 'reinit_weights': False, 'use_early_callback': False, 'use_exp_callback': False, 'use_linear_callback': False, 'use_step_callback': True, 'val_disjoint': True, 'val_split': 0.1}, 'training': {'batch_size': 64, 'delta_loss': 1e-05, 'epo': 10000, 'epoch_step_reduction': [4000, 3000, 2000, 1000], 'epomin': 5000, 'epostep': 10, 'factor_lr': 0.1, 'learning_rate_start': 0.001, 'learning_rate_step': [0.001, 0.0001, 1e-05, 1e-06], 'learning_rate_stop': 1e-06, 'loss_monitor': 'val_loss', 'max_time': 600, 'patience': 600, 'pre_epo': 100, 'reinit_weights': True, 'use_early_callback': False, 'use_exp_callback': False, 'use_linear_callback': False, 'use_step_callback': True, 'val_disjoint': True, 'val_split': 0.1}}</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyNNsMD.nn_pes_src.predict.call_model_nac_precomputed" title="Permalink to this definition">¶</a></dt>
-<dd><p>Call NAC from separate FeatureModel and NACModelPrecomputed. Scales to original y.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>ml</strong> (<em>tf.keras.model</em>) – Model for NAC virutal potential.</p></li>
-<li><p><strong>mf</strong> (<em>tf.keras.model</em>) – Model for features.</p></li>
-<li><p><strong>x</strong> (<em>tf.tensor</em>) – Coordinates in shape (batch,Atoms,3).</p></li>
-<li><p><strong>hyper</strong> (<em>dict</em><em>, </em><em>optional</em>) – Hyperparameter dictionary. The default is hyper_predict_model_nac.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p><strong>temp</strong> – Calculated and rescaled NAC.</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>tf.tensor</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt id="pyNNsMD.nn_pes_src.predict.predict_model_energy_gradient">
-<code class="sig-prename descclassname">pyNNsMD.nn_pes_src.predict.</code><code class="sig-name descname">predict_model_energy_gradient</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ml</span></em>, <em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">batch_size_predict</span><span class="o">=</span><span class="default_value">32</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyNNsMD.nn_pes_src.predict.predict_model_energy_gradient" title="Permalink to this definition">¶</a></dt>
-<dd><p>Predict energy plus gradient from EnergyModel. Scales to original y.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>ml</strong> (<em>tf.keras.model</em>) – Model for energy.</p></li>
-<li><p><strong>x</strong> (<em>np.array</em>) – Coordinates in shape (batch,Atoms,3).</p></li>
-<li><p><strong>batch_size_predict</strong> (<em>int</em><em>, </em><em>optional</em>) – The batch size used in prediction.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p><ul class="simple">
-<li><p><strong>temp_e</strong> (<em>np.array</em>) – Calculated and rescaled energy.</p></li>
-<li><p><strong>temp_g</strong> (<em>np.arry</em>) – Calculated and rescaled gradient.</p></li>
-</ul>
-</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt id="pyNNsMD.nn_pes_src.predict.predict_model_energy_gradient_precomputed">
-<code class="sig-prename descclassname">pyNNsMD.nn_pes_src.predict.</code><code class="sig-name descname">predict_model_energy_gradient_precomputed</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ml</span></em>, <em class="sig-param"><span class="n">mf</span></em>, <em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">hyper</span><span class="o">=</span><span class="default_value">{'general': {'info': '', 'main_dir': '', 'model_dir': '', 'model_type': 'energy_gradient', 'pyr_version': None}, 'model': {'Depth': 3, 'activ': 'leaky_softplus', 'activ_alpha': 0.03, 'angle_index': [], 'angle_mean': 0, 'angle_std': 1, 'atoms': 2, 'dihyd_index': [], 'dihyd_mean': 0, 'dihyd_std': 1, 'dropout': 0.005, 'invd_index': [], 'invd_mean': 0, 'invd_std': 1, 'learning_rate_compile': 0.001, 'loss_weights': [1, 10], 'nn_size': 1000, 'reg_l1': 1e-05, 'reg_l2': 1e-05, 'states': 1, 'use_bond_angles': False, 'use_dihyd_angles': False, 'use_dropout': False, 'use_invdist': True, 'use_reg_activ': None, 'use_reg_bias': None, 'use_reg_weight': None, 'y_energy_mean': 0, 'y_energy_std': 1, 'y_energy_unit_conv': 27.21138624598853, 'y_gradient_unit_conv': 51.42206747624915}, 'plots': {'unit_energy': 'eV', 'unit_gradient': 'eV/A'}, 'predict': {'batch_size_predict': 265, 'try_predict_hessian': False}, 'resample': {'batch_size': 64, 'delta_loss': 1e-05, 'epo': 10000, 'epoch_step_reduction': [4000, 3000, 2000, 1000], 'epomin': 5000, 'epostep': 10, 'factor_lr': 0.1, 'learning_rate_start': 0.001, 'learning_rate_step': [0.001, 0.0001, 1e-05, 1e-06], 'learning_rate_stop': 1e-06, 'loss_monitor': 'val_loss', 'max_time': 600, 'patience': 600, 'reinit_weights': True, 'use_early_callback': False, 'use_exp_callback': False, 'use_linear_callback': False, 'use_step_callback': True, 'val_disjoint': False, 'val_split': 0.05}, 'retraining': {'batch_size': 64, 'delta_loss': 1e-05, 'epo': 2000, 'epoch_step_reduction': [1000, 500, 250], 'epomin': 1000, 'epostep': 10, 'factor_lr': 0.1, 'learning_rate_start': 0.001, 'learning_rate_step': [0.0001, 1e-05, 1e-06], 'learning_rate_stop': 1e-06, 'loss_monitor': 'val_loss', 'max_time': 600, 'patience': 600, 'reinit_weights': False, 'use_early_callback': False, 'use_exp_callback': False, 'use_linear_callback': False, 'use_step_callback': True, 'val_disjoint': True, 'val_split': 0.1}, 'training': {'batch_size': 64, 'delta_loss': 1e-05, 'epo': 10000, 'epoch_step_reduction': [4000, 3000, 2000, 1000], 'epomin': 5000, 'epostep': 10, 'factor_lr': 0.1, 'learning_rate_start': 0.001, 'learning_rate_step': [0.001, 0.0001, 1e-05, 1e-06], 'learning_rate_stop': 1e-06, 'loss_monitor': 'val_loss', 'max_time': 600, 'patience': 600, 'reinit_weights': True, 'use_early_callback': False, 'use_exp_callback': False, 'use_linear_callback': False, 'use_step_callback': True, 'val_disjoint': True, 'val_split': 0.1}}</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyNNsMD.nn_pes_src.predict.predict_model_energy_gradient_precomputed" title="Permalink to this definition">¶</a></dt>
-<dd><p>Predict energy plus gradient from separate FeatureModel and EnergyModelPrecomputed. Scales to original y.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>ml</strong> (<em>tf.keras.model</em>) – Model that accepts features and returns energy.</p></li>
-<li><p><strong>mf</strong> (<em>tf.keras.model</em>) – Model for features.</p></li>
-<li><p><strong>x</strong> (<em>np.array</em>) – Coordinates in shape (batch,Atoms,3).</p></li>
-<li><p><strong>hyper</strong> (<em>dict</em><em>, </em><em>optional</em>) – Hyperparameter dictionary. The default is hyper_predict_model_energy_gradient.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p><ul class="simple">
-<li><p><strong>temp_e</strong> (<em>np.array</em>) – Calculated and scaled energy.</p></li>
-<li><p><strong>temp_g</strong> (<em>np.arry</em>) – Calculated and scaled gradient.</p></li>
-</ul>
-</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt id="pyNNsMD.nn_pes_src.predict.predict_model_nac">
-<code class="sig-prename descclassname">pyNNsMD.nn_pes_src.predict.</code><code class="sig-name descname">predict_model_nac</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ml</span></em>, <em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">batch_size_predict</span><span class="o">=</span><span class="default_value">32</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyNNsMD.nn_pes_src.predict.predict_model_nac" title="Permalink to this definition">¶</a></dt>
-<dd><p>Predict NAC. Scales to original y.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>ml</strong> (<em>tf.keras.model</em>) – Model for NAC virutal potential.</p></li>
-<li><p><strong>x</strong> (<em>np.array</em>) – Coordinates in shape (batch,Atoms,3).</p></li>
-<li><p><strong>batch_size_predict</strong> (<em>int</em><em>, </em><em>optional</em>) – The batch size used in prediction.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p><strong>temp</strong> – Calculated and rescaled NAC.</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>np.array</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt id="pyNNsMD.nn_pes_src.predict.predict_model_nac_precomputed">
-<code class="sig-prename descclassname">pyNNsMD.nn_pes_src.predict.</code><code class="sig-name descname">predict_model_nac_precomputed</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ml</span></em>, <em class="sig-param"><span class="n">mf</span></em>, <em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">hyper</span><span class="o">=</span><span class="default_value">{'general': {'info': '', 'main_dir': '', 'model_dir': '', 'model_type': 'nac', 'pyr_version': None}, 'model': {'Depth': 3, 'activ': 'leaky_softplus', 'activ_alpha': 0.05, 'angle_index': [], 'angle_mean': 0, 'angle_std': 1, 'atoms': 2, 'dihyd_index': [], 'dihyd_mean': 0, 'dihyd_std': 1, 'dropout': 0.005, 'invd_index': [], 'invd_mean': 0, 'invd_std': 1, 'learning_rate_compile': 0.001, 'nn_size': 1000, 'phase_less_loss': True, 'reg_l1': 1e-05, 'reg_l2': 1e-05, 'states': 1, 'use_bond_angles': False, 'use_dihyd_angles': False, 'use_dropout': False, 'use_invdist': True, 'use_reg_activ': None, 'use_reg_bias': None, 'use_reg_weight': None, 'y_nac_mean': 0, 'y_nac_std': 1, 'y_nac_unit_conv': 1.8897261246229133}, 'plots': {'unit_nac': '1/A'}, 'predict': {'batch_size_predict': 265, 'try_predict_hessian': False}, 'resample': {'batch_size': 64, 'delta_loss': 1e-05, 'epo': 10000, 'epoch_step_reduction': [4000, 3000, 2000, 1000], 'epomin': 5000, 'epostep': 10, 'factor_lr': 0.1, 'learning_rate_start': 0.001, 'learning_rate_step': [0.001, 0.0001, 1e-05, 1e-06], 'learning_rate_stop': 1e-06, 'loss_monitor': 'val_loss', 'max_time': 600, 'patience': 600, 'phase_less_loss': True, 'pre_epo': 100, 'reinit_weights': True, 'use_early_callback': False, 'use_exp_callback': False, 'use_linear_callback': False, 'use_step_callback': True, 'val_disjoint': False, 'val_split': 0.05}, 'retraining': {'batch_size': 64, 'delta_loss': 1e-05, 'epo': 2000, 'epoch_step_reduction': [1000, 500, 250], 'epomin': 1000, 'epostep': 10, 'factor_lr': 0.1, 'learning_rate_start': 0.001, 'learning_rate_step': [0.0001, 1e-05, 1e-06], 'learning_rate_stop': 1e-06, 'loss_monitor': 'val_loss', 'max_time': 600, 'patience': 600, 'phase_less_loss': True, 'pre_epo': 100, 'reinit_weights': False, 'use_early_callback': False, 'use_exp_callback': False, 'use_linear_callback': False, 'use_step_callback': True, 'val_disjoint': True, 'val_split': 0.1}, 'training': {'batch_size': 64, 'delta_loss': 1e-05, 'epo': 10000, 'epoch_step_reduction': [4000, 3000, 2000, 1000], 'epomin': 5000, 'epostep': 10, 'factor_lr': 0.1, 'learning_rate_start': 0.001, 'learning_rate_step': [0.001, 0.0001, 1e-05, 1e-06], 'learning_rate_stop': 1e-06, 'loss_monitor': 'val_loss', 'max_time': 600, 'patience': 600, 'pre_epo': 100, 'reinit_weights': True, 'use_early_callback': False, 'use_exp_callback': False, 'use_linear_callback': False, 'use_step_callback': True, 'val_disjoint': True, 'val_split': 0.1}}</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyNNsMD.nn_pes_src.predict.predict_model_nac_precomputed" title="Permalink to this definition">¶</a></dt>
-<dd><p>Predict NAC from separate FeatureModel and NACModelPrecomputed. Scales to original y.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>ml</strong> (<em>tf.keras.model</em>) – Model that accepts features and returns NAC virutal potential.</p></li>
-<li><p><strong>mf</strong> (<em>tf.keras.model</em>) – Model for features.</p></li>
-<li><p><strong>x</strong> (<em>np.array</em>) – Coordinates in shape (batch,Atoms,3).</p></li>
-<li><p><strong>hyper</strong> (<em>dict</em><em>, </em><em>optional</em>) – Hyperparameter dictionary. The default is hyper_predict_model_nac.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p><strong>temp</strong> – Calculated and rescaled NAC.</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>np.array</p>
-</dd>
-</dl>
-</dd></dl>
-
-</div>
-<div class="section" id="module-pyNNsMD.nn_pes_src.reg">
-<span id="pynnsmd-nn-pes-src-reg-module"></span><h2>pyNNsMD.nn_pes_src.reg module<a class="headerlink" href="#module-pyNNsMD.nn_pes_src.reg" title="Permalink to this headline">¶</a></h2>
-<p>Define forms of regularization</p>
-<dl class="py function">
-<dt id="pyNNsMD.nn_pes_src.reg.identify_regularizer">
-<code class="sig-prename descclassname">pyNNsMD.nn_pes_src.reg.</code><code class="sig-name descname">identify_regularizer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">reg_str</span></em>, <em class="sig-param"><span class="n">l1_str</span></em>, <em class="sig-param"><span class="n">l2_str</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyNNsMD.nn_pes_src.reg.identify_regularizer" title="Permalink to this definition">¶</a></dt>
-<dd><p>Identify regularization. This is redundant and will be replaced by tf.keras.regularizatio.get().</p>
-</dd></dl>
-
-</div>
 <div class="section" id="pynnsmd-nn-pes-src-training-eg-module">
 <h2>pyNNsMD.nn_pes_src.training_eg module<a class="headerlink" href="#pynnsmd-nn-pes-src-training-eg-module" title="Permalink to this headline">¶</a></h2>
 </div>
@@ -1875,8 +1928,6 @@ y_pred may have more models. Each np.array in y and y_pred must have same size.<
 <li><a class="reference internal" href="#module-pyNNsMD.nn_pes_src.models_nac">pyNNsMD.nn_pes_src.models_nac module</a></li>
 <li><a class="reference internal" href="#module-pyNNsMD.nn_pes_src.oracle">pyNNsMD.nn_pes_src.oracle module</a></li>
 <li><a class="reference internal" href="#module-pyNNsMD.nn_pes_src.plot">pyNNsMD.nn_pes_src.plot module</a></li>
-<li><a class="reference internal" href="#module-pyNNsMD.nn_pes_src.predict">pyNNsMD.nn_pes_src.predict module</a></li>
-<li><a class="reference internal" href="#module-pyNNsMD.nn_pes_src.reg">pyNNsMD.nn_pes_src.reg module</a></li>
 <li><a class="reference internal" href="#pynnsmd-nn-pes-src-training-eg-module">pyNNsMD.nn_pes_src.training_eg module</a></li>
 <li><a class="reference internal" href="#pynnsmd-nn-pes-src-training-nac-module">pyNNsMD.nn_pes_src.training_nac module</a></li>
 <li><a class="reference internal" href="#module-pyNNsMD.nn_pes_src">Module contents</a></li>
