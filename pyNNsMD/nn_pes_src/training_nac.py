@@ -220,7 +220,7 @@ def train_model_nac(i=0, outdir=None, mode = 'training'):
     
     #Actutal Fitting
     temp_model.get_layer('feat_std').set_weights([feat_x_mean,feat_x_std])   
-    temp_model.y_nac_std = tf.constant(y_nac_std,dtype=tf.float32) # For metrics
+    temp_model.metrics_y_nac_std = tf.constant(y_nac_std,dtype=tf.float32) # For metrics
     temp_model.summary()
     
     print("Info: All-data NAC std",np.std(y_in,axis=(0,3),keepdims=True)[0,:,:,0])
