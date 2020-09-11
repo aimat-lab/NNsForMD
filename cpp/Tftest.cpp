@@ -28,7 +28,7 @@ int main() {
         std::cout << result[i] << std::endl;
     }
     std::cout << std::endl;
-    // run saved_model_cli show --dir C:\\Users\\Patrick\\source\\repos\\Tftest\\Tftest\\SavedModel_v0 --tag_set serve --signature_def serving_default in cmd prompt
+    // run saved_model_cli show --dir C:\\Users\\Patrick\\source\\repos\\Tftest\\Tftest\\SavedModel_v0 --tag_set serve --signature_def serving_default
 
     Tensor input{ model, "serving_default_input_1" }; 
     Tensor prediction{ model, "StatefulPartitionedCall"};
