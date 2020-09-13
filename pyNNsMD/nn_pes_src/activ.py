@@ -64,7 +64,7 @@ def identify_keras_activation(instr,alpha=None,beta=None):
 
     """
     if(instr == 'shifted_softplus'):
-        activ = shifted_sofplus
+        activ = shifted_softplus
     elif(instr == 'leaky_softplus'):
         activ = leaky_softplus(alpha)
     else:

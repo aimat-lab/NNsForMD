@@ -10,34 +10,14 @@ import tensorflow.keras as ks
 
 from pyNNsMD.nn_pes_src.activ import identify_keras_activation,leaky_softplus,shifted_softplus
 
-class ScalarStandardize(ks.layers.Layer):
-    def __init__(self, **kwargs):
-        super(ScalarStandardize, self).__init__(**kwargs)  
-    def build(self, input_shape):
-        super(ScalarStandardize, self).build(input_shape)  
-        self.wmean = self.add_weight(
-            'mean',
-            shape=None,
-            initializer=tf.keras.initializers.Zeros(),
-            dtype=self.dtype,
-            trainable=False)         
-        self.wstd = self.add_weight(
-            'std',
-            shape=None,
-            initializer= tf.keras.initializers.Ones(),
-            dtype=self.dtype,
-            trainable=False)        
-    def call(self, inputs):
-        out = (inputs-self.wmean)/(self.wstd)
-        return out 
     
 
-class StandardizeFeatures(ks.layers.Layer):
+class ConstLayerNormalization(ks.layers.Layer):
     def __init__(self, axis=-1 , **kwargs):
-        super(StandardizeFeatures, self).__init__(**kwargs)          
+        super(ConstLayerNormalization, self).__init__(**kwargs)          
         self.axis = axis
     def build(self, input_shape):
-        super(StandardizeFeatures, self).build(input_shape) 
+        super(ConstLayerNormalization, self).build(input_shape) 
         outshape = [1]*len(input_shape)
         if(isinstance(self.axis, int) == True):
             outshape[self.axis] = input_shape[self.axis]
@@ -62,44 +42,11 @@ class StandardizeFeatures(ks.layers.Layer):
         out = (inputs-self.wmean)/(self.wstd + tf.keras.backend.epsilon())
         return out 
     def get_config(self):
-        config = super(StandardizeFeatures, self).get_config()
+        config = super(ConstLayerNormalization, self).get_config()
         config.update({"axs": self.axis})
         return config 
 
 
-class RevertStandardizeLabels(ks.layers.Layer):
-    def __init__(self,axis = -1, **kwargs):
-        super(RevertStandardizeLabels, self).__init__(**kwargs)  
-        self.axis= axis
-    def build(self, input_shape):
-        super(RevertStandardizeLabels, self).build(input_shape)
-        outshape = [1]*len(input_shape)
-        if(isinstance(self.axis, int) == True):
-            outshape[self.axis] = input_shape[self.axis]
-        elif(isinstance(self.axis, list) == True or isinstance(self.axis, tuple) == True ):
-            for i in self.axis:
-                outshape[i] = input_shape[i]
-        else:
-            raise TypeError("Invalid axis argument")
-        self.wmean = self.add_weight(
-            'mean',
-            shape=outshape,
-            initializer=tf.keras.initializers.Zeros(),
-            dtype=self.dtype,
-            trainable=False)         
-        self.wstd = self.add_weight(
-            'std',
-            shape=outshape,
-            initializer= tf.keras.initializers.Ones(),
-            dtype=self.dtype,
-            trainable=False)          
-    def call(self, inputs):
-        out = inputs*(self.wstd)+ self.wmean
-        return out
-    def get_config(self):
-        config = super(RevertStandardizeLabels, self).get_config()
-        config.update({"axis": self.axis})
-        return config
 
 
 class MLP(ks.layers.Layer):

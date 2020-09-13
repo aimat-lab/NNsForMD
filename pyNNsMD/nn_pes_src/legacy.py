@@ -90,34 +90,7 @@ def predict_model_energy_gradient_precomputed(ml,mf,x,hyper):
     return temp_e,temp_g
 
 
-def predict_model_energy_gradient(ml,x,batch_size_predict =32):
-    """
-    Predict energy plus gradient from EnergyModel. Scales to original y.
 
-    Parameters
-    ----------
-    ml : tf.keras.model
-        Model for energy.
-    x : np.array
-        Coordinates in shape (batch,Atoms,3).
-    batch_size_predict : int, optional
-        The batch size used in prediction.
-
-    Returns
-    -------
-    temp_e : np.array
-        Calculated and rescaled energy.
-    temp_g : np.arry
-        Calculated and rescaled gradient.
-
-    """
-    #Prediction
-    temp_e,temp_g  = ml.predict(x,batch_size = batch_size_predict)
-    #Scaling
-    #temp_e = temp_e / y_energy_unit_conv * y_energy_std + y_energy_mean #/27.21138624598853-156.22214381375588
-    #temp_g = temp_g / y_gradient_unit_conv * y_energy_std
-
-    return temp_e,temp_g
 
 
 def predict_model_nac_precomputed(ml,mf,x,hyper):
@@ -154,7 +127,50 @@ def predict_model_nac_precomputed(ml,mf,x,hyper):
     return temp
 
 
-def predict_model_nac(ml,x,batch_size_predict=32):
+
+
+
+def predict_model_energy_gradient(ml,x,batch_size =32,scaler = {}):
+    """
+    Predict energy plus gradient from EnergyModel. Scales to original y.
+
+    Parameters
+    ----------
+    ml : tf.keras.model
+        Model for energy.
+    x : np.array
+        Coordinates in shape (batch,Atoms,3).
+    batch_size : int, optional
+        The batch size used in prediction.
+    scaler : dict
+        Dictionary of scaling information. Default is {}.
+
+    Returns
+    -------
+    temp_e : np.array
+        Calculated and rescaled energy.
+    temp_g : np.arry
+        Calculated and rescaled gradient.
+
+    """
+    y_energy_std = scaler['energy_std']
+    y_energy_mean = scaler['energy_mean']
+    y_gradient_std = scaler['gradient_std']
+    y_gradient_mean = scaler['gradient_mean']
+    x_mean = scaler['x_mean']
+    x_std = scaler['x_std']
+    
+    #Prediction
+    x_res = (x -x_mean)/x_std
+    temp_e,temp_g  = ml.predict(x_res,batch_size = batch_size)
+    #Scaling
+    temp_e = temp_e * y_energy_std + y_energy_mean 
+    temp_g = temp_g  * y_gradient_std
+
+    return temp_e,temp_g
+
+
+def predict_model_nac(ml,x,batch_size=32,scaler = {}):
     """
     Predict NAC. Scales to original y.
 
@@ -164,8 +180,10 @@ def predict_model_nac(ml,x,batch_size_predict=32):
         Model for NAC virutal potential.
     x : np.array
         Coordinates in shape (batch,Atoms,3).
-    batch_size_predict : int, optional
+    batch_size : int, optional
         The batch size used in prediction.
+    scaler : dict
+        Dictionary of scaling information. Default is {}.
 
     Returns
     -------
@@ -173,29 +191,33 @@ def predict_model_nac(ml,x,batch_size_predict=32):
         Calculated and rescaled NAC.
 
     """           
-    #feat,feat_grad = compute_feature_derivative(x,hyper[0])    
+    y_nac_std = scaler['nac_std']
+    y_nac_mean = scaler['nac_mean']
+    x_mean = scaler['x_mean']
+    x_std = scaler['x_std']
+    
+    
     #Predcition 
-    temp = ml.predict(x,batch_size = batch_size_predict)    
+    x_res = x
+    temp = ml.predict(x_res,batch_size = batch_size)    
     #Scaling
-    #temp = temp/y_nac_unit_conv* y_nac_std + y_nac_mean
+    temp = temp* y_nac_std + y_nac_mean
     return temp
 
 
 @tf.function
-def call_model_energy_gradient_precomputed(ml,mf,x,hyper):
+def call_model_energy_gradient(m,x,scaler={}):
     """
-    Call energy plus gradient from separate FeatureModel and EnergyModelPrecomputed. Scales to original y.
+    Call energy plus gradient from EnergyModel. Scales to original y.
 
     Parameters
     ----------
-    ml : tf.keras.model
+    m : tf.keras.model
         Model for energy.
-    mf : tf.keras.model
-        Model for features.
     x : tf.tensor
         Coordinates in shape (batch,Atoms,3).
-    hyper : dict
-        Hyperparameter dictionary. The default is hyper_predict_model_energy_gradient.
+    scaler : dict
+        Dictionary of scaling information. Default is {}.
 
     Returns
     -------
@@ -205,45 +227,41 @@ def call_model_energy_gradient_precomputed(ml,mf,x,hyper):
         Calculated and rescaled gradient.
 
     """
-    y_energy_unit_conv = hyper['model']['y_energy_unit_conv']
-    y_gradient_unit_conv = hyper['model']['y_gradient_unit_conv']
-    y_energy_std = hyper['model']['y_energy_std']
-    y_energy_mean = hyper['model']['y_energy_mean']
+    #Note tf boradcasting should work the same here
+    y_energy_std = tf.constant(scaler['energy_std'])
+    y_energy_mean = tf.constant(scaler['energy_mean'])
+    y_gradient_std = tf.constant(scaler['gradient_std'])
+    y_gradient_mean = tf.constant(scaler['gradient_mean'])
+    x_mean = tf.constant(scaler['x_mean'])
+    x_std = tf.constant(scaler['x_std'])
     
-    #feat,feat_grad = compute_feature_derivative(x,hyper)    
+    #Xscaling
+    x_rescale = (x-x_mean) / (x_std)
       
-    #Prediction
-    
-    with tf.GradientTape() as tape2:
-        tape2.watch(x)
-        feat = mf(x,training=False)
-        temp_e,_ = ml(feat,training=False) 
-    temp_g = tape2.batch_jacobian(temp_e, x)
-    
-    
+    #Model prediction, feature normalization is within model
+    temp_e,temp_g = m(x_rescale,training=False)
+
     #Scaling
-    temp_e = temp_e / y_energy_unit_conv * y_energy_std + y_energy_mean #/27.21138624598853-156.22214381375588
-    temp_g = temp_g / y_gradient_unit_conv * y_energy_std
+    temp_e = temp_e * y_energy_std + y_energy_mean 
+    temp_g = temp_g * y_gradient_std  + y_gradient_mean
 
     
     return temp_e,temp_g
 
 
 @tf.function
-def call_model_nac_precomputed(ml,mf,x,hyper):    
+def call_model_nac(m,x,scaler={}):    
     """
-    Call NAC from separate FeatureModel and NACModelPrecomputed. Scales to original y.
+    Call NAC from NACModel. Scales to original y.
 
     Parameters
     ----------
-    ml : tf.keras.model
+    m : tf.keras.model
         Model for NAC virutal potential.
-    mf : tf.keras.model
-        Model for features.
     x : tf.tensor
         Coordinates in shape (batch,Atoms,3).
-    hyper : dict
-        Hyperparameter dictionary. The default is hyper_predict_model_nac.
+    scaler : dict
+        Dictionary of scaling information. Default is {}.
 
     Returns
     -------
@@ -251,24 +269,21 @@ def call_model_nac_precomputed(ml,mf,x,hyper):
         Calculated and rescaled NAC.
 
     """  
-    y_nac_unit_conv = hyper['model']['y_nac_unit_conv']
-    y_nac_std = hyper['model']['y_nac_std'] 
-    y_nac_mean = hyper['model']['y_nac_mean']
-    y_states = hyper['model']['states']
-    y_atoms = hyper['model']['atoms']
+    #Note tf boradcasting should work the same here
+    y_nac_std = tf.constant(scaler['nac_std'])
+    y_nac_mean = tf.constant(scaler['nac_mean'])
+    x_mean = tf.constant(scaler['x_mean'])
+    x_std = tf.constant(scaler['x_std'])
     
-    #feat,feat_grad = compute_feature_derivative(x,hyper[0])
-    with tf.GradientTape() as tape2:
-        tape2.watch(x)
-        feat = mf(x,training=False)
-        atpot = ml(feat,training=False) 
-        atpot = tf.reshape(atpot, (tf.shape(atpot)[0],y_states,y_atoms))
-    grad = tape2.batch_jacobian(atpot, x)   
-    temp = ks.backend.concatenate([ks.backend.expand_dims(grad[:,:,i,i,:],axis=2) for i in range(y_atoms)],axis=2)
-
+    #Xscaling
+    #x_rescale = (x-x_mean) / (x_std)
+    x_rescale = x #Not use x-sacling
+    
+    #Model prediction, feature normalization is within model
+    temp = m(x_rescale,training=False)
 
     #Scaling
-    temp = temp/y_nac_unit_conv* y_nac_std + y_nac_mean
+    temp = temp * y_nac_std + y_nac_mean
 
     
     return temp

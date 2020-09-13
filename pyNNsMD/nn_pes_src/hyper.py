@@ -36,10 +36,12 @@ DEFAULT_HYPER_PARAM_ENERGY_GRADS = {
                     'training':
                     {
                         #can be changed after model created    
+                        'auto_scaling' : True, # Scale energy und coordinates, can be also done in data preparation
+                        'normalization_mode' : 1, # Normalization False/0 for no normalization/unity mulitplication
                         'loss_weights' : [1,10],     # weights between energy and gradients
-                        'learning_rate' : 1e-3,
-                        'reinit_weights' : True,  #Whether to reset the weights before fit.
-                        'val_disjoint' : True,
+                        'learning_rate' : 1e-3,  # learning rate, can be modified by callbacks
+                        'initialize_weights' : True,  # Whether to reset the weights before fit, used for retraining, transfer learning
+                        'val_disjoint' : True,  # Should be removed as always a disjoint validation split per instance is favourable
                         'val_split' : 0.1, 
                         'epo': 3000,  # total epochs
                         'batch_size' : 64,  # batch size       
@@ -76,7 +78,7 @@ DEFAULT_HYPER_PARAM_NAC = {
                         'model':#Model Parameters # fixed model, cannot be changed after init
                         { 
                             'atoms' : 2,
-                            'states' : 1, # (batch,states) and (batch,states,atoms,3)
+                            'states' : 1, #(batch,states,atoms,3)
                             'Depth' : 3,
                             'activ' : { 'class_name': "leaky_softplus", "config" : {'alpha': 0.03}} ,  # activation function,
                             'nn_size' : 1000,
@@ -93,12 +95,14 @@ DEFAULT_HYPER_PARAM_NAC = {
                         },
                         'training':{
                             #Fit information
+                            'auto_scaling' : True,
+                            'normalization_mode' : 1,
                             'learning_rate' : 1e-3,
                             'phase_less_loss' : True,
-                            'reinit_weights' : True,
+                            'initialize_weights' : True,
                             'val_disjoint' : True,
                             'val_split' : 0.1, 
-                            'epo': 10000,
+                            'epo': 3000,
                             'pre_epo' : 50, # number of epochs without phaseless loss
                             'epostep' : 10,
                             'batch_size' : 64,

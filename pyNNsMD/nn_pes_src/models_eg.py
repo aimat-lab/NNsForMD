@@ -8,7 +8,7 @@ import tensorflow.keras as ks
 
 
 from pyNNsMD.nn_pes_src.hyper import DEFAULT_HYPER_PARAM_ENERGY_GRADS as hyper_model_energy_gradient
-from pyNNsMD.nn_pes_src.layers import InverseDistance,Angles,Dihydral,MLP,EmptyGradient,StandardizeFeatures,RevertStandardizeLabels,ScalarStandardize
+from pyNNsMD.nn_pes_src.layers import InverseDistance,Angles,Dihydral,MLP,EmptyGradient,ConstLayerNormalization
 from pyNNsMD.nn_pes_src.loss import get_lr_metric,r2_metric,nac_loss
 
 
@@ -40,7 +40,6 @@ class EnergyModel(ks.Model):
         self.use_bond_angles = use_bond_angles
         self.use_invdist = use_invdist
         #geo_input = ks.Input(shape=(indim,3), dtype='float32' ,name='geo_input')
-        self.scale_coord = ScalarStandardize(name='scale_coord')
         if(self.use_invdist==True):        
             self.invd_layer = InverseDistance()
         if(self.use_bond_angles==True):
@@ -50,7 +49,7 @@ class EnergyModel(ks.Model):
             self.dih_layer = Dihydral(angle_list=dihyd_index)
             self.concat_dih = ks.layers.Concatenate(axis=-1)
         self.flat_layer = ks.layers.Flatten(name='feat_flat')
-        self.std_layer = StandardizeFeatures(axis=-1,name='feat_std')
+        self.std_layer = ConstLayerNormalization(axis=-1,name='feat_std')
         self.mlp_layer = MLP( nn_size,
                  dense_depth = Depth,
                  dense_bias = True,
@@ -65,13 +64,11 @@ class EnergyModel(ks.Model):
                  name = 'mlp'
                  )
         self.energy_layer =  ks.layers.Dense(out_dim,name='energy',use_bias=True,activation='linear')
-        self.rev_std_e = RevertStandardizeLabels(name='rev_std_e',axis=1) #val_offset = y_energy_mean,val_scale = y_energy_std/y_energy_unit_conv) 
-        self.rev_std_g = RevertStandardizeLabels(name='rev_std_g',axis=1) #val_offset = 0,val_scale = y_energy_std/y_gradient_unit_conv) 
         
         self.build((None,indim,3))
     def call(self, data, training=False):
         # Unpack the data
-        x = self.scale_coord(data)
+        x = data
         # Compute predictions
         with tf.GradientTape() as tape2:
             tape2.watch(x)
@@ -95,8 +92,6 @@ class EnergyModel(ks.Model):
             temp_hidden = self.mlp_layer(feat_flat_std,training=training)
             temp_e = self.energy_layer(temp_hidden)
         temp_g = tape2.batch_jacobian(temp_e, x)
-        temp_e = self.rev_std_e(temp_e)
-        temp_g = self.rev_std_g(temp_g)
         y_pred = [temp_e,temp_g]
         return y_pred
 
@@ -222,7 +217,7 @@ def create_model_energy_gradient_precomputed(hyper=hyper_model_energy_gradient['
     #grad_input = ks.Input(shape=(in_model_dim,indim,3), dtype='float32' ,name='grad_input')
     
     full = ks.layers.Flatten(name='feat_flat')(geo_input)
-    full = StandardizeFeatures(name='feat_std')(full)
+    full = ConstLayerNormalization(name='feat_std')(full)
     full = MLP( nn_size,
              dense_depth = Depth,
              dense_bias = True,

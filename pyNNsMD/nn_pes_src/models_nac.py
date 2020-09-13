@@ -6,7 +6,7 @@ import numpy as np
 import tensorflow as tf
 import tensorflow.keras as ks
 from pyNNsMD.nn_pes_src.hyper import DEFAULT_HYPER_PARAM_NAC as hyper_create_model_nac
-from pyNNsMD.nn_pes_src.layers import InverseDistance,Angles,Dihydral,MLP,EmptyGradient,RevertStandardizeLabels,StandardizeFeatures,ScalarStandardize
+from pyNNsMD.nn_pes_src.layers import InverseDistance,Angles,Dihydral,MLP,EmptyGradient,ConstLayerNormalization
 from pyNNsMD.nn_pes_src.loss import get_lr_metric,r2_metric,nac_loss
 
 
@@ -40,7 +40,6 @@ class NACModel(ks.Model):
         self.use_invdist = use_invdist
         self.use_bond_angles = use_bond_angles
         #geo_input = ks.Input(shape=(indim,3), dtype='float32' ,name='geo_input')
-        self.scale_coord = ScalarStandardize(name='scale_coord')
         if(self.use_invdist==True):        
             self.invd_layer = InverseDistance()
         if(self.use_bond_angles==True):
@@ -50,7 +49,7 @@ class NACModel(ks.Model):
             self.dih_layer = Dihydral(angle_list=dihyd_index)
             self.concat_dih = ks.layers.Concatenate(axis=-1)
         self.flat_layer = ks.layers.Flatten(name='feat_flat')
-        self.std_layer = StandardizeFeatures(name='feat_std')
+        self.std_layer = ConstLayerNormalization(name='feat_std')
         self.mlp_layer = MLP(   nn_size,
                                 dense_depth = Depth,
                                 dense_bias = True,
@@ -66,11 +65,10 @@ class NACModel(ks.Model):
                                 )
         self.virt_layer =  ks.layers.Dense(out_dim*indim,name='virt',use_bias=False,activation='linear')
         self.resh_layer = tf.keras.layers.Reshape((out_dim,indim))
-        self.rev_std_nac = RevertStandardizeLabels(name='rev_std_nac',axis=(1,2))  
         
         self.build((None,indim,3))
     def call(self, data, training=False):
-        x = self.scale_coord(data)
+        x = data
         # Compute predictions
         with tf.GradientTape() as tape2:
             tape2.watch(x)
@@ -96,7 +94,7 @@ class NACModel(ks.Model):
             temp_va = self.resh_layer(temp_v)
         temp_grad = tape2.batch_jacobian(temp_va, x)
         grad = ks.backend.concatenate([ks.backend.expand_dims(temp_grad[:,:,i,i,:],axis=2) for i in range(self.y_atoms)],axis=2)
-        y_pred = self.rev_std_nac(grad)
+        y_pred = grad
         return y_pred
 
 
@@ -221,7 +219,7 @@ def create_model_nac_precomputed(hyper=hyper_create_model_nac['model'],
     geo_input = ks.Input(shape=(in_model_dim,), dtype='float32' ,name='geo_input')
     #grad_input = ks.Input(shape=(in_model_dim,indim,3), dtype='float32' ,name='grad_input')
     full = ks.layers.Flatten(name='feat_flat')(geo_input)
-    full = StandardizeFeatures(name='feat_std')(full)
+    full = ConstLayerNormalization(name='feat_std')(full)
     full = MLP(  nn_size,
          dense_depth = Depth,
          dense_bias = True,
