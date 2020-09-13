@@ -25,7 +25,7 @@ from pyNNsMD.nn_pes_src.data import model_save_data_to_folder,datalist_make_rand
 from pyNNsMD.nn_pes_src.oracle import find_samples_with_max_error
 from pyNNsMD.nn_pes_src.plot import plot_resampling_gradient,plot_resampling_nac
 from pyNNsMD.nn_pes_src.scaler import DEFAULT_STD_SCALER_ENERGY_GRADS,DEFAULT_STD_SCALER_NAC,save_std_scaler_dict,load_std_scaler_dict
-from pyNNsMD.nn_pes_src.scaler import rescale_x, rescale_eg, rescale_nac
+from pyNNsMD.nn_pes_src.scaler import scale_x, rescale_eg, rescale_nac
 
 
 class NeuralNetPes:
@@ -508,7 +508,7 @@ class NeuralNetPes:
             gradient = []
             for i in range(self._addNN):
                 temp = self._models[name][i].predict(
-                                rescale_x(x,scaler = self._models_scaler[name][i]),
+                                scale_x(x,scaler = self._models_scaler[name][i]),
                                 batch_size = self._models_hyper[name][i]['predict']['batch_size_predict']
                                 )
                 temp = rescale_eg(temp[0],temp[1],scaler = self._models_scaler[name][i])
@@ -526,7 +526,7 @@ class NeuralNetPes:
             nac = []
             for i in range(self._addNN):                
                 temp = self._models[name][i].predict(
-                                rescale_x(x,scaler = self._models_scaler[name][i]),
+                                scale_x(x,scaler = self._models_scaler[name][i]),
                                 batch_size = self._models_hyper[name][i]['predict']['batch_size_predict'], 
                                 )
                 temp = rescale_nac(temp,scaler = self._models_scaler[name][i])
@@ -570,7 +570,7 @@ class NeuralNetPes:
             energy = []
             gradient = []
             for i in range(self._addNN):
-                x_res = tf.convert_to_tensor(rescale_x(x,scaler = self._models_scaler[name][i]), dtype=tf.float32)
+                x_res = tf.convert_to_tensor(scale_x(x,scaler = self._models_scaler[name][i]), dtype=tf.float32)
                 temp = self._models[name][i](x_res,training=False)
                 temp = rescale_eg(temp[0].numpy(),temp[1].numpy(),scaler = self._models_scaler[name][i])
                 energy.append(temp[0])
@@ -586,7 +586,7 @@ class NeuralNetPes:
         if(self._models_hyper[name][0]['general']['model_type'] == 'nac'):
             nac = []
             for i in range(self._addNN):
-                x_res = tf.convert_to_tensor(rescale_x(x,scaler = self._models_scaler[name][i]), dtype=tf.float32)
+                x_res = tf.convert_to_tensor(scale_x(x,scaler = self._models_scaler[name][i]), dtype=tf.float32)
                 temp = self._models[name][i](x,training=False)
                 temp = rescale_nac(temp.numpy(),scaler = self._models_scaler[name][i])
                 nac.append(temp)
