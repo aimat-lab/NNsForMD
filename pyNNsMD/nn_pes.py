@@ -5,7 +5,7 @@ for energy plus gradient and non-adiabatic couplings (NAC). The python class is 
 allow parallel training and further operations like resampling and hyper optimization. 
 """
 
-import logging
+#import logging
 import os
 import pickle
 import sys
@@ -16,22 +16,23 @@ import tensorflow.keras as ks
 import json
 
 
-from pyNNsMD.nn_pes_src.models_feat import create_feature_models
-from pyNNsMD.nn_pes_src.models_nac import create_model_nac_precomputed,NACModel
-from pyNNsMD.nn_pes_src.models_eg import create_model_energy_gradient_precomputed,EnergyModel
+from pyNNsMD.nn_pes_src.models_nac import NACModel
+from pyNNsMD.nn_pes_src.models_eg import EnergyModel
 from pyNNsMD.nn_pes_src.fit import fit_model_energy_gradient,fit_model_nac,fit_model_energy_gradient_async,fit_model_nac_async
 from pyNNsMD.nn_pes_src.hyper import DEFAULT_HYPER_PARAM_ENERGY_GRADS,DEFAULT_HYPER_PARAM_NAC
 from pyNNsMD.nn_pes_src.hyper import _save_hyp,_load_hyp
 from pyNNsMD.nn_pes_src.data import model_save_data_to_folder,datalist_make_random_shuffle,merge_data_in_chunks,index_data_in_y_dict,index_make_random_shuffle
 from pyNNsMD.nn_pes_src.oracle import find_samples_with_max_error
 from pyNNsMD.nn_pes_src.plot import plot_resampling_gradient,plot_resampling_nac
+from pyNNsMD.nn_pes_src.scaler import DEFAULT_STD_SCALER_ENERGY_GRADS,DEFAULT_STD_SCALER_NAC,save_std_scaler_dict,load_std_scaler_dict
+from pyNNsMD.nn_pes_src.scaler import rescale_x, rescale_eg, rescale_nac
 
 
 class NeuralNetPes:
     """ 
-    Main class NeuralNetPes(directory) that keeps multiple keras models and
-    manages training and prediction. The individual model types are further 
-    stored to file in the directory specified in __init__(directory). 
+    Main class NeuralNetPes(directory) that keeps multiple keras models and manages training and prediction.
+    
+    The individual model types are further stored to file in the directory specified in __init__(directory). 
     Each model you create within a NeuralNetPes is referenced by a dictionary.
     The information like predictions and hyperparameters are also passed in form of python dictionaries. 
     See the default parameters in nn_pes_src.hyper for the scope of all parameters and their explanation. 
@@ -62,14 +63,15 @@ class NeuralNetPes:
         """
         self._models_implemented = ['energy_gradient', 'nac']
 
-        self.logger = logging.getLogger(type(self).__name__)
-        self.logger.info("Operating System: ",sys.platform)
-        self.logger.info("Tested for tf-gpu= 2.3 This tf version: ",tf.__version__)        
-        self.logger.debug("Models implemented:" , self._models_implemented)
+        #self.logger = logging.getLogger(type(self).__name__)
+        print("Info: Operating System: ",sys.platform)
+        print("Info: Tested for tf-gpu= 2.3 This tf version: ",tf.__version__)        
+        print("Info: Models implemented:" , self._models_implemented)
         
         # Private memebers
         self._models = {}
         self._models_hyper = {}
+        self._models_scaler = {}
         
         self._directory = directory
         self._addNN = mult_nn
@@ -104,44 +106,40 @@ class NeuralNetPes:
             hyp = [h_dict for x in range(self._addNN)]
         elif(isinstance(h_dict, list)):
             if(len(h_dict) != self._addNN):
-                self.logger.error(f"Error in hyp for number NNs for {key}")
+                print(f"Error: Error in hyp for number NNs for {key}")
             model_type = h_dict[0]['general']['model_type']
             for x in h_dict:
                 if(x['general']['model_type'] != model_type):
-                    self.logger.error(f"Inconsistent Input for {key}")
+                    print(f"Error: Inconsistent Input for {key}")
             #Accept list of hyperdicts
             hyp = h_dict
         else:
-            self.logger.error(f"Unknwon Input tpye of hyper for {key}")
+            print(f"Error: Unknwon Input tpye of hyper for {key}")
             raise TypeError(f"Unknwon Input tpye of hyper for {key}")
         
         # Create the correct model with hyper
         models = {}
         models[key] = []
-        models_prec = {}
-        models_prec[key] = []
-        features = {}
-        features[key] = []
+        scaler = {}
+        scaler[key] = []
         if(model_type == 'energy_gradient'):
             for i in range(self._addNN):
                 #Fill missing hyper
                 temp = self._merge_hyper(DEFAULT_HYPER_PARAM_ENERGY_GRADS,hyp[i])              
                 hyp[i] = temp
-                models[key].append(EnergyModel(hyper=temp['model']))  
-                models_prec[key].append(create_model_energy_gradient_precomputed(hyper=temp['model']))  
-                features[key].append(create_feature_models(hyper=temp['model']))  
+                models[key].append(EnergyModel(hyper=temp['model']))
+                scaler[key].append(DEFAULT_STD_SCALER_ENERGY_GRADS)
         elif(model_type == 'nac'):
             for i in range(self._addNN):
                 #Fill missing hyper
                 temp = self._merge_hyper(DEFAULT_HYPER_PARAM_NAC,hyp[i])
                 hyp[i] = temp
                 models[key].append(NACModel(hyper=temp['model'])) 
-                models_prec[key].append(create_model_nac_precomputed(hyper=temp['model'])) 
-                features[key].append(create_feature_models(hyper=temp['model']))  
+                scaler[key].append(DEFAULT_STD_SCALER_NAC)
         else:
-            self.logger.error(f"Unknwon Model type in hyper dict for {model_type}")
+            print(f"Error: Unknwon Model type in hyper dict for {model_type}")
             
-        return models,models_prec,hyp,features
+        return models,hyp,scaler
     
     
     def create(self,hyp_dict):
@@ -161,9 +159,10 @@ class NeuralNetPes:
 
         """
         for key, value in hyp_dict.items():
-            mod,modprec,hyp,feat = self._create_models(key,value)
+            mod,hyp,sc = self._create_models(key,value)
             self._models.update(mod)
             self._models_hyper[key] = hyp
+            self._models_scaler.update(sc)
 
         return self._models
    
@@ -188,9 +187,9 @@ class NeuralNetPes:
                 if(isinstance(value, dict)):
                     value = [value for i in range(self._addNN)]
                 elif(len(value) != self._addNN):
-                    self.logger.error(f"Error in hyp for number NNs for {key}")
+                    print(f"Error: Error in hyp for number NNs for {key}")
                 else:
-                    self.logger.error(f"Unknwon Input tpye of hyper for {key}")
+                    print(f"Error: Unknwon Input tpye of hyper for {key}")
                     raise TypeError(f"Unknwon Input tpye of hyper for {key}")
                 for i in range(self._addNN):
                     self._models_hyper[key][i] = self._merge_hyper(self._models_hyper[key][i],
@@ -212,6 +211,8 @@ class NeuralNetPes:
             x.save_weights(os.path.join(filename,'weights'+'_v%i'%i+'.h5'))
         for i,x in enumerate(self._models_hyper[name]):
             _save_hyp(x,os.path.join(filename,'hyper'+'_v%i'%i+".json"))
+        for i,x in enumerate(self._models_scaler[name]):   
+            save_std_scaler_dict(x,os.path.join(filename,'scaler'+'_v%i'%i+".json"))
         
         return filename
         
@@ -219,6 +220,7 @@ class NeuralNetPes:
     def save(self,model_name=None):
         """
         Save a model weights and hyperparameter into class folder with a certain name.
+        
         The model itself is not saved, use export to store the model itself.
         Thes same holds for load. Here the model is recreated from hyperparameters and weights.
 
@@ -265,6 +267,12 @@ class NeuralNetPes:
         #Store model
         for i,x in enumerate(self._models[name]):
             x.save(os.path.join(filename,'SavedModel'+'_v%i'%i))
+            # TFLite converison does not work atm
+            # converter = tf.lite.TFLiteConverter.from_keras_model(x)
+            # tflite_model = converter.convert()
+            # # Save the model.
+            # with open(os.path.join(filename,'LiteModel'+'_v%i'%i+'.tflite'), 'wb') as f:
+            #   f.write(tflite_model)
         
         return filename
         
@@ -323,12 +331,18 @@ class NeuralNetPes:
         #Load weights
         for i in range(self._addNN):
             self._models[model_name][i].load_weights(os.path.join(fname,'weights'+'_v%i'%i+'.h5'))
-            self.logger.info("Imported weights for: %s"%(model_name+'_v%i'%i))
+            print("Info: Imported weights for: %s"%(model_name+'_v%i'%i))
+        
+        #Load scaler  
+        for i in range(self._addNN):
+            self._models_scaler[model_name][i] = load_std_scaler_dict(os.path.join(fname,'scaler'+'_v%i'%i+".json"))
+            print("Info: Imported scaling for: %s"%(model_name+'_v%i'%i))
                      
     
     def load(self, model_name=None):
         """
         Load a model from weights and hyperparamter that are stored in class folder.
+        
         The tensorflow.keras.model is not loaded itself but created new from hyperparameters.
 
         Parameters
@@ -348,7 +362,7 @@ class NeuralNetPes:
 
         """
         if not os.path.exists(self._directory):
-            raise FileNotFoundError(f"Cannot find class directory")
+            raise FileNotFoundError("Cannot find class directory")
         directory = os.path.abspath(self._directory)
         
         # Load model_name 
@@ -365,7 +379,7 @@ class NeuralNetPes:
             for name in savemod_list:
                 self._load(directory,name)
         
-        self.logger.debug(f"loaded all models.")
+        print("Debug: loaded all models.")
         return self._models
     
       
@@ -390,7 +404,7 @@ class NeuralNetPes:
                 else:
                     fit_model_nac(i,mod_dir,gpu[i],fitmode)
      
-        self.logger.debug(f"successfully started training for models {target_model}")
+        print(f"Debug: successfully started training for models {target_model}")
         return proclist
                  
  
@@ -411,6 +425,7 @@ class NeuralNetPes:
     def fit(self, x, y , gpu_dist = {}, proc_async = True, fitmode= "training", random_shuffle = False):
         """
         Fit NN to data. Model weights and hyper parameters are always saved to file before fit.
+        
         The fit routine calls training scripts on the datafolder with parallel runtime.
         The type of execution is found in nn_pes_src.fit with the training nn_pes_src.training_ scripts.
         
@@ -465,7 +480,7 @@ class NeuralNetPes:
         for target_model, ydata in y.items():
             #Save model here with hyper !!!!
             self.save(target_model)
-            self.logger.debug(f"starting training model {target_model}")
+            print(f"Debug: starting training model {target_model}")
             proclist += self._fit_models(target_model,x, ydata,gpu_dict_clean[target_model],proc_async,fitmode,random_shuffle)
         
         #Wait for fits
@@ -492,7 +507,11 @@ class NeuralNetPes:
             energy = []
             gradient = []
             for i in range(self._addNN):
-                temp = self._models[name][i].predict(x,batch_size = self._models_hyper[name][i]['predict']['batch_size_predict'] )
+                temp = self._models[name][i].predict(
+                                rescale_x(x,scaler = self._models_scaler[name][i]),
+                                batch_size = self._models_hyper[name][i]['predict']['batch_size_predict']
+                                )
+                temp = rescale_eg(temp[0],temp[1],scaler = self._models_scaler[name][i])
                 energy.append(temp[0])
                 gradient.append(temp[1])
             energy = np.array(energy)
@@ -505,8 +524,12 @@ class NeuralNetPes:
             
         if(self._models_hyper[name][0]['general']['model_type'] == 'nac'):
             nac = []
-            for i in range(self._addNN):
-                temp = self._models[name][i].predict(x,batch_size = self._models_hyper[name][i]['predict']['batch_size_predict'] )
+            for i in range(self._addNN):                
+                temp = self._models[name][i].predict(
+                                rescale_x(x,scaler = self._models_scaler[name][i]),
+                                batch_size = self._models_hyper[name][i]['predict']['batch_size_predict'], 
+                                )
+                temp = rescale_nac(temp,scaler = self._models_scaler[name][i])
                 nac.append(temp)
             nac = np.array(nac)
             nac_mean = np.mean(nac,axis=0)
@@ -547,34 +570,30 @@ class NeuralNetPes:
             energy = []
             gradient = []
             for i in range(self._addNN):
-                # temp =  call_model_energy_gradient_precomputed(self._models_precomputed[name][i],
-                #                                       self._models_features[name][i],
-                #                                       x,
-                #                                       hyper=self._models_hyper[name][i])
-                temp = self._models[name][i](x,training=False)
-                energy.append(tf.expand_dims(temp[0],axis=0))
-                gradient.append(tf.expand_dims(temp[1],axis=0))
-            energy = tf.concat(energy,axis=0)
-            gradient = tf.concat(gradient,axis=0)
-            energy_mean = tf.math.reduce_mean(energy,axis=0)
-            gradient_mean = tf.math.reduce_mean(gradient,axis=0)
-            energy_std = tf.math.reduce_std(energy,axis=0)*2
-            gradient_std = tf.math.reduce_std(gradient,axis=0)*2
-            return [energy_mean.numpy(),gradient_mean.numpy()],[energy_std.numpy(),gradient_std.numpy()]
+                x_res = tf.convert_to_tensor(rescale_x(x,scaler = self._models_scaler[name][i]), dtype=tf.float32)
+                temp = self._models[name][i](x_res,training=False)
+                temp = rescale_eg(temp[0].numpy(),temp[1].numpy(),scaler = self._models_scaler[name][i])
+                energy.append(temp[0])
+                gradient.append(temp[1])
+            energy = np.array(energy)
+            gradient = np.array(gradient)
+            energy_mean = np.mean(energy,axis=0)
+            gradient_mean = np.mean(gradient,axis=0)
+            energy_std = np.std(energy,axis=0)*2
+            gradient_std = np.std(gradient,axis=0)*2
+            return [energy_mean,gradient_mean],[energy_std,gradient_std]
             
         if(self._models_hyper[name][0]['general']['model_type'] == 'nac'):
             nac = []
             for i in range(self._addNN):
-                # temp = call_model_nac_precomputed(self._models_precomputed[name][i],
-                #                           self._models_features[name][i],
-                #                           x,
-                #                           hyper=self._models_hyper[name][i])
+                x_res = tf.convert_to_tensor(rescale_x(x,scaler = self._models_scaler[name][i]), dtype=tf.float32)
                 temp = self._models[name][i](x,training=False)
-                nac.append(tf.expand_dims(temp,axis=0))
-            nac = tf.concat(nac,axis=0)
-            nac_mean = tf.math.reduce_mean(nac,axis=0)
-            nac_std = tf.math.reduce_std(nac,axis=0)*2 
-            return nac_mean.numpy(),nac_std.numpy()
+                temp = rescale_nac(temp.numpy(),scaler = self._models_scaler[name][i])
+                nac.append(temp)
+            nac = np.array(nac)
+            nac_mean = np.mean(nac,axis=0)
+            nac_std = np.std(nac,axis=0)*2 
+            return nac_mean,nac_std
     
     
     def call(self,x):
@@ -596,7 +615,6 @@ class NeuralNetPes:
         """
         result = {}
         error = {}
-        x = tf.convert_to_tensor(x, dtype=tf.float32)
         for name in self._models.keys():
             temp = self._call_models(name,x)
             result[name] = temp[0]
