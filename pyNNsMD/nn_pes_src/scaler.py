@@ -69,7 +69,7 @@ def load_std_scaler_dict(filepath):
     return outdict
 
 
-def rescale_x(x,scaler = {'x_mean' : np.zeros((1,1,1)),'x_std' : np.ones((1,1,1))}):
+def scale_x(x,scaler = {'x_mean' : np.zeros((1,1,1)),'x_std' : np.ones((1,1,1))}):
     """
     Rescale coordinates.
 
