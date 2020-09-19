@@ -1,19 +1,17 @@
 """
-Main class for neural network (NN) container to provide multiple NN instances to
-enable uncertainty estimate as well as training and prediction of tf.keras models
+Main class for neural network (NN) container to provide multiple NN instances.
+
+Enables uncertainty estimate as well as training and prediction of tf.keras models
 for energy plus gradient and non-adiabatic couplings (NAC). The python class is supposed to
 allow parallel training and further operations like resampling and hyper optimization. 
 """
 
 #import logging
 import os
-import pickle
 import sys
-import time
 import numpy as np
 import tensorflow as tf
-import tensorflow.keras as ks
-import json
+
 
 
 from pyNNsMD.nn_pes_src.models_nac import NACModel
@@ -29,7 +27,7 @@ from pyNNsMD.nn_pes_src.scaler import scale_x, rescale_eg, rescale_nac
 
 
 class NeuralNetPes:
-    """ 
+    """
     Main class NeuralNetPes(directory) that keeps multiple keras models and manages training and prediction.
     
     The individual model types are further stored to file in the directory specified in __init__(directory). 
@@ -37,29 +35,24 @@ class NeuralNetPes:
     The information like predictions and hyperparameters are also passed in form of python dictionaries. 
     See the default parameters in nn_pes_src.hyper for the scope of all parameters and their explanation. 
     
-    Example
-    -------
-    nn = NeuralNetPes("mol2")
-    hyper_eg = {'general' : {'model_type':'energy_gradient'} , 'model' : {'atoms':12}} 
-    hyper_nac = {'general': {'model_type':'nac'} , 'model': {'atoms':12}}
-    nn.create({'mol2_energy': hyper_eg , 'mol2_nac' : hyper_nac})
+    Example:
+        nn = NeuralNetPes("mol2")
+        hyper_eg = {'general' : {'model_type':'energy_gradient'} , 'model' : {'atoms':12}} 
+        hyper_nac = {'general': {'model_type':'nac'} , 'model': {'atoms':12}}
+        nn.create({'mol2_energy': hyper_eg , 'mol2_nac' : hyper_nac})
     
     """
+    
     def __init__(self,directory: str,mult_nn = 2):
         """
         Initilialize empty NeuralNetPes instance.
 
-        Parameters
-        ----------
-        directory : str
-            Directory where models, hyperparameter, logs and fitresults are stored.
-        mult_nn : int, optional
-            Number of NN instances to create for error estimate. The default is 2.
+        Args:
+            directory (str): Directory where models, hyperparameter, logs and fitresults are stored.
+            mult_nn (TYPE, optional): Number of NN instances to create for error estimate. The default is 2.
 
-        Returns
-        -------
-        NueralNetPes instance.
-
+        Returns:
+            NueralNetPes instance.
         """
         self._models_implemented = ['energy_gradient', 'nac']
 
@@ -145,17 +138,15 @@ class NeuralNetPes:
     def create(self,hyp_dict):
         """
         Initialize and build a model. Missing hyperparameter are filled from default.
+        
+        The model name can be freely chosen. Thy model type is determined in hyper_dict.
 
-        Parameters
-        ----------
-        hyp_dict : dict
-            Dictionary with hyper-parameter. {'model' : hyper_dict, 'model2' : hyper_dict2 ....}
-            Missing hyperparameter in hyper_dict are filled up from default, see nn_utils for complete set.
+        Args:
+            hyp_dict (dict): Dictionary with hyper-parameter. {'model' : hyper_dict, 'model2' : hyper_dict2 ....}
+                             Missing hyperparameter in hyper_dict are filled up from default, see nn_utils for complete set.
 
-        Returns
-        -------
-        list
-            created models.
+        Returns:
+            list: created models.
 
         """
         for key, value in hyp_dict.items():
@@ -171,15 +162,15 @@ class NeuralNetPes:
         """
         Update hyper parameters if possible.
 
-        Parameters
-        ----------
-        hyp_dict : dict
-            Dictionary with hyper-parameter. {'model' : hyper_dict, 'model2' : hyper_dict2 , ...} to update.
-            Note: model parameters will not be updated.
+        Args:
+            hyp_dict (dict): Dictionary with hyper-parameter. {'model' : hyper_dict, 'model2' : hyper_dict2 , ...} to update.
+                                Note: model parameters will not be updated.
 
-        Returns
-        -------
-        None.
+        Raises:
+            TypeError: DESCRIPTION.
+
+        Returns:
+            None.
 
         """
         for key, value in hyp_dict.items():
@@ -223,16 +214,13 @@ class NeuralNetPes:
         
         The model itself is not saved, use export to store the model itself.
         Thes same holds for load. Here the model is recreated from hyperparameters and weights.
+            
 
-        Parameters
-        ----------
-        model_name : str, optional
-            Name of the Model to save. The default is None, which means save all
+        Args:
+            model_name (str, optional): Name of the Model to save. The default is None, which means save all
 
-        Returns
-        -------
-        out_dirs : list
-            Saved directories.
+        Returns:
+            out_dirs (list): Saved directories.
 
         """
         dirname = self._directory
@@ -282,15 +270,11 @@ class NeuralNetPes:
         """
         Save SavedModel file into class folder with a certain name.
 
-        Parameters
-        ----------
-        model_name : str, optional
-            Name of the Model to save. The default is None, which means save all
+        Args:
+            model_name (str, optional): Name of the Model to save. The default is None, which means save all
 
-        Returns
-        -------
-        out_dirs : list
-            Saved directories.
+        Returns:
+            out_dirs (list): Saved directories.
 
         """
         dirname = self._directory
@@ -345,20 +329,14 @@ class NeuralNetPes:
         
         The tensorflow.keras.model is not loaded itself but created new from hyperparameters.
 
-        Parameters
-        ----------
-        model_name : str,list, optional
-            Model names on file. The default is None.
+        Args:
+            model_name (str,list, optional): Model names on file. The default is None.
 
-        Raises
-        ------
-        FileNotFoundError
-            If Directory not found.
+        Raises:
+            FileNotFoundError: If Directory not found.
 
-        Returns
-        -------
-        list
-            Loaded models.
+        Returns:
+            list: Loaded Models.
 
         """
         if not os.path.exists(self._directory):
@@ -429,29 +407,20 @@ class NeuralNetPes:
         The fit routine calls training scripts on the datafolder with parallel runtime.
         The type of execution is found in nn_pes_src.fit with the training nn_pes_src.training_ scripts.
         
-        Parameters
-        ----------
-        x : np.array
-            Coordinates in Angstroem of shape (batch,Atoms,3)
-        y : dict
-            dictionary of y values for each model. 
-            Energy in Bohr, Gradients in Hatree/Bohr, NAC in 1/Hatre by default.
-            Units are cast for fitting into eV/Angstroem and can be accessed in hyperparameters.
-        gpu_dist : dict
-            Dictionary with same modelname and list of GPUs for each NN. Default is {}
-            Example {'nac' : [0,0] } both NNs for NAC on GPU:0
-        proc_async : True
-            Try to run parallel. Default is true.
-        fitmode : str
-            Whether to do 'training' or 'retraining' the existing model in hyperparameter category. Default is 'training'.  
-            In principle every reasonable category can be created in hyperparameters.
-        random_shuffle : bool
-            Whether to shuffle data before fitting. Default is False.  
+        Args:
+            x (np.array): Coordinates in Angstroem of shape (batch,Atoms,3)
+            y (dict):   dictionary of y values for each model. 
+                        Energy in Bohr, Gradients in Hatree/Bohr, NAC in 1/Hatre by default.
+                        Units are cast for fitting into eV/Angstroem and can be accessed in hyperparameters.
+            gpu_dist (dict, optional):  Dictionary with same modelname and list of GPUs for each NN. Default is {}
+                                        Example {'nac' : [0,0] } both NNs for NAC on GPU:0
+            proc_async (bool): Try to run parallel. Default is true.
+            fitmode (str):  Whether to do 'training' or 'retraining' the existing model in hyperparameter category. Default is 'training'.  
+                            In principle every reasonable category can be created in hyperparameters.
+            random_shuffle (bool): Whether to shuffle data before fitting. Default is False.  
             
-        Returns
-        -------
-        ferr : dict
-            Fitting Error.
+        Returns:
+            ferr (dict): Fitting Error.
 
         """
         #List of models
@@ -541,17 +510,12 @@ class NeuralNetPes:
         """
         Prediction for all models available. Prediction is slower but works on large data.
 
-        Parameters
-        ----------
-        x : np.array
-            Coordinates in Angstroem of shape (batch,Atoms,3)
+        Args:
+            x (np.array): Coordinates in Angstroem of shape (batch,Atoms,3)
 
-        Returns
-        -------
-        result : dict
-            All model predictions: {'energy_gradient' : [np.aray,np.array] , 'nac' : np.array , ..}.
-        error : dict
-            Error estimate for each value: {'energy_gradient' : [np.aray,np.array] , 'nac' : np.array , ..}.
+        Returns:
+            result (dict): All model predictions: {'energy_gradient' : [np.aray,np.array] , 'nac' : np.array , ..}.
+            error (dict): Error estimate for each value: {'energy_gradient' : [np.aray,np.array] , 'nac' : np.array , ..}.
 
         """
         result = {}
@@ -600,17 +564,12 @@ class NeuralNetPes:
         """
         Faster prediction without looping batches. Requires single small batch (batch, Atoms,3) that fit into memory.
 
-        Parameters
-        ----------
-        x : np.array
-            Coordinates in Angstroem of shape (batch,Atoms,3)
+        Args:
+            x (np.array): Coordinates in Angstroem of shape (batch,Atoms,3)
 
-        Returns
-        -------
-        result : dict
-            All model predictions: {'energy_gradient' : [np.aray,np.array] , 'nac' : np.array , ..}.
-        error : dict
-            Error estimate for each value: {'energy_gradient' : [np.aray,np.array] , 'nac' : np.array , ..}.
+        Returns:
+            result (dict): All model predictions: {'energy_gradient' : [np.aray,np.array] , 'nac' : np.array , ..}.
+            error (dict): Error estimate for each value: {'energy_gradient' : [np.aray,np.array] , 'nac' : np.array , ..}.
 
         """
         result = {}
@@ -628,17 +587,12 @@ class NeuralNetPes:
         """
         Shuffle datalist consistently, i.e. each data [x,y,y2,...] in the same way.
 
-        Parameters
-        ----------
-        datalist : list
-            List of numpy arrays that have the same datalength (axis=0).
+        Args:
+            datalist (list): List of numpy arrays that have the same datalength (axis=0).
 
-        Returns
-        -------
-        shuffle_ind : np.array
-            Index assignment for the shuffle for x,y etc.
-        outlist : list
-            Shuffled list of the same data.
+        Returns:
+            shuffle_ind (np.array): Index assignment for the shuffle for x,y etc.
+            outlist (list): Shuffled list of the same data.
 
         """
         if(isinstance(datalist,list) == False):
@@ -654,19 +608,13 @@ class NeuralNetPes:
         """
         Merge two datasets so that the correct segments of validation split are kept for merged split.
 
-        Parameters
-        ----------
-        datalist : list
-            List of numpy arrays.
-        datalist2 : list
-            List of numpy arrays. They will be merged with the respective np.array from datalist.
-        val_split : float, optional
-            Size of the validation split. The default is 0.1.
+        Args:
+            datalist (list): List of numpy arrays.
+            datalist2 (list): List of numpy arrays. They will be merged with the respective np.array from datalist.
+            val_split (list, optional): Size of the validation split. The default is 0.1.
 
-        Returns
-        -------
-        outlist : list
-            Single list of merged datasets.
+        Returns:
+            outlist (list): Single list of merged datasets.
 
         """
         if(isinstance(datalist,list) == False):
@@ -730,41 +678,29 @@ class NeuralNetPes:
                                      unit_nac = self._models_hyper[name][0]['plots']['unit_nac']
                                      )
 
+
     def resample(self,x,y,gpu_dist,proc_async=True,random_shuffle=False,stepsize = 0.05,test_size = 0.05):
         """
         Use uncertainty sampling as active learning to effectively reduce dataset size.
 
-        Parameters
-        ----------
-        x : np.array
-            Coordinates in Angstroem of shape (batch,Atoms,3)
-        y : dict
-            dictionary of y values for each model. 
-            Energy in Bohr, Gradients in Hatree/Bohr. NAC in 1/Hatree.
-            Units are cast for fitting into eV/Angstroem.
-        gpu_dist : dict
-            Dictionary with same modelname and list of GPUs for each NN. Default is {}
-            Example {'nac' : [0,0] } both NNs for NAC on GPU:0
-        proc_async : bool
-            Try to run parallel. Default is True.    
-        random_shuffle : bool
-            Whether to shuffle data before fitting. Default is False. 
-        stepsize : float
-            Fraction of the original dataset size to add during each iteration.
-        test_size : float
-            Fraction of test set which is kept out of sampling. Default is 0.05
-            
-        Returns
-        -------
-        out_index : list
-            List of np.array of used indices from original data for each iteration.
-        out_error : dict
-            Error of the unseen data.
-        out_fiterr : dict
-            Validation error of fit.
-        out_testerr : dict 
-            Error on test set.    
-        
+        Args:
+            x (np.array): Coordinates in Angstroem of shape (batch,Atoms,3)
+            y (dict):   Dictionary of y values for each model. 
+                        Energy in Bohr, Gradients in Hatree/Bohr. NAC in 1/Hatree.
+                        Units are cast for fitting into eV/Angstroem.
+            gpu_dist (dict):    Dictionary with same modelname and list of GPUs for each NN. Default is {}
+                                Example {'nac' : [0,0] } both NNs for NAC on GPU:0
+            proc_async (bool, optional): Try to run parallel. Default is True.    
+            random_shuffle (bool, optional): Whether to shuffle data before fitting. Default is False. 
+            stepsize (float, optional): Fraction of the original dataset size to add during each iteration. Defaults to 0.05.
+            test_size (float, optional): Fraction of test set which is kept out of sampling. Defaults to 0.05.
+
+        Returns:
+            out_index (list): List of np.array of used indices from original data for each iteration.
+            out_error (dict): Error of the unseen data.
+            out_fiterr (dict): Validation error of fit.
+            out_testerr (dict): Error on test set.  
+
         """
         #Output stats and info
         out_index = []  # the used data-indices for each iteration
