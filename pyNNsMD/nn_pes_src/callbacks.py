@@ -12,22 +12,16 @@ def lr_step_reduction(learnrate_steps=[1e-3,1e-4,1e-5],learnrate_epochs = [500,1
     """
     Make learning rate schedule function for step reduction.
 
-    Parameters
-    ----------
-    learnrate_steps : list, optional
-        List of learning rates for each step. The default is [1e-3,1e-4,1e-5].
-    learnrate_epochs : list, optional
-        The length of each step to keep learning rate. The default is [500,1000,5000].
+    Args:
+        learnrate_steps (list, optional): List of learning rates for each step. The default is [1e-3,1e-4,1e-5].
+        learnrate_epochs (list, optional): The length of each step to keep learning rate. The default is [500,1000,5000].
 
-    Returns
-    -------
-    func
-        Function that can be used with LearningRateScheduler.
+    Returns:
+        func: Function that can be used with LearningRateScheduler.
+        
+    Example:
+        lr_schedule_steps = tf.keras.callbacks.LearningRateScheduler(lr_step_reduction)
 
-    Example
-    -------
-    lr_schedule_steps = tf.keras.callbacks.LearningRateScheduler(lr_step_reduction)
-    
     """
     learning_rate_abs = np.cumsum(np.array(learnrate_epochs))
     def lr_out_step(epoch):
@@ -44,26 +38,18 @@ def lr_lin_reduction(learning_rate_start = 1e-3,learning_rate_stop = 1e-5,epo = 
     """
     Make learning rate schedule function for linear reduction.
 
-    Parameters
-    ----------
-    learning_rate_start : float, optional
-        Learning rate to start with. The default is 1e-3.
-    learning_rate_stop : float, optional
-        Final learning rate at the end of epo. The default is 1e-5.
-    epo : int, optional
-        Total number of epochs to reduce learning rate towards. The default is 10000.
-    epomin : int, optional
-        Minimum number of epochs at beginning to leave learning rate constant. The default is 1000.
+    Args:
+        learning_rate_start (float, optional): Learning rate to start with. The default is 1e-3.
+        learning_rate_stop (float, optional): Final learning rate at the end of epo. The default is 1e-5.
+        epo (int, optional): Total number of epochs to reduce learning rate towards. The default is 10000.
+        epomin (int, optional): Minimum number of epochs at beginning to leave learning rate constant. The default is 1000.
 
-    Returns
-    -------
-    func
-        Function to use with LearningRateScheduler.
-
-    Example
-    -------
-    lr_schedule_steps = tf.keras.callbacks.LearningRateScheduler(lr_lin_reduction)
+    Returns:
+        func: Function to use with LearningRateScheduler.
     
+    Example:
+        lr_schedule_lin = tf.keras.callbacks.LearningRateScheduler(lr_lin_reduction)
+
     """
     def lr_out_lin(epoch):
         if(epoch < epomin):
@@ -78,25 +64,17 @@ def lr_exp_reduction(lr_start,epomin,epostep,facred):
     """
     Make learning rate schedule function for exponential reduction.
 
-    Parameters
-    ----------
-    lr_start : float
-        Learning rate to start with.
-    epomin : float
-        Minimum number of epochs to keep learning rate constant.
-    epostep : float
-        The epochs to divide factor by.
-    facred : float
-        Reduce learning rate by factor.
+    Args:
+        lr_start (float): Learning rate to start with.
+        epomin (float): Minimum number of epochs to keep learning rate constant.
+        epostep (float): The epochs to divide factor by.
+        facred (float): Reduce learning rate by factor.
 
-    Returns
-    -------
-    func
-        Function to use with LearningRateScheduler.
+    Returns:
+        func: Function to use with LearningRateScheduler.
     
-    Example
-    -------
-    lr_schedule_steps = tf.keras.callbacks.LearningRateScheduler(lr_exp_reduction)
+    Example:
+        lr_schedule_exp = tf.keras.callbacks.LearningRateScheduler(lr_exp_reduction)
 
     """
     def lr_out_exp(epo):
@@ -110,11 +88,13 @@ def lr_exp_reduction(lr_start,epomin,epostep,facred):
 
 class EarlyStopping(tf.keras.callbacks.Callback):
     """
-    This Callback does basic monitoring of the learning process and provides functionality such as learning rate decay
-    and early stopping with custom logic as opposed to the callbacks provided by Keras by default which are generic.
+    This Callback does basic monitoring of the learning process.
+    
+    And provides functionality such as learning rate decay and early stopping with custom logic as opposed to the callbacks provided by Keras by default which are generic.
     By André Eberhard
     https://github.com/patchmeifyoucan
     """
+    
     def __init__(self,
                  minutes=np.Infinity, 
                  epochs=np.Infinity,
@@ -130,36 +110,23 @@ class EarlyStopping(tf.keras.callbacks.Callback):
                  restore_weights_on_lr_decay=False, 
                  ):
         """
-        Setup Callback for early stopping.
+        Make Callback for early stopping.
         
-        Parameters
-        ----------         
-        minutes : int
-            Duration in minutes of training, stops training even if number of epochs is not reached yet.
-        epochs: int
-            Number of epochs to train. stops training even if number of minutes is not reached yet.
-        learning_rate : float
-            The learning rate for the optimizer.
-        epostep : int
-            Step to check for monitor loss.
-        monitor : str
-            The loss quantity to monitor for early stopping operations.
-        min_delta : float
-            Minimum improvement to reach after 'patience' epochs of training.
-        patience : int
-            Number of epochs to wait before decreasing learning rate by a factor of 'factor'.
-        minEpoch : int
-            Minimum Number of epochs to run before decreasing learning rate
-        factor : float
-            new_lr = old_lr * factor
-        min_lr : float
-            Learning rate is not decreased any further after "min_lr" is reached.
-        store_weights : bool
-            If True, stores parameters of best run so far when learning rate is decreased.
-        restore_weights_on_lr_decay : bool
-            If True, restores parameters of best run so far when learning rate is decreased.
+        Args:     
+        minutes (int): Duration in minutes of training, stops training even if number of epochs is not reached yet.
+        epochs (int): Number of epochs to train. stops training even if number of minutes is not reached yet.
+        learning_rate (float): The learning rate for the optimizer.
+        epostep (int): Step to check for monitor loss.
+        monitor (str): The loss quantity to monitor for early stopping operations.
+        min_delta (float): Minimum improvement to reach after 'patience' epochs of training.
+        patience (int): Number of epochs to wait before decreasing learning rate by a factor of 'factor'.
+        minEpoch (int): Minimum Number of epochs to run before decreasing learning rate
+        factor (float): new_lr = old_lr * factor
+        min_lr (float): Learning rate is not decreased any further after "min_lr" is reached.
+        store_weights (bool): If True, stores parameters of best run so far when learning rate is decreased.
+        restore_weights_on_lr_decay (bool): If True, restores parameters of best run so far when learning rate is decreased.
+        
         """
-        
         super().__init__()
         self.logger = logging.getLogger(type(self).__name__)
         self.minutes = minutes

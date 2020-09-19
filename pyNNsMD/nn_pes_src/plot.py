@@ -1,5 +1,7 @@
 """
 Functions to plot fitresults.
+
+They include training and resampling.
 """
 import numpy as np
 import time
@@ -13,19 +15,14 @@ def find_max_relative_error(preds,yval):
     """
     Find maximum error and its relative value if possible.
 
-    Parameters
-    ----------
-    preds : np.array
-        Prediction array.
-    yval : np.array
-        Validation array.
+    Args:
+        preds (np.array): Prediction array.
+        yval (np.array): Validation array.
 
-    Returns
-    -------
-    pred_err : np.array
-        Flatten maximum error along axis=0
-    prelm : np.array
-        Flatten Relative maximum error along axis=0
+    Returns:
+        pred_err (np.array): Flatten maximum error along axis=0
+        prelm (np.array): Flatten Relative maximum error along axis=0
+
     """
     pred = np.reshape(preds,(preds.shape[0],-1))
     flat_yval = np.reshape(yval,(yval.shape[0],-1))
@@ -46,43 +43,28 @@ def plot_energy_gradient_fit_result(i,xval,xtrain,yval,ytrain,
                                     dir_save=None,
                                     unit_energy="eV",unit_force="eV/A"):
     """
-    Plot and store fit
+    Plot and store fit.
 
-    Parameters
-    ----------
-    i : int
-        index of the nerual network.
-    xval : np.array
-        Validation Data.
-    xtrain : np.array
-        Training Data.
-    yval : list
-        True Validation data. [energy, gradient]
-    ytrain : list
-        True Training data. [energy, gradient]
-    predval : list
-        Model prediction for validation.
-    predtrain : list
-        Model prediction for training.
-    hist : dict
-        histogram from keras.
-    epostep : int, optional
-        Step size of evals. The default is 1.
-    dir_save : str/os.path, optional
-        Path of dictionary to store plots. The default is None.
-    unit_energy : str, optional
-        Unit of energy. The default is 'eV'.
-    unit_force : str, optional
-        Unit of force. The default is 'eV/A'.
+    Args:
+        i (int): index of the nerual network.
+        xval (np.array): Validation Data.
+        xtrain (np.array): Training Data.
+        yval (list): True Validation data. [energy, gradient]
+        ytrain (list): True Training data. [energy, gradient]
+        predval (list): Model prediction for validation.
+        predtrain (list): Model prediction for training.
+        hist (dict): histogram from keras.
+        epostep (int, optional): Step size of evals. The default is 1.
+        dir_save (str, optional): Path of dictionary to store plots. The default is None.
+        unit_energy (str, optional): Unit of energy. The default is 'eV'.
+        unit_force (str, optional): DESCRIPTION. Unit of force. The default is 'eV/A'.
 
-    Returns
-    -------
-    int
-        0.
+    Returns:
+        int: 0.
 
     """
     filetypeout = '.pdf'
-    timestamp = f"{round(time.time())}"
+    #timestamp = f"{round(time.time())}"
     
     if(os.path.exists(dir_save) == False):
         print("Error: Output directory does not exist")
@@ -214,43 +196,28 @@ def plot_nac_fit_result(i,xval,xtrain,yval,ytrain,
                         dir_save=None,
                         prename='fit', unit_nac = '1/A'):
     """
-    Plot and store fit
+    Plot and store fit.
 
-    Parameters
-    ----------
-    i : int
-        index of the nerual network.
-    xval : np.array
-        Validation Data.
-    xtrain : np.array
-        Training Data.
-    yval : np.array
-        True Validation data. nac
-    ytrain : np.array
-        True Training data. nac
-    predval : np.array
-        Model prediction for validation.
-    predtrain : np.array
-        Model prediction for training.
-    hist : dict
-        histogram from keras.
-    epostep : int, optional
-        Step size of evals. The default is 1.
-    dir_save : str/os.path, optional
-        Path of dictionary to store plots. The default is None.
-    prename : str, optional
-        Start of naming plots. The default is 'fit'.
-    unit_nac : str, optional
-        Unit of NACs. The default is '1/A'.
+    Args:
+        i (int): index of the nerual network.
+        xval (np.array): Validation Data.
+        xtrain (np.array): Training Data.
+        yval (np.array): True Validation data. nac
+        ytrain (np.array): True Training data. nac
+        predval (np.array): Model prediction for validation.
+        predtrain (np.array): Model prediction for training.
+        hist (dict): histogram from keras.
+        epostep (int, optional): Step size of evals. The default is 1.
+        dir_save (str, optional): Path of dictionary to store plots. The default is None.
+        prename (str, optional): Start of naming plots. The default is 'fit'.
+        unit_nac (str, optional): Unit of NACs. The default is '1/A'.
 
-    Returns
-    -------
-    int
-        0.
+    Returns:
+        int: 0.
 
     """
     filetypeout = ".pdf"
-    timestamp = f"{round(time.time())}"
+    #timestamp = f"{round(time.time())}"
     
     if(os.path.exists(dir_save) == False):
         print("Error: Output directory does not exist")
@@ -362,38 +329,26 @@ def plot_resampling_gradient(dir_save,
                         unit_energy="eV",
                         unit_force="eV/A"):
     """
-    Plot the resampling statistics for energy gradient
+    Plot the resampling statistics for energy gradient.
 
-    Parameters
-    ----------
-    dir_save : str, optional
-        Directory to save data. The default is None.
-    out_index : list,
-        List of indexarrays from data.
-    pool_error : np.array,
-        List of error on the remaining data.
-    fit_error : np.array,
-        List of error of validation set.
-    test_error : np.array,
-        List of error for test set.
-    prename : str, optional
-        Prefix for fit. The default is 'fit'.
-    unit_energy_conv : float, optional
-        Value of unitconverion for energy. The default is 1.
-    unit_force_conv : float, optional
-        Value of unitconversion for force. The default is 1.
-    unit_energy : str, optional
-        Unit of energy. The default is 'eV'.
-    unit_force : str, optional
-        Unit of force. The default is 'eV/A'.
+    Args:
+        dir_save (str): Directory to save data. The default is None.
+        out_index (list): List of indexarrays from data.
+        pool_error (np.array): List of error on the remaining data.
+        fit_error (np.array): List of error of validation set.
+        test_error (np.array): List of error for test set.
+        prename (str, optional): Prefix for fit. The default is 'fit'.
+        unit_energy_conv (str, optional): Value of unitconverion for energy. The default is 1.
+        unit_force_conv (str, optional): Value of unitconversion for force. The default is 1.
+        unit_energy (str, optional):  Unit of energy. The default is 'eV'.
+        unit_force (str, optional): Unit of force. The default is 'eV/A'.
 
-    Returns
-    -------
-    None.
+    Returns:
+        None.
 
     """
     filetypeout = ".png"
-    timestamp = f"{round(time.time())}"
+    #timestamp = f"{round(time.time())}"
     
     if(os.path.exists(dir_save) == False):
         print("Error: Output directory does not exist")
@@ -438,34 +393,24 @@ def plot_resampling_nac(dir_save,
                         unit_nac_conv = 1,
                         unit_nac = '1/A'):
     """
-    Plot the resampling statistics for energy gradient
+    Plot the resampling statistics for energy gradient.
 
-    Parameters
-    ----------
-    dir_save : str, optional
-        Directory to save data. The default is None.
-    out_index : list,
-        List of indexarrays from data.
-    pool_error : np.array,
-        List of error on the remaining data.
-    fit_error : np.array,
-        List of error of validation set.
-    test_error : np.array,
-        List of error for test set.
-    prename : str, optional
-        Prefix for fit. The default is 'fit'.
-    unit_nac_conv : float, optional
-        Value of unitconversion for nac. The default is 1.
-    unit_nac : str, optional
-        Unit of NAC. The default is '1/A'.
+    Args:
+        dir_save (str): Directory to save data. The default is None.
+        out_index (list): List of indexarrays from data.
+        pool_error (np.array): List of error on the remaining data.
+        fit_error (np.array): List of error of validation set.
+        test_error (np.array): List of error for test set.
+        prename (str, optional): Prefix for fit. The default is 'fit'.
+        unit_nac_conv (str, optional): Value of unitconversion for nac. The default is 1.
+        unit_nac (str, optional): Unit of NAC. The default is '1/A'.
 
-    Returns
-    -------
-    None.
+    Returns:
+        None.
 
     """
     filetypeout = ".png"
-    timestamp = f"{round(time.time())}"
+    #timestamp = f"{round(time.time())}"
     
     if(os.path.exists(dir_save) == False):
         print("Error: Output directory does not exist")
@@ -488,20 +433,3 @@ def plot_resampling_nac(dir_save,
     plt.legend(loc='upper right')         
     plt.savefig(outname)
     plt.close()
-
-
-# import pickle
-# with open('resample_8','rb') as f: res = pickle.load(f)
-# plot_resampling_gradient("./",res[0],
-#                             np.array([x['energy_gradient'] for x in  res[1]]),
-#                             np.array([x['energy_gradient'] for x in  res[2]]),
-#                             np.array([x['energy_gradient'] for x in  res[3]]),
-#                             unit_energy_conv = 27.21138624598853,
-#                             unit_force_conv = 27.21138624598853/0.52917721090380,
-#                             unit_energy="eV",
-#                             unit_force="eV/A")
-# plot_resampling_nac("./",res[0],
-#                             np.array([x['nac'] for x in  res[1]]),
-#                             np.array([x['nac'] for x in  res[2]]),
-#                             np.array([x['nac'] for x in  res[3]]),
-#                             unit_nac_conv = 1/0.52917721090380)

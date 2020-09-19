@@ -50,24 +50,16 @@ def train_model_nac(i=0, outdir=None, mode = 'training'):
     """
     Train NAC model. Uses precomputed feature and model representation.
 
-    Parameters
-    ----------
-    i : int, optional
-        Model index. The default is 0.
-    outdir : str, optional
-        Direcotry for fit output. The default is None.
-    mode : str, optional
-        Fitmode to take from hyperparameters. The default is 'training'.
+    Args:
+        i (int, optional): Model index. The default is 0.
+        outdir (str, optional): Direcotry for fit output. The default is None.
+        mode (str, optional): Fitmode to take from hyperparameters. The default is 'training'.
 
-    Raises
-    ------
-    ValueError
-        Wrong input shape.
+    Raises:
+        ValueError: Wrong input shape.
 
-    Returns
-    -------
-    error_val : list
-        Validation error for NAC.
+    Returns:
+        error_val (list): Validation error for NAC.
 
     """
     i = int(i)

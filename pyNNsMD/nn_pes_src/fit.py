@@ -1,5 +1,6 @@
 """
 Main interface to start training_??.py scripts in parallel. This can be solved in many different ways.
+
 Possible are server solutions with slurm and MPI. Here only python subprocess are started to local machine.
 The training scripts are supposed to read all necessary information from folder. 
 NOTE: Path information of folder and training scripts as well as os info are made fetchable but could fail in certain
@@ -15,13 +16,12 @@ import sys
 
 def get_path_for_fit_script():
     """
-    Function to find the path of training scripts. 
+    Interface to find the path of training scripts.
+    
     For now they are expected to be in the same folder as calling .py script.
 
-    Returns
-    -------
-    filepath : str
-        Filepath pointing to training scripts.
+    Returns:
+        filepath (str): Filepath pointing to training scripts.
 
     """
     #Ways of finding path either os.getcwd() or __file__ or just set static path with install...
@@ -35,10 +35,8 @@ def fit_model_get_python_cmd_os():
     """
     Return proper commandline command for pyhton depending on os.
 
-    Returns
-    -------
-    str
-        Python command either python or pyhton3.
+    Returns:
+        str: Python command either python or pyhton3.
 
     """
     # python or python3 to run
@@ -52,20 +50,14 @@ def fit_model_energy_gradient(i,filepath,g,m):
     """
     Run the training script in subprocess.
 
-    Parameters
-    ----------
-    i : int
-        Index of model.
-    filepath : str
-        Filepath to model.
-    g : int
-        GPU index to use.
-    m : str
-        Fitmode.
+    Args:
+        i (int): Index of model.
+        filepath (str): Filepath to model.
+        g (int): GPU index to use.
+        m (str): Fitmode.
 
-    Returns
-    -------
-    None.
+    Returns:
+        None.
 
     """
     print("Run:",filepath,"Instance:",i, "on GPU:",g,m)
@@ -83,21 +75,15 @@ def fit_model_nac(i,filepath,g,m):
     """
     Run the training script in subprocess.
 
-    Parameters
-    ----------
-    i : int
-        Index of model.
-    filepath : str
-        Filepath to model.
-    g : int
-        GPU index to use.
-    m : str
-        Fitmode.
+    Args:
+        i (int): Index of model.
+        filepath (str): Filepath to model.
+        g (int): GPU index to use.
+        m (str): Fitmode.
 
-    Returns
-    -------
-    None.
-
+    Returns:
+        None.
+        
     """
     print("Run:",filepath,"Instance:",i, "on GPU:",g,m)
     py_cmd = fit_model_get_python_cmd_os()
@@ -114,20 +100,14 @@ def fit_model_energy_gradient_async(i,filepath,g,m):
     """
     Run the training script in subprocess.
 
-    Parameters
-    ----------
-    i : int
-        Index of model.
-    filepath : str
-        Filepath to model.
-    g : int
-        GPU index to use.
-    m : str
-        Fitmode.
+    Args:
+        i (int): Index of model.
+        filepath (str): Filepath to model.
+        g (int): GPU index to use.
+        m (str): Fitmode.
 
-    Returns
-    -------
-    subprocess.Popen.
+    Returns:
+        proc (subprocess.Popen): Pipe to subprocess.
 
     """
     print("Run:",filepath,"Instance:",i, "on GPU:",g,m)
@@ -143,20 +123,14 @@ def fit_model_nac_async(i,filepath,g,m):
     """
     Run the training script in subprocess.
 
-    Parameters
-    ----------
-    i : int
-        Index of model.
-    filepath : str
-        Filepath to model.
-    g : int
-        GPU index to use.
-    m : str
-        Fitmode.
+       Args:
+        i (int): Index of model.
+        filepath (str): Filepath to model.
+        g (int): GPU index to use.
+        m (str): Fitmode.
 
-    Returns
-    -------
-    subprocess.Popen.
+    Returns:
+        proc (subprocess.Popen): Pipe to subprocess.
 
     """
     print("Run:",filepath,"Instance:",i, "on GPU:",g,m)

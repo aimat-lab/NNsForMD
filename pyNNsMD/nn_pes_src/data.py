@@ -13,15 +13,11 @@ def index_make_random_shuffle(x):
     """
     Shuffle indexarray.
 
-    Parameters
-    ----------
-    x : np.array
-        Index to shuffle.
+    Args:
+        x (np.array): Index to shuffle.
 
-    Returns
-    -------
-    np.array
-        Shuffled index.
+    Returns:
+        np.array: Shuffled index.
 
     """
     return shuffle(x)
@@ -29,19 +25,14 @@ def index_make_random_shuffle(x):
 
 def datalist_make_random_shuffle(datalist):
     """
-    Shuffle a list od data
+    Shuffle a list od data.
 
-    Parameters
-    ----------
-    datalist : list
-        List of numpy arrays of same length (axis=0).
+    Args:
+        datalist (list): List of numpy arrays of same length (axis=0).
 
-    Returns
-    -------
-    allind : np.array
-        Index assignment of the shuffle.
-    outlist : list
-        List of the shuffled data.
+    Returns:
+        allind (np.array): Index assignment of the shuffle.
+        outlist (list): List of the shuffled data.
 
     """
     datalen = len(datalist[0])
@@ -65,22 +56,15 @@ def model_save_data_to_folder(x,y,
     """
     Save Data to model folder. Always dumps data_x and data_y as pickle.
 
-    Parameters
-    ----------
-    x : np.array
-        Coordinates as x-data.
-    y : list,np.array
-        A possible list of np.arrays for y-values. Energy, Gradients, NAC etc.
-    target_model : str
-        Name of the Model to save data for.
-    mod_dir : str
-        Path of model directory.
-    random_shuffle : bool, optional
-        Whether to shuffle data before save. The default is False.
-
-    Returns
-    -------
-    None.
+    Args:
+        x (np.array): Coordinates as x-data.
+        y (list): A possible list of np.arrays for y-values. Energy, Gradients, NAC etc.
+        target_model (str): Name of the Model to save data for.
+        mod_dir (str): Path of model directory.
+        random_shuffle (bool, optional): Whether to shuffle data before save. The default is False.
+        
+    Returns:
+        None.
 
     """
     #Save data:
@@ -111,19 +95,13 @@ def merge_data_in_chunks(data1,data2,split_size):
     
     Idea: [a+a+a] + [b+b+b] = [(a+b)+(a+b)+(a+b)] and NOT [a+a+a+b+b+b].
 
-    Parameters
-    ----------
-    data1 : np.array
-        Data to merge.
-    data2 : np.array
-        Data to merge.
-    split_size : float
-        Relative size of junks 0 < split_size < 1.
+    Args:
+        data1 (np.array): Data to merge.
+        data2 (np.array): Data to merge.
+        split_size (float): Relative size of junks 0 < split_size < 1.
 
-    Returns
-    -------
-    np.array
-        Merged data.
+    Returns:
+        np.array: Merged data.
 
     """
     pacs1 = int(len(data1)*split_size)
@@ -142,24 +120,16 @@ def merge_data_in_chunks(data1,data2,split_size):
 def split_validation_training_index(allind,splitsize,do_offset,offset_steps):
     """
     Make a train-validation split for indexarray. Validation set is taken from beginning with possible offset.
+ 
+    Args:
+        allind (np.array): Indexlist for full dataset of same length.
+        splitsize (int): Total number of validation samples to take.
+        do_offset (bool): Whether to take validation set not from beginnig but with offset.
+        offset_steps (int): Number of validation sizes offseted from the beginning to start to take validation set.
 
-    Parameters
-    ----------
-    allind : np.array
-        Indexlist for full dataset of same length.
-    splitsize : int
-        Total number of validation samples to take.
-    do_offset : bool
-        Whether to take validation set not from beginnig but with offset.
-    offset_steps : int
-        Number of validation sizes offseted from the beginning to start to take validation set.
-
-    Returns
-    -------
-    i_train : np.array
-        Training indices.
-    i_val : np.arry
-        Validation indices.
+    Returns:
+        i_train (np.array): Training indices
+        i_val (np.array): Validation indices.
 
     """
     i = offset_steps
@@ -182,17 +152,12 @@ def index_data_in_y_dict(y,ind):
     """
     Index np.arrays as array[index] in the nested y_dict used in pes.
 
-    Parameters
-    ----------
-    y : dict
-        Dcitionary of y-values as y={'energy_gradients' : [np.array,np.array], 'NAC' : np.array}.
-    ind : np.array
-        Index array.
+    Args:
+        y (dict): Dcitionary of y-values as y={'energy_gradients' : [np.array,np.array], 'NAC' : np.array}.
+        ind (np.array): Index array.
 
-    Returns
-    -------
-    y_out : dict
-        Same y_dict with its data as data[index].
+    Returns:
+        y_out (dict): Same y_dict with its data as data[index].
 
     """
     y_out = {}

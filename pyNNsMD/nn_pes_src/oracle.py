@@ -1,27 +1,24 @@
 """
 Methods for active sampling.
+
+This can be improved on how to pick new points.
 """
 import numpy as np
 
 
 def find_samples_with_max_error(y,y_pred):
     """
-    Find the sample indices with the combined maximum deviation for all model in y. 
+    Find the sample indices with the combined maximum deviation for all model in y.
+    
     y_pred may have more models. Each np.array in y and y_pred must have same size.
 
-    Parameters
-    ----------
-    y : dict
-        Dictionary of y values by model key.
-    y_pred : dict
-        Dictionary of predicted values by model key.
+    Args:
+        y (dict): Dictionary of y values by model key.
+        y_pred (dict): Dictionary of predicted values by model key.
 
-    Returns
-    -------
-    out : np.array
-        Sorted index array.
-    err_total_dict : dict
-        Dictionary of mean absolute error that matches structure of y.
+    Returns:
+        out (np.array): Sorted index array.
+        err_total_dict (dict): Dictionary of mean absolute error that matches structure of y.
 
     """
     #Disassable y_dict

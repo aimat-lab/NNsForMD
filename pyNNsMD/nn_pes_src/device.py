@@ -7,18 +7,16 @@ import tensorflow as tf
 
 def set_gpu(gpu_ids_list):
     """
-    Sets the visible devices from a list of GPUs. Used to assign a process to a separate GPU.
+    Set the visible devices from a list of GPUs. Used to assign a process to a separate GPU.
+    
     Also very important is to restrict memeory growth since a single tensorfow process will allocate almost all 
     GPU memory, so two fits can not run on same GPU.
 
-    Parameters
-    ----------
-    gpu_ids_list : list
-        Device list.
+    Args:
+        gpu_ids_list (list): Device list.
 
-    Returns
-    -------
-    None.
+    Returns:
+        None.
 
     """
     #Check if set is possible

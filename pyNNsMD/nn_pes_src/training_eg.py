@@ -5,7 +5,7 @@ import numpy as np
 import tensorflow as tf
 import tensorflow.keras as ks
 #from sklearn.utils import shuffle
-import time
+#import time
 import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
@@ -41,34 +41,27 @@ from pyNNsMD.nn_pes_src.callbacks import EarlyStopping,lr_lin_reduction,lr_exp_r
 from pyNNsMD.nn_pes_src.plot import plot_energy_gradient_fit_result
 from pyNNsMD.nn_pes_src.models_feat import create_feature_models
 from pyNNsMD.nn_pes_src.models_eg import create_model_energy_gradient_precomputed,EnergyModel
-from pyNNsMD.nn_pes_src.legacy import compute_feature_derivative
+#from pyNNsMD.nn_pes_src.legacy import compute_feature_derivative
 from pyNNsMD.nn_pes_src.hyper import _load_hyp
 from pyNNsMD.nn_pes_src.data import split_validation_training_index
 from pyNNsMD.nn_pes_src.scaler import DEFAULT_STD_SCALER_ENERGY_GRADS,save_std_scaler_dict,load_std_scaler_dict
+
 
 
 def train_model_energy_gradient(i = 0, outdir=None,  mode='training'): 
     """
     Train an energy plus gradient model. Uses precomputed feature and model representation.
 
-    Parameters
-    ----------
-    i : int, optional
-        Model index. The default is 0.
-    outdir : str, optional
-        Direcotry for fit output. The default is None.
-    mode : str, optional
-        Fitmode to take from hyperparameters. The default is 'training'.
+    Args:
+        i (int, optional): Model index. The default is 0.
+        outdir (str, optional): Direcotry for fit output. The default is None.
+        mode (str, optional): Fitmode to take from hyperparameters. The default is 'training'.
 
-    Raises
-    ------
-    ValueError
-        Wrong input shape.
+    Raises:
+        ValueError: Wrong input shape.
 
-    Returns
-    -------
-    error_val : list
-        Validation error for (energy,gradient).
+    Returns:
+        error_val (list): Validation error for (energy,gradient).
 
     """
     i = int(i)
@@ -132,7 +125,7 @@ def train_model_energy_gradient(i = 0, outdir=None,  mode='training'):
     learning_rate_start_early = hyper['linear_callback']['learning_rate_start']
     learning_rate_stop_early = hyper['linear_callback']['learning_rate_stop']
 
-    #Transfer scaler
+    #scaler
     y_energy_std = scaler['energy_std']
     y_energy_mean = scaler['energy_mean']
     y_gradient_std = scaler['gradient_std']

@@ -41,19 +41,16 @@ class FeatureModel(ks.Model):
 
 def create_feature_models(hyper,model_name="feat",run_eagerly=False):
     """
-    Model to precompute features feat = model(x)
-    
-    Parameters
-    ----------
-    hyper : dict
-        Hyper dictionary.
-    run_eagerly : bool, optional
-        Whether to run eagerly.
+    Model to precompute features feat = model(x).
 
-    Returns
-    -------
-    model : keras.model
-        tf.keras model with coordinate input.
+    Args:
+        hyper (dict): Hyper dictionary.
+        model_name (str, optional): Name of the Model. Defaults to "feat".
+        run_eagerly (bool, optional): Whether to run eagerly. Defaults to False.
+
+    Returns:
+        model (keras.model): tf.keras model with coordinate input.
+
     """
     out_dim = int( hyper['states'])
     indim = int( hyper['atoms'])

@@ -10,16 +10,12 @@ import tensorflow.keras as ks
 def leaky_softplus(alpha = 0.3):
     """
     Leaky softplus activation function similar to leakyRELU but smooth.
+        
+    Args:
+        alpha (float, optional): Leaking slope. The default is 0.3.
 
-    Parameters
-    ----------
-    alpha : float, optional
-        Leaking slope. The default is 0.3.
-
-    Returns
-    -------
-    func
-        lambda function of x.
+    Returns:
+        func: lambda function of x.
 
     """
     return lambda x : ks.activations.softplus(x)*(1-alpha)+alpha*x
@@ -30,43 +26,11 @@ def shifted_softplus(x):
     """
     Softplus function from tf.keras shifted downwards.
 
-    Parameters
-    ----------
-    x : tf.tensor
-        Activation input.
+    Args:
+        x (tf.tensor): Activation input.
 
-    Returns
-    -------
-    tf.tensor
-        Activation.
+    Returns:
+        tf.tensor: Activation.
 
     """
     return ks.activations.softplus(x) - ks.backend.log(2.0)
-
-
-def identify_keras_activation(instr,alpha=None,beta=None):
-    """
-    Identify ativation function by string.
-
-    Parameters
-    ----------
-    instr : str
-        Name of function.
-    alpha : float, optional
-        Alpha Paramter. The default is None.
-    beta : float, optional
-        Beta Parameter. The default is None.
-
-    Returns
-    -------
-    activ : fun
-        Activation function.
-
-    """
-    if(instr == 'shifted_softplus'):
-        activ = shifted_softplus
-    elif(instr == 'leaky_softplus'):
-        activ = leaky_softplus(alpha)
-    else:
-        activ = instr
-    return activ

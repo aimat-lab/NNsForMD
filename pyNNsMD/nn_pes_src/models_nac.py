@@ -1,12 +1,15 @@
 """
 Tensorflow keras model definitions for NAC.
+
+There are two definitions: the subclassed NACModel and a precomputed model to 
+multiply with the feature derivative for training, which overwrites training/predict step.
 """
 
 import numpy as np
 import tensorflow as tf
 import tensorflow.keras as ks
 from pyNNsMD.nn_pes_src.hyper import DEFAULT_HYPER_PARAM_NAC as hyper_create_model_nac
-from pyNNsMD.nn_pes_src.layers import InverseDistance,Angles,Dihydral,MLP,EmptyGradient,ConstLayerNormalization
+from pyNNsMD.nn_pes_src.layers import InverseDistance,Angles,Dihydral,MLP,ConstLayerNormalization
 from pyNNsMD.nn_pes_src.loss import get_lr_metric,r2_metric,nac_loss
 
 
@@ -14,10 +17,23 @@ from pyNNsMD.nn_pes_src.loss import get_lr_metric,r2_metric,nac_loss
 class NACModel(ks.Model):
     """
     Subclassed tf.keras.model for NACs which outputs NACs from coordinates.
+    
     This is not used for fitting, only for prediction as for fitting a feature-precomputed model is used instead.
     The model is supposed to be saved and exported.
     """
+    
     def __init__(self,hyper, **kwargs):
+        """
+        Initialize a NACModel with hyperparameters.
+
+        Args:
+            hyper (dict): Hyperparamters.
+            **kwargs (dict): Additional keras.model parameters.
+
+        Returns:
+            tf.keras.model.
+            
+        """
         super(NACModel, self).__init__(**kwargs)
         out_dim = int( hyper['states'])
         indim = int( hyper['atoms'])
@@ -68,6 +84,17 @@ class NACModel(ks.Model):
         
         self.build((None,indim,3))
     def call(self, data, training=False):
+        """
+        Call the model output, forward pass.
+
+        Args:
+            data (tf.tensor): Coordinates.
+            training (bool, optional): Training Mode. Defaults to False.
+
+        Returns:
+            y_pred (tf.tensor): predicted NACs.
+
+        """
         x = data
         # Compute predictions
         with tf.GradientTape() as tape2:
@@ -176,19 +203,13 @@ def create_model_nac_precomputed(hyper=hyper_create_model_nac['model'],
     """
     Get precomputed withmodel y = model(feat) with feat=[f,df/dx] features and its derivative to coordinates x.
 
-    Parameters
-    ----------
-    hyper : dict, optional
-        Hyper model dictionary. The default is hyper_create_model_nac.
-    learning_rate_start  : float, optional
-        Initial learning rate. Default is 1e-3,
-    make_phase_loss : bool, optional
-        Use normal loss MSE regardless of hyper. The default is False.
-        
-    Returns
-    -------
-    model : tf.keras.model
-        tf.keras model.
+    Args:
+        hyper (dict, optional): Hyper model dictionary. The default is hyper_create_model_nac['model'].
+        learning_rate_start (float, optional): Initial learning rate. Default is 1e-3.
+        make_phase_loss (bool, optional): Use normal loss MSE regardless of hyper. The default is False.
+
+    Returns:
+        model (tf.keras.model): tf.keras model.
 
     """
     out_dim = int(hyper['states'])

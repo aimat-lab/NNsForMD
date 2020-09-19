@@ -1,5 +1,7 @@
 """
 Functions for loss.
+
+Also includes Metrics and tools around loss.
 """
 
 import numpy as np
@@ -11,17 +13,14 @@ def get_lr_metric(optimizer):
     """
     Obtian learning rate from optimizer.
 
-    Parameters
-    ----------
-    optimizer : tf.kears.optimizer
-        Optimizer used for training.
+    Args:
+        optimizer (tf.kears.optimizer): Optimizer used for training.
 
-    Returns
-    -------
-    float
-        learning rate.
+    Returns:
+        float: learning rate.
 
     """
+
     def lr(y_true, y_pred):
         return optimizer.lr
     return lr
@@ -31,17 +30,12 @@ def r2_metric(y_true, y_pred):
     """
     Compute r2 metric.
 
-    Parameters
-    ----------
-    y_true : tf.tensor
-        True y-values.
-    y_pred : tf.tensor
-        Predicted y-values.
+    Args:
+        y_true (tf.tensor): True y-values.
+        y_pred (tf.tensor): Predicted y-values.
 
-    Returns
-    -------
-    tf.tensor
-        r2 metric.
+    Returns:
+        tf.tensor: r2 metric.
 
     """
     SS_res =  ks.backend.sum(ks.backend.square(y_true - y_pred)) 
@@ -51,19 +45,14 @@ def r2_metric(y_true, y_pred):
 
 def nac_loss(y_true, y_pred):
     """
-    A phaseless loss for the NAC prediction. Needs to be adapted for multiple states.
+    Phaseless loss for the NAC prediction. Needs to be adapted for multiple states.
 
-    Parameters
-    ----------
-    y_true : tf.tensor
-        True y-values.
-    y_pred : tf.tensor
-        Predicted y-values.
+    Args:
+        y_true (tf.tensor): True y-values.
+        y_pred (tf.tensor): Predicted y-values.
 
-    Returns
-    -------
-    tf.tensor
-        Phaseindependent MSE.
+    Returns:
+        tf.tensor: Phaseindependent MSE.
 
     """
     out1 = ks.backend.mean(ks.backend.square(y_true - y_pred))
@@ -73,19 +62,14 @@ def nac_loss(y_true, y_pred):
 
 def merge_hist(hist1,hist2):
     """
-    Merge two hist-dicts
+    Merge two hist-dicts.
 
-    Parameters
-    ----------
-    hist1 : dict
-        Hist dict from fit.
-    hist2 : dict
-        Hist dict from fit.
+    Args:
+        hist1 (dict): Hist dict from fit.
+        hist2 (dict): Hist dict from fit.
 
-    Returns
-    -------
-    outhist : dict
-        hist1 + hist2.
+    Returns:
+        outhist (dict): hist1 + hist2.
 
     """
     outhist = {}

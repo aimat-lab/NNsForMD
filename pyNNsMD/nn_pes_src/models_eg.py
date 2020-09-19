@@ -1,5 +1,8 @@
 """
 Tensorflow keras model definitions for energy and gradient.
+
+There are two definitions: the subclassed EnergyModel and a precomputed model to 
+multiply with the feature derivative for training, which overwrites training/predict step.
 """
 
 import numpy as np
@@ -9,16 +12,29 @@ import tensorflow.keras as ks
 
 from pyNNsMD.nn_pes_src.hyper import DEFAULT_HYPER_PARAM_ENERGY_GRADS as hyper_model_energy_gradient
 from pyNNsMD.nn_pes_src.layers import InverseDistance,Angles,Dihydral,MLP,EmptyGradient,ConstLayerNormalization
-from pyNNsMD.nn_pes_src.loss import get_lr_metric,r2_metric,nac_loss
+from pyNNsMD.nn_pes_src.loss import get_lr_metric,r2_metric
 
 
 class EnergyModel(ks.Model):
     """
     Subclassed tf.keras.model for energy/gradient which outputs both energy and gradient from coordinates.
+    
     This is not used for fitting, only for prediction as for fitting a feature-precomputed model is used instead.
     The model is supposed to be saved and exported for MD code.
     """
+    
     def __init__(self,hyper, **kwargs):
+        """
+        Initialize an EnergyModel with hyperparameters.
+
+        Args:
+            hyper (dict): Hyperparamters.
+            **kwargs (dict): Additional keras.model parameters.
+
+        Returns:
+            tf.keras.model.
+            
+        """
         super(EnergyModel, self).__init__(**kwargs)
         out_dim = int( hyper['states'])
         indim = int( hyper['atoms'])
@@ -66,7 +82,19 @@ class EnergyModel(ks.Model):
         self.energy_layer =  ks.layers.Dense(out_dim,name='energy',use_bias=True,activation='linear')
         
         self.build((None,indim,3))
+        
     def call(self, data, training=False):
+        """
+        Call the model output, forward pass.
+
+        Args:
+            data (tf.tensor): Coordinates.
+            training (bool, optional): Training Mode. Defaults to False.
+
+        Returns:
+            y_pred (list): List of tf.tensor for predicted [energy,gradient]
+
+        """
         # Unpack the data
         x = data
         # Compute predictions
@@ -174,19 +202,13 @@ def create_model_energy_gradient_precomputed(hyper=hyper_model_energy_gradient['
     """
     Full Model y = model(feat) with feat=[f,df/dx] features and its derivative to coordinates x.
 
-    Parameters
-    ----------
-    hyper : dict, optional
-        Hyper dictionary. The default is hyper_model_energy_gradient.
-    learning_rate_start : float, optional
-        Initial Learning rate in compile.
-    loss_weights : list, optional
-        Weights between energy and gradient. defualt is [1,1]
+    Args:
+        hyper (dict, optional): Hyper dictionary. The default is hyper_model_energy_gradient['model'].
+        learning_rate_start (float, optional): Initial Learning rate in compile. Defaults to 1e-3.
+        loss_weights (list, optional): Weights between energy and gradient. defualt is [1,1]
 
-    Returns
-    -------
-    model : keras.model
-        tf.keras model with coordinate input.
+    Returns:
+        model (TYPE): DESCRIPTION.
 
     """
     out_dim = hyper['states']
