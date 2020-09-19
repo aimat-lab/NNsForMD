@@ -8,7 +8,7 @@ import numpy as np
 import tensorflow as tf
 import tensorflow.keras as ks
 
-from pyNNsMD.nn_pes_src.activ import identify_keras_activation,leaky_softplus,shifted_softplus
+from pyNNsMD.nn_pes_src.activ import leaky_softplus,shifted_softplus
 
     
 
