@@ -19,7 +19,7 @@ DEFAULT_HYPER_PARAM_ENERGY_GRADS = {
                     {
                         'atoms' : 2,     #number of atoms
                         'states' : 1,    # (batch,states) and (batch,states,atoms,3)         
-                        'nn_size' : 1000,     # size of each layer
+                        'nn_size' : 100,     # size of each layer
                         'Depth' : 3,     # number of layers
                         'activ' : { 'class_name': "leaky_softplus", "config" : {'alpha': 0.03}} ,  # activation function
                         #Regularozation
@@ -81,7 +81,7 @@ DEFAULT_HYPER_PARAM_NAC = {
                             'states' : 1, #(batch,states,atoms,3)
                             'Depth' : 3,
                             'activ' : { 'class_name': "leaky_softplus", "config" : {'alpha': 0.03}} ,  # activation function,
-                            'nn_size' : 1000,
+                            'nn_size' : 100,
                             #Regularization
                             'dropout' : 0.005,
                             'use_dropout' : False, 
