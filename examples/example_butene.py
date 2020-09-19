@@ -84,13 +84,13 @@ hyper_nac =  {    #Model
 
 
 nn.create({ 
-            'energy_gradient': hyper_energy,
+            'eg': hyper_energy,
             'nac': hyper_nac  
             })
 
 
 y = {
-      'energy_gradient': [Energy,grads],
+      'eg': [Energy,grads],
       'nac' : nacs,
       }
 
@@ -98,7 +98,7 @@ y = {
 fitres = nn.fit(x,
                 y,
                 gpu_dist= { #Set to {} or to -1 if no gpu to use
-                            'energy_gradient' : [0,0],
+                            'eg' : [0,0],
                             'nac' : [0,0],
                             },
                 proc_async=True,
@@ -108,7 +108,7 @@ fitres = nn.fit(x,
 # out = nn.resample(x,
 #                 y,
 #                 gpu_dist= { #Set to {} or to -1 if no gpu to use
-#                             'energy_gradient' : [0,0],
+#                             'eg' : [0,0],
 #                             'nac' : [0,0],
 #                             },
 #                 proc_async=True,
