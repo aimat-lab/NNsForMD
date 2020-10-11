@@ -46,6 +46,7 @@ def r2_metric(y_true, y_pred):
 def nac_loss(y_true, y_pred):
     """
     Phaseless loss for the NAC prediction. Needs to be adapted for multiple states.
+    @TODO: define for more states with specific ordering
 
     Args:
         y_true (tf.tensor): True y-values.

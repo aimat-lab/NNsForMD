@@ -14,11 +14,14 @@ import subprocess
 import sys
 
 
-def get_path_for_fit_script():
+def get_path_for_fit_script(model_type):
     """
     Interface to find the path of training scripts.
     
-    For now they are expected to be in the same folder as calling .py script.
+    For now they are expected to be in the same folder-system as calling .py script.
+    
+    Args:
+        model_type (str): Name of the model.
 
     Returns:
         filepath (str): Filepath pointing to training scripts.
@@ -26,9 +29,11 @@ def get_path_for_fit_script():
     """
     #Ways of finding path either os.getcwd() or __file__ or just set static path with install...
     locdiR = os.getcwd()
-    filepath = os.path.dirname(__file__) 
+    filepath = os.path.abspath(os.path.dirname(__file__) )
     STATIC_PATH_FIT_SCRIPT = ""
-    return filepath
+    fit_script = {"mlp_eg" : "training_mlp_eg.py","mlp_nac" : "training_mlp_nac.py"}
+    outpath = os.path.join(filepath,"training",fit_script[model_type])
+    return outpath
 
 
 def fit_model_get_python_cmd_os():
@@ -46,11 +51,13 @@ def fit_model_get_python_cmd_os():
         return 'python3'
 
 
-def fit_model_energy_gradient(i,filepath,g,m):
+def _fit_model_by_modeltype(model_type,dist_method,i,filepath,g,m):
     """
     Run the training script in subprocess.
 
     Args:
+        model_type (str): Name of the model.
+        dist_method (tba): Method to call training scripts on cluster.
         i (int): Index of model.
         filepath (str): Filepath to model.
         g (int): GPU index to use.
@@ -60,83 +67,15 @@ def fit_model_energy_gradient(i,filepath,g,m):
         None.
 
     """
-    print("Run:",filepath,"Instance:",i, "on GPU:",g,m)
+    print("Run:",filepath, "Instance:",i, "on GPU:",g,m)
+    py_script = get_path_for_fit_script(model_type)
     py_cmd = fit_model_get_python_cmd_os()
-    py_script = os.path.join(get_path_for_fit_script(),"training_eg.py")
     if(os.path.exists(py_script) == False):
-        print("Error: Can not find trainingsript, please check path")
-    subprocess.run([py_cmd,py_script, "-i",str(i),'-f',filepath,"-g",str(g),'-m',str(m)],capture_output=False,shell = False)
-    #proc_out = str(proc.stdout.decode('utf8'))
-    #print(proc_out)
-    return
-
-
-def fit_model_nac(i,filepath,g,m):
-    """
-    Run the training script in subprocess.
-
-    Args:
-        i (int): Index of model.
-        filepath (str): Filepath to model.
-        g (int): GPU index to use.
-        m (str): Fitmode.
-
-    Returns:
-        None.
-        
-    """
-    print("Run:",filepath,"Instance:",i, "on GPU:",g,m)
-    py_cmd = fit_model_get_python_cmd_os()
-    py_script = os.path.join(get_path_for_fit_script(),"training_nac.py")
-    if(os.path.exists(py_script) == False):
-        print("Error: Can not find trainingsript, please check path")
-    subprocess.run([py_cmd,py_script,"-i",str(i),'-f',filepath,"-g",str(g),'-m',str(m)],capture_output=False,shell = False) 
-    #proc_out = str(proc.stdout.decode('utf8'))
-    #print(proc_out)
-    return
-        
-
-def fit_model_energy_gradient_async(i,filepath,g,m):
-    """
-    Run the training script in subprocess.
-
-    Args:
-        i (int): Index of model.
-        filepath (str): Filepath to model.
-        g (int): GPU index to use.
-        m (str): Fitmode.
-
-    Returns:
-        proc (subprocess.Popen): Pipe to subprocess.
-
-    """
-    print("Run:",filepath,"Instance:",i, "on GPU:",g,m)
-    py_cmd = fit_model_get_python_cmd_os()
-    py_script = os.path.join(get_path_for_fit_script(),"training_eg.py")
-    if(os.path.exists(py_script) == False):
-        print("Error: Can not find trainingsript, please check path")
-    proc = subprocess.Popen([py_cmd,py_script,"-i",str(i),'-f',filepath,"-g",str(g),'-m',str(m)]) 
-    return proc
-
-
-def fit_model_nac_async(i,filepath,g,m):
-    """
-    Run the training script in subprocess.
-
-       Args:
-        i (int): Index of model.
-        filepath (str): Filepath to model.
-        g (int): GPU index to use.
-        m (str): Fitmode.
-
-    Returns:
-        proc (subprocess.Popen): Pipe to subprocess.
-
-    """
-    print("Run:",filepath,"Instance:",i, "on GPU:",g,m)
-    py_cmd = fit_model_get_python_cmd_os() 
-    py_script = os.path.join(get_path_for_fit_script(),"training_nac.py")
-    if(os.path.exists(py_script) == False):
-        print("Error: Can not find trainingsript, please check path")
-    proc = subprocess.Popen([py_cmd,py_script,"-i",str(i),'-f',filepath,"-g",str(g),'-m',str(m)])
-    return proc
+        print("Error: Can not find trainingsript, please check path",py_script)
+    if(dist_method==True):
+        proc = subprocess.Popen([py_cmd,py_script,"-i",str(i),'-f',filepath,"-g",str(g),'-m',str(m)]) 
+        return proc
+    if(dist_method==False):
+        proc = subprocess.run([py_cmd,py_script, "-i",str(i),'-f',filepath,"-g",str(g),'-m',str(m)],capture_output=False,shell = False)
+        return proc
+    
