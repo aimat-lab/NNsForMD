@@ -30,9 +30,9 @@ def _predict_uncertainty(model_type,out):
 
 
 def _call_convert_output_tonumpy(model_type,temp):
-    if(model_type == 'mlp_eg'):
+    if(model_type == 'mlp_nac'):
         return temp.numpy()
-    elif(model_type == 'mlp_nac'):
+    elif(model_type == 'mlp_eg'):
         return [temp[0].numpy(),temp[1].numpy()]
     else:
         print("Error: Unknown model type for predict",model_type)
