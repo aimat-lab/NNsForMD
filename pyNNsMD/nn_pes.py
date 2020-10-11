@@ -487,9 +487,9 @@ class NeuralNetPes:
         model_type = self._models_hyper[name][0]['general']['model_type']
         for i in range(self._addNN):
             x_scaled = _scale_x(model_type,x,scaler = self._models_scaler[name][i])
-            x_res = _call_convert_x_totensor(x_scaled)
+            x_res = _call_convert_x_totensor(model_type,x_scaled)
             temp = self._models[name][i](x_res,training=False)
-            temp = _call_convert_output_tonumpy(temp)
+            temp = _call_convert_output_tonumpy(model_type,temp)
             temp = _rescale_output(model_type,temp,scaler = self._models_scaler[name][i])
             out.append(temp)
         return _predict_uncertainty(model_type,out)
