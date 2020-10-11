@@ -13,17 +13,15 @@ import numpy as np
 import tensorflow as tf
 
 
-
-from pyNNsMD.nn_pes_src.models_nac import NACModel
-from pyNNsMD.nn_pes_src.models_eg import EnergyModel
-from pyNNsMD.nn_pes_src.fit import fit_model_energy_gradient,fit_model_nac,fit_model_energy_gradient_async,fit_model_nac_async
-from pyNNsMD.nn_pes_src.hyper import DEFAULT_HYPER_PARAM_ENERGY_GRADS,DEFAULT_HYPER_PARAM_NAC
-from pyNNsMD.nn_pes_src.hyper import _save_hyp,_load_hyp
+from pyNNsMD.nn_pes_src.modeltype import _get_model_by_type
+from pyNNsMD.nn_pes_src.scaler import _get_default_scaler_dict
+from pyNNsMD.nn_pes_src.hyper import _save_hyp,_load_hyp,_get_default_hyperparameters_by_modeltype
+from pyNNsMD.nn_pes_src.fit import _fit_model_by_modeltype
 from pyNNsMD.nn_pes_src.data import model_save_data_to_folder,datalist_make_random_shuffle,merge_data_in_chunks,index_data_in_y_dict,index_make_random_shuffle
 from pyNNsMD.nn_pes_src.oracle import find_samples_with_max_error
-from pyNNsMD.nn_pes_src.plot import plot_resampling_gradient,plot_resampling_nac
-from pyNNsMD.nn_pes_src.scaler import DEFAULT_STD_SCALER_ENERGY_GRADS,DEFAULT_STD_SCALER_NAC,save_std_scaler_dict,load_std_scaler_dict
-from pyNNsMD.nn_pes_src.scaler import scale_x, rescale_eg, rescale_nac
+from pyNNsMD.nn_pes_src.plot import _plot_resampling
+from pyNNsMD.nn_pes_src.scaler import _scale_x,_rescale_output,save_std_scaler_dict,load_std_scaler_dict
+from pyNNsMD.nn_pes_src.predict import _predict_uncertainty,_call_convert_x_totensor,_call_convert_output_tonumpy
 
 
 class NeuralNetPes:
@@ -33,13 +31,13 @@ class NeuralNetPes:
     The individual model types are further stored to file in the directory specified in __init__(directory). 
     Each model you create within a NeuralNetPes is referenced by a dictionary.
     The information like predictions and hyperparameters are also passed in form of python dictionaries. 
-    See the default parameters in nn_pes_src.hyper for the scope of all parameters and their explanation. 
+    See the default parameters in nn_pes_src.hypers for the scope of all parameters and their explanation. 
     
     Example:
         nn = NeuralNetPes("mol2")
-        hyper_eg = {'general' : {'model_type':'energy_gradient'} , 'model' : {'atoms':12}} 
-        hyper_nac = {'general': {'model_type':'nac'} , 'model': {'atoms':12}}
-        nn.create({'mol2_energy': hyper_eg , 'mol2_nac' : hyper_nac})
+        hyper_energy = {'general' : {'model_type':'mlp_eg'} , 'model' : {'atoms':12} , 'training' : {}} 
+        hyper_nac = {'general': {'model_type':'mlp_nac'} , 'model': {'atoms':12} , 'training' : {}}
+        nn.create({'energy': hyper_energy , 'nac' : hyper_nac})
     
     """
     
@@ -54,7 +52,7 @@ class NeuralNetPes:
         Returns:
             NueralNetPes instance.
         """
-        self._models_implemented = ['energy_gradient', 'nac']
+        self._models_implemented = ['mlp_eg', 'mlp_nac']
 
         #self.logger = logging.getLogger(type(self).__name__)
         print("Info: Operating System: ",sys.platform)
@@ -107,7 +105,6 @@ class NeuralNetPes:
             #Accept list of hyperdicts
             hyp = h_dict
         else:
-            print(f"Error: Unknwon Input tpye of hyper for {key}")
             raise TypeError(f"Unknwon Input tpye of hyper for {key}")
         
         # Create the correct model with hyper
@@ -115,22 +112,12 @@ class NeuralNetPes:
         models[key] = []
         scaler = {}
         scaler[key] = []
-        if(model_type == 'energy_gradient'):
-            for i in range(self._addNN):
-                #Fill missing hyper
-                temp = self._merge_hyper(DEFAULT_HYPER_PARAM_ENERGY_GRADS,hyp[i])              
-                hyp[i] = temp
-                models[key].append(EnergyModel(hyper=temp['model']))
-                scaler[key].append(DEFAULT_STD_SCALER_ENERGY_GRADS)
-        elif(model_type == 'nac'):
-            for i in range(self._addNN):
-                #Fill missing hyper
-                temp = self._merge_hyper(DEFAULT_HYPER_PARAM_NAC,hyp[i])
-                hyp[i] = temp
-                models[key].append(NACModel(hyper=temp['model'])) 
-                scaler[key].append(DEFAULT_STD_SCALER_NAC)
-        else:
-            print(f"Error: Unknwon Model type in hyper dict for {model_type}")
+        for i in range(self._addNN):
+            #Fill missing hyper
+            temp = self._merge_hyper(_get_default_hyperparameters_by_modeltype(model_type),hyp[i])              
+            hyp[i] = temp
+            models[key].append(_get_model_by_type(model_type,hyper=temp['model']))
+            scaler[key].append(_get_default_scaler_dict(model_type))
             
         return models,hyp,scaler
     
@@ -164,10 +151,10 @@ class NeuralNetPes:
 
         Args:
             hyp_dict (dict): Dictionary with hyper-parameter. {'model' : hyper_dict, 'model2' : hyper_dict2 , ...} to update.
-                                Note: model parameters will not be updated.
+                             Note: model parameters will not be updated.
 
         Raises:
-            TypeError: DESCRIPTION.
+            TypeError: If input type is not compatible with number of models.
 
         Returns:
             None.
@@ -213,8 +200,7 @@ class NeuralNetPes:
         Save a model weights and hyperparameter into class folder with a certain name.
         
         The model itself is not saved, use export to store the model itself.
-        Thes same holds for load. Here the model is recreated from hyperparameters and weights.
-            
+        Thes same holds for load. Here the model is recreated from hyperparameters and weights.     
 
         Args:
             model_name (str, optional): Name of the Model to save. The default is None, which means save all
@@ -242,6 +228,7 @@ class NeuralNetPes:
                 out_dirs.append(self._save(directory,name))
         
         return out_dirs
+
 
     def _export(self,directory,name):
         # Check if model name can be saved
@@ -371,16 +358,7 @@ class NeuralNetPes:
         #Start proc per NN
         proclist = []
         for i in range(self._addNN):
-            if(model_type == 'energy_gradient'):
-                if(proc_async==True):
-                    proclist.append(fit_model_energy_gradient_async(i,mod_dir,gpu[i],fitmode))
-                else:
-                    fit_model_energy_gradient(i,mod_dir,gpu[i],fitmode)
-            if(model_type == 'nac'):
-                if(proc_async==True):
-                    proclist.append(fit_model_nac_async(i,mod_dir,gpu[i],fitmode))
-                else:
-                    fit_model_nac(i,mod_dir,gpu[i],fitmode)
+            proclist.append(_fit_model_by_modeltype(model_type,proc_async, i, mod_dir, gpu[i], fitmode))
      
         print(f"Debug: successfully started training for models {target_model}")
         return proclist
@@ -408,7 +386,7 @@ class NeuralNetPes:
         The type of execution is found in nn_pes_src.fit with the training nn_pes_src.training_ scripts.
         
         Args:
-            x (np.array): Coordinates in Angstroem of shape (batch,Atoms,3)
+            x (np.array): X-values, e.g. Coordinates in Angstroem of shape (batch,Atoms,3)
             y (dict):   dictionary of y values for each model. 
                         Energy in Bohr, Gradients in Hatree/Bohr, NAC in 1/Hatre by default.
                         Units are cast for fitting into eV/Angstroem and can be accessed in hyperparameters.
@@ -440,10 +418,6 @@ class NeuralNetPes:
             else:
                 gpu_dict_clean[modtofit] = [-1 for i in range(self._addNN)] 
         
-        #Check Fitmode
-        if(fitmode!= 'training' and fitmode!= 'retraining' and fitmode!= "resample"):
-            print("Warning: Unkown fitmode not completed by default hyperparameter.")
-        
         #Fitting
         proclist = []
         for target_model, ydata in y.items():
@@ -472,38 +446,17 @@ class NeuralNetPes:
     
     def _predict_models(self,name,x): 
         #Check type with first hyper
-        if(self._models_hyper[name][0]['general']['model_type'] == 'energy_gradient'):
-            energy = []
-            gradient = []
-            for i in range(self._addNN):
-                temp = self._models[name][i].predict(
-                                scale_x(x,scaler = self._models_scaler[name][i]),
-                                batch_size = self._models_hyper[name][i]['predict']['batch_size_predict']
-                                )
-                temp = rescale_eg(temp[0],temp[1],scaler = self._models_scaler[name][i])
-                energy.append(temp[0])
-                gradient.append(temp[1])
-            energy = np.array(energy)
-            gradient = np.array(gradient)
-            energy_mean = np.mean(energy,axis=0)
-            gradient_mean = np.mean(gradient,axis=0)
-            energy_std = np.std(energy,axis=0)*2
-            gradient_std = np.std(gradient,axis=0)*2
-            return [energy_mean,gradient_mean],[energy_std,gradient_std]
-            
-        if(self._models_hyper[name][0]['general']['model_type'] == 'nac'):
-            nac = []
-            for i in range(self._addNN):                
-                temp = self._models[name][i].predict(
-                                scale_x(x,scaler = self._models_scaler[name][i]),
-                                batch_size = self._models_hyper[name][i]['predict']['batch_size_predict'], 
-                                )
-                temp = rescale_nac(temp,scaler = self._models_scaler[name][i])
-                nac.append(temp)
-            nac = np.array(nac)
-            nac_mean = np.mean(nac,axis=0)
-            nac_std = np.std(nac,axis=0)*2 
-            return nac_mean,nac_std
+        out = []
+        model_type = self._models_hyper[name][0]['general']['model_type']
+        for i in range(self._addNN):
+            x_scaled = _scale_x(model_type,x,scaler = self._models_scaler[name][i])
+            temp = self._models[name][i].predict(
+                            x_scaled,
+                            batch_size = self._models_hyper[name][i]['predict']['batch_size_predict']
+                            )
+            temp = _rescale_output(model_type,temp,scaler = self._models_scaler[name][i])
+            out.append(temp) 
+        return _predict_uncertainty(model_type,out)
         
     
     def predict(self, x):
@@ -530,34 +483,17 @@ class NeuralNetPes:
 
     def _call_models(self,name,x): 
         #Check type with first hyper
-        if(self._models_hyper[name][0]['general']['model_type'] == 'energy_gradient'):
-            energy = []
-            gradient = []
-            for i in range(self._addNN):
-                x_res = tf.convert_to_tensor(scale_x(x,scaler = self._models_scaler[name][i]), dtype=tf.float32)
-                temp = self._models[name][i](x_res,training=False)
-                temp = rescale_eg(temp[0].numpy(),temp[1].numpy(),scaler = self._models_scaler[name][i])
-                energy.append(temp[0])
-                gradient.append(temp[1])
-            energy = np.array(energy)
-            gradient = np.array(gradient)
-            energy_mean = np.mean(energy,axis=0)
-            gradient_mean = np.mean(gradient,axis=0)
-            energy_std = np.std(energy,axis=0)*2
-            gradient_std = np.std(gradient,axis=0)*2
-            return [energy_mean,gradient_mean],[energy_std,gradient_std]
-            
-        if(self._models_hyper[name][0]['general']['model_type'] == 'nac'):
-            nac = []
-            for i in range(self._addNN):
-                x_res = tf.convert_to_tensor(scale_x(x,scaler = self._models_scaler[name][i]), dtype=tf.float32)
-                temp = self._models[name][i](x,training=False)
-                temp = rescale_nac(temp.numpy(),scaler = self._models_scaler[name][i])
-                nac.append(temp)
-            nac = np.array(nac)
-            nac_mean = np.mean(nac,axis=0)
-            nac_std = np.std(nac,axis=0)*2 
-            return nac_mean,nac_std
+        out = []
+        model_type = self._models_hyper[name][0]['general']['model_type']
+        for i in range(self._addNN):
+            x_scaled = _scale_x(model_type,x,scaler = self._models_scaler[name][i])
+            x_res = _call_convert_x_totensor(x_scaled)
+            temp = self._models[name][i](x_res,training=False)
+            temp = _call_convert_output_tonumpy(temp)
+            temp = _rescale_output(model_type,temp,scaler = self._models_scaler[name][i])
+            out.append(temp)
+        return _predict_uncertainty(model_type,out)
+
     
     
     def call(self,x):
@@ -657,26 +593,11 @@ class NeuralNetPes:
         
     def _resample_plot_stats(self,name,out_index,out_error,out_fiterr,out_testerr):
         # Take type and scaling into from first NN for each model
-        if(self._models_hyper[name][0]['general']['model_type'] == 'energy_gradient'):
-            plot_resampling_gradient(os.path.join(self._directory,name,"fit_stats"),
-                                     out_index,
-                                     np.array(out_error),
-                                     np.array(out_fiterr) ,
-                                     np.array(out_testerr),
-                                     unit_energy_conv = self._models_hyper[name][0]['model']['y_energy_unit_conv'],
-                                     unit_force_conv = self._models_hyper[name][0]['model']['y_gradient_unit_conv'],
-                                     unit_energy=self._models_hyper[name][0]['plots']['unit_energy'],
-                                     unit_force=self._models_hyper[name][0]['plots']['unit_gradient']
-                                     )
-        if(self._models_hyper[name][0]['general']['model_type'] == 'nac'):
-            plot_resampling_nac(os.path.join(self._directory,name,"fit_stats"),
-                                     out_index,
-                                     np.array(out_error),
-                                     np.array(out_fiterr),
-                                     np.array(out_testerr),
-                                     unit_nac_conv = self._models_hyper[name][0]['model']['y_nac_unit_conv'],
-                                     unit_nac = self._models_hyper[name][0]['plots']['unit_nac']
-                                     )
+        model_type = self._models_hyper[name][0]['general']['model_type']
+        _plot_resampling(model_type,os.path.join(self._directory,name,"fit_stats"),
+                         out_index,out_error,out_fiterr,out_testerr,
+                         self._models_hyper[name][0]['plots'])
+
 
 
     def resample(self,x,y,gpu_dist,proc_async=True,random_shuffle=False,stepsize = 0.05,test_size = 0.05):
