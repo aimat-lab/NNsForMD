@@ -33,51 +33,53 @@ grads = np.array(grad) * 27.21138624598853/0.52917721090380
 Energy = np.array(energy) *27.21138624598853 
 nacs= np.array(nac)/0.52917721090380
 
-nn = NeuralNetPes("NN5fit1")
+nn = NeuralNetPes("NN5fit4e")
 
 hyper_energy =  {    #Model
                 'general':{
-                    'model_type' : 'energy_gradient'
+                    'model_type' : 'mlp_eg'
                 },
                 'model':{
                     'atoms': 12,
                     'states': 2, 
                     'Depth' : 3,                    
-                    'nn_size' : 50,   # size of each layer
+                    'nn_size' : 1000,   # size of each layer
+                    'use_reg_activ' : {'class_name': 'L1', 'config': {'l1': 1e-4}},
                     'invd_index' : True,
                     'angle_index' : [],# anglist,
                     'dihyd_index'  : [], #dihydlist ,  # list of dihydral angles with index ijkl angle is between ijk and jkl
                 },
                 'training':{
-                    'normalization_mode' : 1,
-                    'epo': 3000,
+                    'normalization_mode' : 2,
+                    'epo': 50,
                     'loss_weights' : [1,10], 
                     'val_split' : 0.1, 
                     'batch_size' : 64,
-                    'step_callback' : {'use': True , 'epoch_step_reduction' : [1000,1000,500,500],'learning_rate_step' :[1e-3,1e-4,1e-5,1e-6]},
+                    'step_callback' : {'use': True , 'epoch_step_reduction' : [2000,2000,500,500],'learning_rate_step' :[1e-3,1e-4,1e-5,1e-6]},
                 }
                 }
 hyper_nac =  {    #Model
                 'general':{
-                    'model_type' : 'nac',
+                    'model_type' : 'mlp_nac',
                 },
                 'model':{
                     'atoms' : 12,
-                    'states':1 , 
+                    'states': 1 , 
                     'Depth' : 3,
-                    'nn_size' : 50,
+                    'nn_size' : 1000,
+                    'use_reg_activ' : {'class_name': 'L1', 'config': {'l1': 1e-4}},
                     'invd_index' : True,
                     'angle_index' : [],#,anglist,
                     'dihyd_index'  : [],#dihydlist ,  # list of dihydral angles with index ijkl angle is between ijk and jkl
                 },
                 'training':{
-                    'phase_less_loss' : True,
-                    'normalization_mode' : 1, 
-                    'epo': 3000,
+                    'phase_less_loss' : False,
+                    'normalization_mode' : 2, 
+                    'epo': 50,
                     'val_split' : 0.1, 
-                    'pre_epo': 20,
+                    'pre_epo': 10,
                     'batch_size' : 64,
-                    'step_callback' : {'use': True , 'epoch_step_reduction' : [1000,1000,500,500],'learning_rate_step' :[1e-3,1e-4,1e-5,1e-6]},                     
+                    'step_callback' : {'use': True , 'epoch_step_reduction' : [2000,2000,500,500],'learning_rate_step' :[1e-3,1e-4,1e-5,1e-6]},                     
                 }
             } 
 
@@ -105,7 +107,7 @@ fitres = nn.fit(x,
                 fitmode='training',
                 random_shuffle=True)
 
-# out = nn.resample(x,
+# out = nn.resample(x, 
 #                 y,
 #                 gpu_dist= { #Set to {} or to -1 if no gpu to use
 #                             'eg' : [0,0],
