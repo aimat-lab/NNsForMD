@@ -1,5 +1,5 @@
 """
-Test/Example for Neural net PES
+Test/Example for butene
 
 @author: Patrick
 """
@@ -10,7 +10,7 @@ import pickle
 
 from pyNNsMD.nn_pes_src.device import set_gpu
 
-set_gpu([-1]) #No GPU for prediciton
+set_gpu([-1]) #No GPU for prediciton or this main class
 
 from pyNNsMD.nn_pes import NeuralNetPes
 import tensorflow as tf
@@ -29,11 +29,12 @@ natom, nstate, xyz, invr, energy, grad, nac, ci,_ = data
 #Target Properties y
 x = np.array(xyz)
 x = np.array(x[:,:,1:],dtype=np.float)  
-grads = np.array(grad) * 27.21138624598853/0.52917721090380
-Energy = np.array(energy) *27.21138624598853 
-nacs= np.array(nac)/0.52917721090380
+grads = np.array(grad) * 27.21138624598853/0.52917721090380  #Hatree to eV and 
+Energy = np.array(energy) *27.21138624598853  #Hatree to eV
+nacs= np.array(nac)/0.52917721090380 #Bohr to A
 
-nn = NeuralNetPes("NN5fit4e")
+
+nn = NeuralNetPes("NN5fit4f")
 
 hyper_energy =  {    #Model
                 'general':{
@@ -42,7 +43,7 @@ hyper_energy =  {    #Model
                 'model':{
                     'atoms': 12,
                     'states': 2, 
-                    'Depth' : 3,                    
+                    'depth' : 3,                    
                     'nn_size' : 1000,   # size of each layer
                     'use_reg_activ' : {'class_name': 'L1', 'config': {'l1': 1e-4}},
                     'invd_index' : True,
@@ -65,7 +66,7 @@ hyper_nac =  {    #Model
                 'model':{
                     'atoms' : 12,
                     'states': 1 , 
-                    'Depth' : 3,
+                    'depth' : 3,
                     'nn_size' : 1000,
                     'use_reg_activ' : {'class_name': 'L1', 'config': {'l1': 1e-4}},
                     'invd_index' : True,
