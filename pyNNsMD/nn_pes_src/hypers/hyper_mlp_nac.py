@@ -19,7 +19,7 @@ DEFAULT_HYPER_PARAM_NAC = {
                         { 
                             'atoms' : 2,
                             'states' : 1, #(batch,states,atoms,3)
-                            'Depth' : 3,
+                            'depth' : 3,
                             'activ' : { 'class_name': "leaky_softplus", "config" : {'alpha': 0.03}} ,  # activation function,
                             'nn_size' : 100,
                             #Regularization
@@ -43,6 +43,25 @@ DEFAULT_HYPER_PARAM_NAC = {
                             'val_disjoint' : True,
                             'val_split' : 0.1, 
                             'epo': 3000,
+                            'pre_epo' : 50, # number of epochs without phaseless loss
+                            'epostep' : 10,
+                            'batch_size' : 64,
+                            #Callbacks
+                            'step_callback' : {'use': False ,'epoch_step_reduction' : [500,1500,500,500],'learning_rate_step' : [1e-3,1e-4,1e-5,1e-6]},
+                            'linear_callback' : {'use' : False , 'learning_rate_start' : 1e-3,'learning_rate_stop' : 1e-6,'epomin' : 100 },
+                            'early_callback' : {'use' : False , 'epomin' : 5000,'patience' : 600,'max_time' : 600,'delta_loss' : 1e-5,'loss_monitor': 'val_loss', 'factor_lr' : 0.1 ,'learning_rate_start' : 1e-3,'learning_rate_stop' : 1e-6},
+                            'exp_callback' : {'use' : False , 'factor_lr' : 0.1 ,'epomin' : 100},   
+                        },
+                        'retraining':{
+                            #Fit information
+                            'auto_scaling' : True,
+                            'normalization_mode' : 1,
+                            'learning_rate' : 1e-3,
+                            'phase_less_loss' : True,
+                            'initialize_weights' : False, # To take old weights
+                            'val_disjoint' : True,
+                            'val_split' : 0.1, 
+                            'epo': 1000,
                             'pre_epo' : 50, # number of epochs without phaseless loss
                             'epostep' : 10,
                             'batch_size' : 64,

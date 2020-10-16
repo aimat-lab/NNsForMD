@@ -19,7 +19,7 @@ DEFAULT_HYPER_PARAM_ENERGY_GRADS = {
                         'atoms' : 2,     #number of atoms
                         'states' : 1,    # (batch,states) and (batch,states,atoms,3)         
                         'nn_size' : 100,     # size of each layer
-                        'Depth' : 3,     # number of layers
+                        'depth' : 3,     # number of layers
                         'activ' : { 'class_name': "leaky_softplus", "config" : {'alpha': 0.03}} ,  # activation function
                         #Regularozation
                         'use_dropout' : False,   #Whether to use dropout
@@ -43,6 +43,25 @@ DEFAULT_HYPER_PARAM_ENERGY_GRADS = {
                         'val_disjoint' : True,  # Should be removed as always a disjoint validation split per instance is favourable
                         'val_split' : 0.1, 
                         'epo': 3000,  # total epochs
+                        'batch_size' : 64,  # batch size       
+                        'epostep' : 10,  # steps of epochs for validation, also steps for changing callbacks
+                        #Callbacks
+                        'step_callback' : {'use': False ,'epoch_step_reduction' : [500,1500,500,500],  'learning_rate_step' : [1e-3,1e-4,1e-5,1e-6] },
+                        'linear_callback' : {'use' : False , 'learning_rate_start' : 1e-3,'learning_rate_stop' : 1e-6, 'epomin' : 100},
+                        'early_callback' : {'use' : False , 'epomin' : 5000,'patience' : 600,'max_time' : 600,'delta_loss' : 1e-5,'loss_monitor': 'val_loss', 'factor_lr' : 0.1 ,'learning_rate_start' : 1e-3,'learning_rate_stop' : 1e-6},
+                        'exp_callback' : {'use' : False , 'factor_lr' : 0.1 ,'epomin' : 100},
+                    },
+                    'retraining':
+                    {
+                        #can be changed after model created    
+                        'auto_scaling' : True, # Scale energy und coordinates, can be also done in data preparation
+                        'normalization_mode' : 1, # Normalization False/0 for no normalization/unity mulitplication
+                        'loss_weights' : [1,10],     # weights between energy and gradients
+                        'learning_rate' : 1e-3,  # learning rate, can be modified by callbacks
+                        'initialize_weights' : False,  # Whether to reset the weights before fit, used for retraining, transfer learning
+                        'val_disjoint' : True,  # Should be removed as always a disjoint validation split per instance is favourable
+                        'val_split' : 0.1, 
+                        'epo': 1000,  # total epochs
                         'batch_size' : 64,  # batch size       
                         'epostep' : 10,  # steps of epochs for validation, also steps for changing callbacks
                         #Callbacks
