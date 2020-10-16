@@ -37,7 +37,7 @@ from pyNNsMD.nn_pes_src.device import set_gpu
 set_gpu([int(args['gpus'])])
 print("Logic Devices:",tf.config.experimental.list_logical_devices('GPU'))
 
-from pyNNsMD.nn_pes_src.callbacks import EarlyStopping,lr_lin_reduction,lr_exp_reduction,lr_step_reduction
+from pyNNsMD.nn_pes_src.keras_utils.callbacks import EarlyStopping,lr_lin_reduction,lr_exp_reduction,lr_step_reduction
 from pyNNsMD.nn_pes_src.plotting.plot_mlp_eg import plot_energy_gradient_fit_result
 from pyNNsMD.nn_pes_src.models.models_mlp_eg import create_feature_models
 from pyNNsMD.nn_pes_src.models.models_mlp_eg import create_model_energy_gradient_precomputed,EnergyModel

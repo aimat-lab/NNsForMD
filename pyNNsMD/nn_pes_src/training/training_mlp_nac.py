@@ -38,7 +38,7 @@ set_gpu([int(args['gpus'])])
 print("Logic Devices:",tf.config.experimental.list_logical_devices('GPU'))
 
 
-from pyNNsMD.nn_pes_src.callbacks import EarlyStopping,lr_lin_reduction,lr_exp_reduction,lr_step_reduction
+from pyNNsMD.nn_pes_src.keras_utils.callbacks import EarlyStopping,lr_lin_reduction,lr_exp_reduction,lr_step_reduction
 from pyNNsMD.nn_pes_src.plotting.plot_mlp_nac import plot_nac_fit_result
 from pyNNsMD.nn_pes_src.models.models_mlp_nac import create_model_nac_precomputed,NACModel,create_feature_models
 from pyNNsMD.nn_pes_src.hyper import _load_hyp
