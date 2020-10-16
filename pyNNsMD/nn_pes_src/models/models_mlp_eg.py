@@ -11,8 +11,8 @@ import tensorflow.keras as ks
 
 
 from pyNNsMD.nn_pes_src.hypers.hyper_mlp_eg import DEFAULT_HYPER_PARAM_ENERGY_GRADS as hyper_model_energy_gradient
-from pyNNsMD.nn_pes_src.layers import InverseDistance,Angles,Dihydral,MLP,EmptyGradient,ConstLayerNormalization
-from pyNNsMD.nn_pes_src.loss import get_lr_metric,r2_metric
+from pyNNsMD.nn_pes_src.keras_utils.layers import InverseDistance,Angles,Dihydral,MLP,EmptyGradient,ConstLayerNormalization
+from pyNNsMD.nn_pes_src.keras_utils.loss import get_lr_metric,r2_metric
 
 
 class EnergyModel(ks.Model):
@@ -44,7 +44,7 @@ class EnergyModel(ks.Model):
         use_dihyd_angles = hyper['dihyd_index'] != []
         dihyd_index = hyper['dihyd_index']
         nn_size = hyper['nn_size']
-        Depth = hyper['Depth']
+        depth = hyper['depth']
         activ = hyper['activ']
         use_reg_activ = hyper['use_reg_activ']
         use_reg_weight = hyper['use_reg_weight']
@@ -67,7 +67,7 @@ class EnergyModel(ks.Model):
         self.flat_layer = ks.layers.Flatten(name='feat_flat')
         self.std_layer = ConstLayerNormalization(axis=-1,name='feat_std')
         self.mlp_layer = MLP( nn_size,
-                 dense_depth = Depth,
+                 dense_depth = depth,
                  dense_bias = True,
                  dense_bias_last = True,
                  dense_activ = activ,
@@ -219,7 +219,7 @@ def create_model_energy_gradient_precomputed(hyper=hyper_model_energy_gradient['
     use_dihyd_angles = hyper['dihyd_index'] != []
     dihyd_index = hyper['dihyd_index']
     nn_size = hyper['nn_size']
-    Depth = hyper['Depth']
+    depth = hyper['depth']
     activ = hyper['activ']
     use_reg_activ = hyper['use_reg_activ']
     use_reg_weight = hyper['use_reg_weight']
@@ -241,7 +241,7 @@ def create_model_energy_gradient_precomputed(hyper=hyper_model_energy_gradient['
     full = ks.layers.Flatten(name='feat_flat')(geo_input)
     full = ConstLayerNormalization(name='feat_std')(full)
     full = MLP( nn_size,
-             dense_depth = Depth,
+             dense_depth = depth,
              dense_bias = True,
              dense_bias_last = True,
              dense_activ = activ,

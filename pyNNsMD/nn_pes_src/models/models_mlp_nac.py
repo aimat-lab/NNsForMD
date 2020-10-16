@@ -9,8 +9,8 @@ import numpy as np
 import tensorflow as tf
 import tensorflow.keras as ks
 from pyNNsMD.nn_pes_src.hypers.hyper_mlp_nac import DEFAULT_HYPER_PARAM_NAC as hyper_create_model_nac
-from pyNNsMD.nn_pes_src.layers import InverseDistance,Angles,Dihydral,MLP,ConstLayerNormalization
-from pyNNsMD.nn_pes_src.loss import get_lr_metric,r2_metric,nac_loss
+from pyNNsMD.nn_pes_src.keras_utils.layers import InverseDistance,Angles,Dihydral,MLP,ConstLayerNormalization
+from pyNNsMD.nn_pes_src.keras_utils.loss import get_lr_metric,r2_metric,nac_loss
 
 
 
@@ -43,7 +43,7 @@ class NACModel(ks.Model):
         use_dihyd_angles = hyper['dihyd_index'] != []
         dihyd_index = hyper['dihyd_index']
         nn_size = hyper['nn_size']
-        Depth = hyper['Depth']
+        depth = hyper['depth']
         activ = hyper['activ']
         use_reg_activ = hyper['use_reg_activ']
         use_reg_weight = hyper['use_reg_weight']
@@ -67,7 +67,7 @@ class NACModel(ks.Model):
         self.flat_layer = ks.layers.Flatten(name='feat_flat')
         self.std_layer = ConstLayerNormalization(name='feat_std')
         self.mlp_layer = MLP(   nn_size,
-                                dense_depth = Depth,
+                                dense_depth = depth,
                                 dense_bias = True,
                                 dense_bias_last = False,
                                 dense_activ = activ,
@@ -220,7 +220,7 @@ def create_model_nac_precomputed(hyper=hyper_create_model_nac['model'],
     use_dihyd_angles = hyper['dihyd_index'] != []
     dihyd_index = hyper['dihyd_index']
     nn_size = hyper['nn_size']
-    Depth = hyper['Depth']
+    depth = hyper['depth']
     activ = hyper['activ']
     use_reg_activ = hyper['use_reg_activ']
     use_reg_weight = hyper['use_reg_weight']
@@ -242,7 +242,7 @@ def create_model_nac_precomputed(hyper=hyper_create_model_nac['model'],
     full = ks.layers.Flatten(name='feat_flat')(geo_input)
     full = ConstLayerNormalization(name='feat_std')(full)
     full = MLP(  nn_size,
-         dense_depth = Depth,
+         dense_depth = depth,
          dense_bias = True,
          dense_bias_last = False,
          dense_activ = activ,
