@@ -26,7 +26,7 @@ def _plot_resampling(model_type,dirpath,out_index,out_error,out_fiterr,out_teste
                                      unit_energy=plotdict['unit_energy'],
                                      unit_force=plotdict['unit_gradient']
                                      )
-    if(model_type == 'mlp_eg'):
+    if(model_type == 'mlp_nac'):
         plot_resampling_nac(dirpath,
                                  out_index,
                                  np.array(out_error),
