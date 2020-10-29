@@ -18,10 +18,10 @@ from pyNNsMD.nn_pes_src.scaler import _get_default_scaler_dict
 from pyNNsMD.nn_pes_src.hyper import _save_hyp,_load_hyp,_get_default_hyperparameters_by_modeltype
 from pyNNsMD.nn_pes_src.fit import _fit_model_by_modeltype
 from pyNNsMD.nn_pes_src.data import model_save_data_to_folder,datalist_make_random_shuffle,merge_data_in_chunks,index_data_in_y_dict,index_make_random_shuffle
-from pyNNsMD.nn_pes_src.oracle import find_samples_with_max_error
+from pyNNsMD.nn_pes_src.resample import find_samples_with_max_error
 from pyNNsMD.nn_pes_src.plot import _plot_resampling
 from pyNNsMD.nn_pes_src.scaler import _scale_x,_rescale_output,save_std_scaler_dict,load_std_scaler_dict
-from pyNNsMD.nn_pes_src.predict import _predict_uncertainty,_call_convert_x_totensor,_call_convert_output_tonumpy
+from pyNNsMD.nn_pes_src.predict import _predict_uncertainty,_call_convert_x_to_tensor,_call_convert_y_to_numpy
 
 
 class NeuralNetPes:
@@ -351,7 +351,7 @@ class NeuralNetPes:
     def _fit_models(self, target_model,x, y,gpu,proc_async,fitmode,random_shuffle=False):
         # modelfolder
         mod_dir = os.path.join(os.path.abspath(self._directory),target_model)
-        #Save data
+        #Save data, will be made model specific if necessary in the future
         model_save_data_to_folder(x, y,target_model,mod_dir,random_shuffle)
         # Pick modeltype from fist hyper
         model_type = self._models_hyper[target_model][0]['general']['model_type']
@@ -386,7 +386,9 @@ class NeuralNetPes:
         The type of execution is found in nn_pes_src.fit with the training nn_pes_src.training_ scripts.
         
         Args:
-            x (np.array): X-values, e.g. Coordinates in Angstroem of shape (batch,Atoms,3)
+            x (np.array,list,dict): X-values, e.g. Coordinates in Angstroem of shape (batch,Atoms,3)
+                                    Or list of np.arrays or dataforms that can be pickled.
+                                    If different models require also different x-values, provide a dict matching y.
             y (dict):   dictionary of y values for each model. 
                         Energy in Bohr, Gradients in Hatree/Bohr, NAC in 1/Hatre by default.
                         Units are cast for fitting into eV/Angstroem and can be accessed in hyperparameters.
@@ -424,7 +426,11 @@ class NeuralNetPes:
             #Save model here with hyper !!!!
             self.save(target_model)
             print(f"Debug: starting training model {target_model}")
-            proclist += self._fit_models(target_model,x, ydata,gpu_dict_clean[target_model],proc_async,fitmode,random_shuffle)
+            if(isinstance(x,dict) == True):
+                x_model = x[target_model]
+            else:
+                x_model = x
+            proclist += self._fit_models(target_model,x_model, ydata,gpu_dict_clean[target_model],proc_async,fitmode,random_shuffle)
         
         #Wait for fits
         if(proc_async == True):
@@ -464,7 +470,9 @@ class NeuralNetPes:
         Prediction for all models available. Prediction is slower but works on large data.
 
         Args:
-            x (np.array): Coordinates in Angstroem of shape (batch,Atoms,3)
+            x (np.array,list, dict):    Coordinates in Angstroem of shape (batch,Atoms,3)
+                                        Or a suitable list of geometric input.
+                                        If models require different x please provide dict matching model name.
 
         Returns:
             result (dict): All model predictions: {'energy_gradient' : [np.aray,np.array] , 'nac' : np.array , ..}.
@@ -474,24 +482,32 @@ class NeuralNetPes:
         result = {}
         error = {}
         for name in self._models.keys():
-            temp = self._predict_models(name,x)
+            if(isinstance(x,dict) == True):
+                x_model = x[name]
+            else:
+                x_model = x
+            temp = self._predict_models(name,x_model)
             result[name] = temp[0]
             error[name] = temp[1]
         
         return result,error
     
+    
+    @tf.function
+    def _call_model_list(self,x_list,model_list):
+        out = [model_list[i](x_list[i],training=False) for i in range(len(model_list))]
+        return out
 
+    
     def _call_models(self,name,x): 
         #Check type with first hyper
         out = []
         model_type = self._models_hyper[name][0]['general']['model_type']
-        for i in range(self._addNN):
-            x_scaled = _scale_x(model_type,x,scaler = self._models_scaler[name][i])
-            x_res = _call_convert_x_totensor(model_type,x_scaled)
-            temp = self._models[name][i](x_res,training=False)
-            temp = _call_convert_output_tonumpy(model_type,temp)
-            temp = _rescale_output(model_type,temp,scaler = self._models_scaler[name][i])
-            out.append(temp)
+        x_scaled = [_scale_x(model_type,x,scaler = self._models_scaler[name][i]) for i in range(self._addNN)]
+        x_res = [_call_convert_x_to_tensor(model_type,xs) for xs in x_scaled]
+        temp =  self._call_model_list(x_res,self._models[name])
+        temp = [_call_convert_y_to_numpy(model_type,xout) for xout in temp]
+        out = [_rescale_output(model_type,temp[i],scaler = self._models_scaler[name][i]) for i in range(self._addNN)]
         return _predict_uncertainty(model_type,out)
 
     
@@ -501,7 +517,9 @@ class NeuralNetPes:
         Faster prediction without looping batches. Requires single small batch (batch, Atoms,3) that fit into memory.
 
         Args:
-            x (np.array): Coordinates in Angstroem of shape (batch,Atoms,3)
+            x (np.array):   Coordinates in Angstroem of shape (batch,Atoms,3)
+                            Or a suitable list of geometric input.
+                            If models require different x please provide dict matching model name.
 
         Returns:
             result (dict): All model predictions: {'energy_gradient' : [np.aray,np.array] , 'nac' : np.array , ..}.
@@ -511,7 +529,11 @@ class NeuralNetPes:
         result = {}
         error = {}
         for name in self._models.keys():
-            temp = self._call_models(name,x)
+            if(isinstance(x,dict) == True):
+                x_model = x[name]
+            else:
+                x_model = x
+            temp = self._call_models(name,x_model)
             result[name] = temp[0]
             error[name] = temp[1]
         
