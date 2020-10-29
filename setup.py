@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name="pyNNsMD",
-    version="0.7.0",
+    version="0.7.1",
     author="Patrick Reiser",
     author_email="patrick.reiser@kit.edu",
     description="Neural Network for learning potential energy surface for molecular dynamics.",
