@@ -10,7 +10,7 @@ import tensorflow as tf
 import tensorflow.keras as ks
 from pyNNsMD.nn_pes_src.hypers.hyper_mlp_nac import DEFAULT_HYPER_PARAM_NAC as hyper_create_model_nac
 from pyNNsMD.nn_pes_src.keras_utils.layers import InverseDistance,Angles,Dihydral,MLP,ConstLayerNormalization
-from pyNNsMD.nn_pes_src.keras_utils.loss import get_lr_metric,r2_metric,nac_loss
+from pyNNsMD.nn_pes_src.keras_utils.loss import get_lr_metric,r2_metric,NACphaselessLoss
 
 
 
@@ -35,7 +35,7 @@ class NACModel(ks.Model):
             
         """
         super(NACModel, self).__init__(**kwargs)
-        out_dim = int( hyper['states'])
+        out_dim = int( hyper['states']*(hyper['states']-1)/2)
         indim = int( hyper['atoms'])
         use_invdist = hyper['invd_index'] != []
         use_bond_angles = hyper['angle_index'] != []
@@ -212,7 +212,7 @@ def create_model_nac_precomputed(hyper=hyper_create_model_nac['model'],
         model (tf.keras.model): tf.keras model.
 
     """
-    out_dim = int(hyper['states'])
+    num_outstates = int(hyper['states'])
     indim = int( hyper['atoms'])
     use_invdist = hyper['invd_index'] != []
     use_bond_angles = hyper['angle_index'] != []
@@ -227,7 +227,8 @@ def create_model_nac_precomputed(hyper=hyper_create_model_nac['model'],
     use_reg_bias = hyper['use_reg_bias'] 
     use_dropout = hyper['use_dropout']
     dropout = hyper['dropout']
-
+    
+    out_dim = int(num_outstates*(num_outstates-1)/2)
     
     in_model_dim = 0
     if(use_invdist==True):
@@ -270,7 +271,7 @@ def create_model_nac_precomputed(hyper=hyper_create_model_nac['model'],
         model.compile(loss='mean_squared_error',optimizer=optimizer,
               metrics=['mean_absolute_error' ,lr_metric,r2_metric])
     else:
-        model.compile(loss=nac_loss,optimizer=optimizer,
+        model.compile(loss=NACphaselessLoss(number_state = num_outstates, shape_nac = (indim,3),name="phaseless_loss"),optimizer=optimizer,
               metrics=['mean_absolute_error' ,lr_metric,r2_metric])   
     
     return model
@@ -319,7 +320,6 @@ def create_feature_models(hyper,model_name="feat",run_eagerly=False):
         model (keras.model): tf.keras model with coordinate input.
 
     """
-    out_dim = int( hyper['states'])
     indim = int( hyper['atoms'])
     use_invdist = hyper['invd_index'] != []
     use_bond_angles = hyper['angle_index'] != []
