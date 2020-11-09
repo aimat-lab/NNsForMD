@@ -1,5 +1,5 @@
 """
-Functions for loss.
+Functions and classes for loss.
 
 Also includes Metrics and tools around loss.
 """
@@ -43,24 +43,6 @@ def r2_metric(y_true, y_pred):
     return ( 1 - SS_res/(SS_tot + ks.backend.epsilon()) )
 
 
-def nac_loss(y_true, y_pred):
-    """
-    Phaseless loss for the NAC prediction. Needs to be adapted for multiple states.
-    @TODO: define for more states with specific ordering
-
-    Args:
-        y_true (tf.tensor): True y-values.
-        y_pred (tf.tensor): Predicted y-values.
-
-    Returns:
-        tf.tensor: Phaseindependent MSE.
-
-    """
-    out1 = ks.backend.mean(ks.backend.square(y_true - y_pred))
-    out2 = ks.backend.mean(ks.backend.square(y_true + y_pred))
-    return ks.backend.minimum(out1,out2)
-
-
 def merge_hist(hist1,hist2):
     """
     Merge two hist-dicts.
@@ -77,4 +59,70 @@ def merge_hist(hist1,hist2):
     for x,y in hist1.items():
         outhist.update({x : hist1[x] + hist2[x]})
     return outhist
+
+
+
+       
+# def nac_loss(y_true, y_pred):
+#     """
+#     Phaseless loss for the NAC prediction. Needs to be adapted for multiple states.
+#     @TODO: define for more states with specific ordering
+
+#     Args:
+#         y_true (tf.tensor): True y-values.
+#         y_pred (tf.tensor): Predicted y-values.
+
+#     Returns:
+#         tf.tensor: Phaseindependent MSE.
+
+#     """
+#     out1 = ks.backend.mean(ks.backend.square(y_true - y_pred))
+#     out2 = ks.backend.mean(ks.backend.square(y_true + y_pred))
+#     return ks.backend.minimum(out1,out2)
+
+
+class NACphaselessLoss(ks.losses.Loss):
+    def __init__(self, number_state = 2, shape_nac = (1,1), **kwargs):
+        super().__init__(**kwargs)
+        self.number_state = number_state
+        self.shape_nac = shape_nac
         
+        phase_stat = np.array([[1],[-1]])
+        for i in range(number_state-1):
+            temp_len = len(phase_stat)
+            temp = np.expand_dims(np.array([1]*temp_len+[-1]*temp_len),axis=-1)
+            phase_stat = np.concatenate([phase_stat,phase_stat],axis=0)
+            phase_stat = np.concatenate([phase_stat,temp],axis=-1)
+        #print("Possible phase combinations",phase_stat)
+        
+        phase_stat_mat = np.expand_dims(phase_stat,axis=1)*np.expand_dims(phase_stat,axis=-1)
+        idxs = np.triu_indices(number_state,k=1)
+        phase_end = np.unique( phase_stat_mat[...,idxs[0],idxs[1]],axis=0)
+        #print("Final phase combinations",phase_end)
+        #print("Length:", len(phase_end),2**(number_state-1))
+        
+        #Expand for broadcasting: batch + shape of nac
+        phase_end  =np.expand_dims(phase_end,axis=1) #batch
+        for i in range(len(shape_nac)):
+            phase_end  =np.expand_dims(phase_end,axis=-1) # shape nac
+        #print("Shape phase combinations",phase_end.shape)        
+        
+        #Store phase factors
+        self.phase_combo = tf.constant(phase_end,dtype=tf.keras.backend.floatx())
+        self.reduce_mean = list(range(1,len(shape_nac)+3))
+
+    def call(self, y_true, y_pred):
+        #Each phase combination should be along axis 0, batch at axis=1, state-state at axis=2 for mse
+        #The number of state-state is about state*(state-1)/2
+        #The number of combinations is 2^(state-1)
+        phase_combo = tf.cast(self.phase_combo, y_pred.dtype)
+        se = ks.backend.square(ks.backend.expand_dims(y_true,axis=0) - phase_combo*ks.backend.expand_dims(y_pred,axis=0) )
+        mse = ks.backend.mean(se,axis=self.reduce_mean)
+        #Maybe we can add a softmin to improve convergence later.
+        return ks.backend.min(mse,axis=0)
+    
+    def get_config(self):
+        """Return the config dictionary for a `Loss` instance."""
+        return {'number_state': self.number_state, 
+                'shape_nac': self.shape_nac,
+                'name': self.name}
