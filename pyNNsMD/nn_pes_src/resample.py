@@ -67,3 +67,24 @@ def find_samples_with_max_error(y,y_pred):
     
     return out,err_total_dict
 
+
+def index_data_in_y_dict(y,ind):
+    """
+    Index np.arrays as array[index] in the nested y_dict used in pes.
+
+    Args:
+        y (dict): Dcitionary of y-values as y={'energy_gradients' : [np.array,np.array], 'NAC' : np.array}.
+        ind (np.array): Index array.
+
+    Returns:
+        y_out (dict): Same y_dict with its data as data[index].
+
+    """
+    y_out = {}
+    for key, value in y.items():
+        if(isinstance(value,list)):
+            y_out[key] = [x[ind] for x in value]
+        else:
+            y_out[key] = value[ind]
+    return y_out
+    

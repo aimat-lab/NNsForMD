@@ -1,6 +1,5 @@
 """
 Functions to plot fitresults.
-
 They include training and resampling.
 """
 import numpy as np
@@ -37,12 +36,3 @@ def _plot_resampling(model_type,dirpath,out_index,out_error,out_fiterr,out_teste
 
     else:
         print("Error: Can not find model type",model_type)
-
-
-
-
-        
-
-
-
-
