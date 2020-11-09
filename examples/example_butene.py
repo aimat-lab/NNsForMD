@@ -34,7 +34,7 @@ Energy = np.array(energy) *27.21138624598853  #Hatree to eV
 nacs= np.array(nac)/0.52917721090380 #Bohr to A
 
 
-nn = NeuralNetPes("NN5fit4f")
+nn = NeuralNetPes("NN5fit4g")
 
 hyper_energy =  {    #Model
                 'general':{
@@ -52,7 +52,7 @@ hyper_energy =  {    #Model
                 },
                 'training':{
                     'normalization_mode' : 2,
-                    'epo': 50,
+                    'epo': 100,
                     'loss_weights' : [1,10], 
                     'val_split' : 0.1, 
                     'batch_size' : 64,
@@ -65,7 +65,7 @@ hyper_nac =  {    #Model
                 },
                 'model':{
                     'atoms' : 12,
-                    'states': 1 , 
+                    'states': 2 , 
                     'depth' : 3,
                     'nn_size' : 1000,
                     'use_reg_activ' : {'class_name': 'L1', 'config': {'l1': 1e-4}},
@@ -74,7 +74,7 @@ hyper_nac =  {    #Model
                     'dihyd_index'  : [],#dihydlist ,  # list of dihydral angles with index ijkl angle is between ijk and jkl
                 },
                 'training':{
-                    'phase_less_loss' : False,
+                    'phase_less_loss' : True,
                     'normalization_mode' : 2, 
                     'epo': 50,
                     'val_split' : 0.1, 
@@ -117,4 +117,5 @@ fitres = nn.fit(x,
 #                 proc_async=True,
 #                 random_shuffle=True)
 
-
+test = nn.call(x[0:10])
+test2 = nn.predict(x[0:10])
