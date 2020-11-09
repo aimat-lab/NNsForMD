@@ -42,7 +42,7 @@ from pyNNsMD.nn_pes_src.keras_utils.callbacks import EarlyStopping,lr_lin_reduct
 from pyNNsMD.nn_pes_src.plotting.plot_mlp_nac import plot_nac_fit_result
 from pyNNsMD.nn_pes_src.models.models_mlp_nac import create_model_nac_precomputed,NACModel,create_feature_models
 from pyNNsMD.nn_pes_src.hyper import _load_hyp
-from pyNNsMD.nn_pes_src.data import split_validation_training_index
+from pyNNsMD.nn_pes_src.datasets.data_mlp_nac import split_validation_training_index
 from pyNNsMD.nn_pes_src.scaler import save_std_scaler_dict,load_std_scaler_dict
 from pyNNsMD.nn_pes_src.scaling.scale_mlp_nac import DEFAULT_STD_SCALER_NAC,scale_feature
 
