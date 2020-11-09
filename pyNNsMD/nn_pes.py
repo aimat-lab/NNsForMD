@@ -2,8 +2,9 @@
 Main class for neural network (NN) container to provide multiple NN instances.
 
 Enables uncertainty estimate as well as training and prediction of tf.keras models
-for energy plus gradient and non-adiabatic couplings (NAC). The python class is supposed to
-allow parallel training and further operations like resampling and hyper optimization. 
+for energy plus gradient and non-adiabatic couplings (NAC) and further models. 
+The python class is supposed to allow parallel training and 
+further operations like resampling and hyper optimization. 
 """
 
 #import logging
@@ -17,8 +18,8 @@ from pyNNsMD.nn_pes_src.modeltype import _get_model_by_type
 from pyNNsMD.nn_pes_src.scaler import _get_default_scaler_dict
 from pyNNsMD.nn_pes_src.hyper import _save_hyp,_load_hyp,_get_default_hyperparameters_by_modeltype
 from pyNNsMD.nn_pes_src.fit import _fit_model_by_modeltype
-from pyNNsMD.nn_pes_src.data import model_save_data_to_folder,datalist_make_random_shuffle,merge_data_in_chunks,index_data_in_y_dict,index_make_random_shuffle
-from pyNNsMD.nn_pes_src.resample import find_samples_with_max_error
+from pyNNsMD.nn_pes_src.data import model_save_data_to_folder,model_make_random_shuffle,model_merge_data_in_chunks,index_make_random_shuffle
+from pyNNsMD.nn_pes_src.resample import find_samples_with_max_error,index_data_in_y_dict
 from pyNNsMD.nn_pes_src.plot import _plot_resampling
 from pyNNsMD.nn_pes_src.scaler import _scale_x,_rescale_output,save_std_scaler_dict,load_std_scaler_dict
 from pyNNsMD.nn_pes_src.predict import _predict_uncertainty,_call_convert_x_to_tensor,_call_convert_y_to_numpy
@@ -71,6 +72,18 @@ class NeuralNetPes:
         
     
     def _merge_hyper(self,dictold, dictnew,exclude_category = []):
+        """
+        Merge hyperparameter dictionaries on the first two levels.
+
+        Args:
+            dictold (dict): Existing or eg. default dict.
+            dictnew (dict): Dict to update.
+            exclude_category (dict, optional): Exclude a category not to update. Defaults to [].
+
+        Returns:
+            temp (dict): Updated dict.
+
+        """
         temp = {}
         temp.update(dictold)
         for hkey in dictnew.keys():
@@ -130,7 +143,7 @@ class NeuralNetPes:
 
         Args:
             hyp_dict (dict): Dictionary with hyper-parameter. {'model' : hyper_dict, 'model2' : hyper_dict2 ....}
-                             Missing hyperparameter in hyper_dict are filled up from default, see nn_utils for complete set.
+                             Missing hyperparameter in hyper_dict are filled up from default, see nn_pes_src.hypers for complete set.
 
         Returns:
             list: created models.
@@ -349,12 +362,12 @@ class NeuralNetPes:
     
       
     def _fit_models(self, target_model,x, y,gpu,proc_async,fitmode,random_shuffle=False):
+        # Pick modeltype from fist hyper
+        model_type = self._models_hyper[target_model][0]['general']['model_type']
         # modelfolder
         mod_dir = os.path.join(os.path.abspath(self._directory),target_model)
         #Save data, will be made model specific if necessary in the future
-        model_save_data_to_folder(x, y,target_model,mod_dir,random_shuffle)
-        # Pick modeltype from fist hyper
-        model_type = self._models_hyper[target_model][0]['general']['model_type']
+        model_save_data_to_folder(model_type,x, y,target_model,mod_dir,random_shuffle)
         #Start proc per NN
         proclist = []
         for i in range(self._addNN):
@@ -390,8 +403,7 @@ class NeuralNetPes:
                                     Or list of np.arrays or dataforms that can be pickled.
                                     If different models require also different x-values, provide a dict matching y.
             y (dict):   dictionary of y values for each model. 
-                        Energy in Bohr, Gradients in Hatree/Bohr, NAC in 1/Hatre by default.
-                        Units are cast for fitting into eV/Angstroem and can be accessed in hyperparameters.
+                        Units of gradients and x-values, i.e. coordinates must match.
             gpu_dist (dict, optional):  Dictionary with same modelname and list of GPUs for each NN. Default is {}
                                         Example {'nac' : [0,0] } both NNs for NAC on GPU:0
             proc_async (bool): Try to run parallel. Default is true.
@@ -541,55 +553,91 @@ class NeuralNetPes:
         return result,error
 
     
-    def shuffle(self,datalist):
+    def shuffle(self,x,y,dat_size):
         """
-        Shuffle datalist consistently, i.e. each data [x,y,y2,...] in the same way.
+        Shuffle datalist consistently, i.e. each data in x,y in the same way.
 
         Args:
-            datalist (list): List of numpy arrays that have the same datalength (axis=0).
+            x (np.array,list,dict): X-values, e.g. Coordinates in Angstroem of shape (batch,Atoms,3)
+                                    Or list of np.arrays or dataforms that can be pickled.
+                                    If different models require also different x-values, provide a dict matching y.
+            y (dict):   dictionary of y values for each model.
+            dat_size (int): Size of the Dataset. Must match the data.
 
         Returns:
             shuffle_ind (np.array): Index assignment for the shuffle for x,y etc.
-            outlist (list): Shuffled list of the same data.
+            x_dict (dict): Shuffled list of the x data.
+            y_dict (dict): Shuffled list of the y data.
 
         """
-        if(isinstance(datalist,list) == False):
-            print("Warning: Expected datalist")
-            datalist = [datalist]
-        shuffle_ind, outlist = datalist_make_random_shuffle(datalist)
+        x_dict = {}
+        y_dict = {}
+        shuffle_ind = index_make_random_shuffle(np.arange(dat_size))
+        models_available = sorted(list(self._models.keys()))
+        for name in list(y.keys()):
+            if(name not in models_available):
+                print("Error: model not available:",name)
+            else:
+                model_type = self._models_hyper[name][0]['general']['model_type']
+                my = y[name]
+                if(isinstance(x,dict) == True):
+                    mx = x[name]
+                else:
+                    mx = x
+                temp_x,temp_y = model_make_random_shuffle(model_type,mx,my,shuffle_ind)
+                x_dict.update({name:temp_x})
+                y_dict.update({name:temp_y})
+            
         self._last_shuffle = shuffle_ind
-        return shuffle_ind, outlist
+        return shuffle_ind, x_dict, y_dict
     
 
 
-    def merge(self,datalist,datalist2,val_split=0.1):
+    def merge(self,x1,y1,x2,y2,val_split=0.1):
         """
-        Merge two datasets so that the correct segments of validation split are kept for merged split.
+        Merge two datasets in chunks. So that also the validation split would match in each chunk.
 
         Args:
-            datalist (list): List of numpy arrays.
-            datalist2 (list): List of numpy arrays. They will be merged with the respective np.array from datalist.
+            x1 (np.array,list,dict): X-values, e.g. Coordinates in Angstroem of shape (batch,Atoms,3)
+                                    Or list of np.arrays or dataforms that can be pickled.
+                                    If different models require also different x-values, provide a dict matching y.
+            y1 (dict):   dictionary of y values for each model.
+            x2 (np.array,list,dict): X-values, e.g. Coordinates in Angstroem of shape (batch,Atoms,3)
+                                    Or list of np.arrays or dataforms that can be pickled.
+                                    If different models require also different x-values, provide a dict matching y.
+            y2 (dict):   dictionary of y values for each model.
             val_split (list, optional): Size of the validation split. The default is 0.1.
 
         Returns:
-            outlist (list): Single list of merged datasets.
+            x_dict (dict): Shuffled list of the x data.
+            y_dict (dict): Shuffled list of the y data.
 
         """
-        if(isinstance(datalist,list) == False):
-            print("Warning: Expected datalist")
-            datalist = [datalist]
-        if(isinstance(datalist2,list) == False):
-            print("Warning: Expected datalist")
-            datalist2 = [datalist2]
+        x_dict = {}
+        y_dict = {}
+        models_available = sorted(list(self._models.keys()))
+        y1ks = sorted(list(y1.keys()))
+        y2ks = sorted(list(y2.keys()))
+        for name in y1ks:
+            if(name not in models_available or name not in y2ks):
+                print("Error: model not available:",name)
+            else:
+                model_type = self._models_hyper[name][0]['general']['model_type']
+                my1 = y1[name]
+                my2 = y2[name]
+                if(isinstance(x1,dict) == True):
+                    mx1 = x1[name]
+                else:
+                    mx1 = x1
+                if(isinstance(x2,dict) == True):
+                    mx2 = x2[name]
+                else:
+                    mx2 = x2
+                temp_x,temp_y = model_merge_data_in_chunks(model_type,mx1,my1,mx2,my2,val_split=0.1)
+                x_dict.update({name:temp_x})
+                y_dict.update({name:temp_y})
         
-        if(len(datalist) != len(datalist2)):
-            print("Error: Datalists do not match in length",len(datalist),"and",len(datalist2))
-        
-        outlist = []
-        for i in range(len(datalist)):
-            outlist.append(merge_data_in_chunks(datalist[i],datalist2[i],val_split))
-        
-        return outlist
+        return x_dict, y_dict
     
     
     
