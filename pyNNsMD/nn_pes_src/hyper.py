@@ -27,6 +27,8 @@ def _get_default_hyperparameters_by_modeltype(model_type):
         return DEFAULT_HYPER_PARAM_ENERGY
     elif(model_type == 'mlp_nac'):
         return DEFAULT_HYPER_PARAM_NAC
+    elif(model_type == 'mlp_nac2'):
+        return DEFAULT_HYPER_PARAM_NAC
     else:
         print("Error: Unknown model type",model_type)
         raise TypeError(f"Error: Unknown model type for default hyper parameter {model_type}")

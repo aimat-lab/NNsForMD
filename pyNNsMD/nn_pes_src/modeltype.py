@@ -5,6 +5,7 @@ Selecting different tf.keras models.
 """
 
 from pyNNsMD.nn_pes_src.models.models_mlp_nac import NACModel
+from pyNNsMD.nn_pes_src.models.models_mlp_nac2 import NACModel2
 from pyNNsMD.nn_pes_src.models.models_mlp_eg import EnergyGradientModel
 from pyNNsMD.nn_pes_src.models.models_mlp_e import EnergyModel
 
@@ -28,6 +29,8 @@ def _get_model_by_type(model_type, hyper):
         return EnergyModel(hyper)
     elif(model_type == 'mlp_nac'):
        return NACModel(hyper)
+    elif(model_type == 'mlp_nac2'):
+       return NACModel2(hyper)
     else:
         print(f"Error: Unknwon Model type in hyper dict for {model_type}")
         raise TypeError(f"Error: Unknown model type {model_type}")

@@ -30,6 +30,8 @@ def _get_default_scaler_dict(model_type):
         return DEFAULT_STD_SCALER_ENERGY_GRADS
     elif(model_type == 'mlp_nac'):
         return DEFAULT_STD_SCALER_NAC
+    elif(model_type == 'mlp_nac2'):
+        return DEFAULT_STD_SCALER_NAC
     elif(model_type == 'mlp_e'):
         return DEFAULT_STD_SCALER_ENERGY_GRADS
     else:
@@ -41,6 +43,8 @@ def _scale_x(model_type,x,scaler = {'x_mean' : np.zeros((1,1,1)),'x_std' : np.on
     if(model_type == 'mlp_eg'):
         return scale_x(x,scaler)
     elif(model_type == 'mlp_nac'):
+        return scale_x(x,scaler)
+    elif(model_type == 'mlp_nac2'):
         return scale_x(x,scaler)
     elif(model_type == 'mlp_e'):
         return scale_x(x,scaler)
@@ -55,6 +59,8 @@ def _rescale_output(model_type,temp, scaler):
         return rescale_eg(temp,scaler)
     elif(model_type == 'mlp_nac'):
         return rescale_nac(temp,scaler)
+    elif(model_type == 'mlp_nac2'):
+        return rescale_nac(temp,scaler)
     elif(model_type == 'mlp_e'):
         return rescale_eg(temp,scaler)
     else:
@@ -66,9 +72,8 @@ def _rescale_output(model_type,temp, scaler):
 
 def save_std_scaler_dict(indict,filepath):
     """
-    
     Save std_scaler to directory.
-
+    
     Args:
         indict (dict): Dictionary to save.
         filepath (dict): Filepath.
@@ -86,7 +91,7 @@ def save_std_scaler_dict(indict,filepath):
 
 def load_std_scaler_dict(filepath):
     """
-    Loadstd_scaler to directory.
+    Load std_scaler to directory.
 
     Args:
         filepath (str): Filepath.

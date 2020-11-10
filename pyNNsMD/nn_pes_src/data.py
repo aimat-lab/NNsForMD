@@ -7,10 +7,10 @@ import pickle
 from sklearn.utils import shuffle
 import os
 
-from pyNNsMD.nn_pes_src.datasets.data_general import make_random_shuffle
-from pyNNsMD.nn_pes_src.datasets.data_mlp_eg import mlp_eg_save_data_to_folder, mlp_eg_merge_data_in_chunks
-from pyNNsMD.nn_pes_src.datasets.data_mlp_e import mlp_e_save_data_to_folder, mlp_e_merge_data_in_chunks
-from pyNNsMD.nn_pes_src.datasets.data_mlp_nac import mlp_nac_save_data_to_folder, mlp_nac_merge_data_in_chunks
+from pyNNsMD.nn_pes_src.datasets.data_general import make_random_shuffle,save_data_to_folder
+from pyNNsMD.nn_pes_src.datasets.data_mlp_eg import  mlp_eg_merge_data_in_chunks
+from pyNNsMD.nn_pes_src.datasets.data_mlp_e import  mlp_e_merge_data_in_chunks
+from pyNNsMD.nn_pes_src.datasets.data_mlp_nac import  mlp_nac_merge_data_in_chunks
 
 
 def index_make_random_shuffle(x):
@@ -47,11 +47,13 @@ def model_save_data_to_folder(model_type,x,y,
 
     """
     if(model_type == 'mlp_nac'):
-        return mlp_nac_save_data_to_folder(x,y,target_model,mod_dir,random_shuffle)
+        return save_data_to_folder(x,y,target_model,mod_dir,random_shuffle)
+    elif(model_type == 'mlp_nac2'):
+        return save_data_to_folder(x,y,target_model,mod_dir,random_shuffle)
     elif(model_type == 'mlp_eg'):
-        return mlp_eg_save_data_to_folder(x,y,target_model,mod_dir,random_shuffle)
+        return save_data_to_folder(x,y,target_model,mod_dir,random_shuffle)
     elif(model_type == 'mlp_e'):
-        return mlp_e_save_data_to_folder(x,y,target_model,mod_dir,random_shuffle)
+        return save_data_to_folder(x,y,target_model,mod_dir,random_shuffle)
     else:
         print("Error: Unknown model type for data",model_type)
         raise TypeError(f"Error: Unknown model type for predict {target_model}")
@@ -72,6 +74,8 @@ def model_make_random_shuffle(model_type,x,y,shuffle_ind):
 
     """
     if(model_type == 'mlp_nac'):
+        return make_random_shuffle([x,y],shuffle_ind)[1]
+    elif(model_type == 'mlp_nac2'):
         return make_random_shuffle([x,y],shuffle_ind)[1]
     elif(model_type == 'mlp_eg'):
         _,temp = make_random_shuffle([x]+y,shuffle_ind)
@@ -104,6 +108,8 @@ def model_merge_data_in_chunks(model_type,mx1,my1,mx2,my2,val_split=0.1):
             
     """
     if(model_type == 'mlp_nac'):
+        return mlp_nac_merge_data_in_chunks(mx1,my1,mx2,my2,val_split)
+    if(model_type == 'mlp_nac2'):
         return mlp_nac_merge_data_in_chunks(mx1,my1,mx2,my2,val_split)
     elif(model_type == 'mlp_eg'):
         return mlp_eg_merge_data_in_chunks(mx1,my1,mx2,my2,val_split)
