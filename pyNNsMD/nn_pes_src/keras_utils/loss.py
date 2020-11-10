@@ -12,7 +12,7 @@ import tensorflow.keras as ks
 
 class ScaledMeanAbsoluteError(tf.keras.metrics.MeanAbsoluteError):
 
-    def __init__(self, scaling_shape = (), name='scaled_mean_absolute_error', **kwargs):
+    def __init__(self, scaling_shape = (), name='mean_absolute_error', **kwargs):
         super(ScaledMeanAbsoluteError, self).__init__(name=name, **kwargs)
         self.scale = self.add_weight(shape=scaling_shape,initializer=tf.keras.initializers.Ones() ,name='scale',dtype =tf.keras.backend.floatx())
         self.scaling_shape = scaling_shape
@@ -31,7 +31,7 @@ class ScaledMeanAbsoluteError(tf.keras.metrics.MeanAbsoluteError):
     def get_config(self):
         """Returns the serializable config of the metric."""
         mae_conf = super(ScaledMeanAbsoluteError, self).get_config()
-        mae_conf.update({"scaling_shape" : scaling_shape})
+        mae_conf.update({"scaling_shape" : self.scaling_shape})
         return mae_conf
     
     

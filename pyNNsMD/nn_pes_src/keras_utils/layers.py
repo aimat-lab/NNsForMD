@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 """
-Created on Tue Jul  7 12:30:58 2020
+Keras layers for feature and model predictions around MLP.
 
 @author: Patrick
 """
@@ -11,12 +10,37 @@ import tensorflow.keras as ks
 from pyNNsMD.nn_pes_src.keras_utils.activ import leaky_softplus,shifted_softplus
 
     
-
 class ConstLayerNormalization(ks.layers.Layer):
+    """
+    Layer normalization with constant scaling of input.
+    
+    Note that this sould be replaced with keras normalization layer where trainable could be altered.
+    The standardization is done via 'std' and 'mean' tf.variable and uses not very flexible broadcasting.
+
+    """
+    
     def __init__(self, axis=-1 , **kwargs):
+        """
+        Init the layer.
+
+        Args:
+            axis (int,list, optional): Which axis match the input on build. Defaults to -1.
+            **kwargs
+
+        """
         super(ConstLayerNormalization, self).__init__(**kwargs)          
         self.axis = axis
     def build(self, input_shape):
+        """
+        Build the layer.
+
+        Args:
+            input_shape (list): Shape of Input.
+
+        Raises:
+            TypeError: Axis argument is not valud.
+
+        """
         super(ConstLayerNormalization, self).build(input_shape) 
         outshape = [1]*len(input_shape)
         if(isinstance(self.axis, int) == True):
@@ -39,9 +63,26 @@ class ConstLayerNormalization(ks.layers.Layer):
             dtype=self.dtype,
             trainable=False)
     def call(self, inputs):
+        """
+        Forward pass of the layer. Call().
+
+        Args:
+            inputs (tf.tensor): Tensor to scale.
+
+        Returns:
+            out (tf.tensor): (inputs-mean)/std
+
+        """
         out = (inputs-self.wmean)/(self.wstd + tf.keras.backend.epsilon())
         return out 
     def get_config(self):
+        """
+        Config for the layer.
+
+        Returns:
+            config (dict): super.config with updated axis parameter.
+
+        """
         config = super(ConstLayerNormalization, self).get_config()
         config.update({"axs": self.axis})
         return config 
@@ -124,6 +165,7 @@ class MLP(ks.layers.Layer):
                        'dropout_dropout': self.dropout_dropout
                        })
         return config
+
 
 class InverseDistance(ks.layers.Layer):
     def __init__(self , **kwargs):
@@ -211,6 +253,91 @@ class Dihydral(ks.layers.Layer):
         return config
 
 
+
+class FeatureGeometric(ks.layers.Layer):
+    """
+    Feautre representation consisting of inverse distances, angles and dihydral angles.
+    
+    Uses InverseDistance, Angle, Dihydral if input index is not empty.
+    
+    """
+    
+    def __init__(self ,
+                 invd_index = [],
+                 angle_index = [],
+                 dihyd_index = [],
+                 **kwargs):
+        """
+        Init of the layer.
+
+        Args:
+            invd_index (list, optional): Index of atoms to calculate inverse distances. Defaults to [].
+            angle_index (list, optional): Index of atoms to calculate angles between. Defaults to [].
+            dihyd_index (list, optional): Index of atoms to calculate dihyd between. Defaults to [].
+            **kwargs
+
+        """
+        super(FeatureGeometric, self).__init__(**kwargs)
+        use_invdist = invd_index != []
+        use_bond_angles = angle_index != []
+        self.angle_index = angle_index 
+        use_dihyd_angles = dihyd_index != []
+        self.dihyd_index = dihyd_index
+        
+        self.use_dihyd_angles = use_dihyd_angles
+        self.use_bond_angles = use_bond_angles
+        self.use_invdist = use_invdist
+
+        if(self.use_invdist==True):        
+            self.invd_layer = InverseDistance()
+        if(self.use_bond_angles==True):
+            self.ang_layer = Angles(angle_list=angle_index)
+            self.concat_ang = ks.layers.Concatenate(axis=-1)
+        if(self.use_dihyd_angles==True):
+            self.dih_layer = Dihydral(angle_list=dihyd_index)
+            self.concat_dih = ks.layers.Concatenate(axis=-1)
+        self.flat_layer = ks.layers.Flatten(name='feat_flat')
+    def build(self, input_shape):
+        """
+        Build model. Passes to base class.
+
+        Args:
+            input_shape (list): Input shape.
+
+        """
+        super(FeatureGeometric, self).build(input_shape)
+    def call(self, inputs):
+        """
+        Forward pass of the layer. Call().
+
+        Args:
+            inputs (tf.tensor): Coordinates of shape (batch,N,3).
+
+        Returns:
+            out (tf.tensor): Feature description of shape (batch,M).
+
+        """
+        x = inputs
+        if(self.use_invdist==True):
+            feat = self.invd_layer(x)
+        if(self.use_bond_angles==True):
+            if(self.use_invdist==False):
+                feat = self.ang_layer(x)
+            else:
+                angs = self.ang_layer(x)
+                feat = self.concat_ang([feat,angs],axis=-1)
+        if(self.use_dihyd_angles==True):
+            if(self.use_invdist==False and self.use_bond_angles==False):
+                feat = self.dih_layer(x)
+            else:
+                dih = self.dih_layer(x)
+                feat = self.concat_dih([feat,dih],axis=-1)
+    
+        feat_flat = self.flat_layer(feat)
+        out = feat_flat
+        return out 
+    
+
 class EnergyGradient(ks.layers.Layer):
     def __init__(self, mult_states = 1, **kwargs):
         super(EnergyGradient, self).__init__(**kwargs)          
@@ -295,4 +422,19 @@ class PropagateNACGradient(ks.layers.Layer):
     def get_config(self):
         config = super(PropagateNACGradient, self).get_config()
         config.update({"mult_states": self.mult_states,'atoms': self.atoms})
+        return config 
+
+class PropagateNACGradient2(ks.layers.Layer):
+    def __init__(self,axis=(2,1),**kwargs):
+        super(PropagateNACGradient2, self).__init__(**kwargs) 
+        self.axis = axis
+    def build(self, input_shape):
+        super(PropagateNACGradient2, self).build(input_shape)          
+    def call(self, inputs):
+        grads,grads2 = inputs
+        out = ks.backend.batch_dot(grads,grads2,axes=self.axis)        
+        return out
+    def get_config(self):
+        config = super(PropagateNACGradient2, self).get_config()
+        config.update({"axis": self.axis})
         return config 
