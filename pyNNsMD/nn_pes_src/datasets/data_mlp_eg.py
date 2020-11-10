@@ -9,35 +9,7 @@ import os
 from sklearn.utils import shuffle
 
 
-def mlp_eg_make_random_shuffle(datalist,shuffle_ind=None):
-    """
-    Shuffle a list od data.
-
-    Args:
-        datalist (list): List of numpy arrays of same length (axis=0).
-        shuffle_ind (np.array): Array of shuffled index
-
-    Returns:
-        outlist (list): List of the shuffled data.
-
-    """
-    datalen = len(datalist[0]) #this should be x data
-    for x in datalist:
-        if(len(x) != datalen):
-            print("Error: Data has inconsisten length")   
-    
-    if(shuffle_ind is None):
-        allind = shuffle(np.arange(datalen))
-    else:    
-        allind = shuffle_ind
-        if(len(allind) != datalen):
-            print("Warning: Datalength and shuffle index does not match")
-    
-    outlist = []
-    for x in datalist:
-        outlist.append(x[allind])
-    return allind, outlist
-
+from pyNNsMD.nn_pes_src.datasets.data_general import make_random_shuffle,merge_np_arrays_in_chunks,save_data_to_folder
 
 def mlp_eg_save_data_to_folder(x,y,target_model,mod_dir,random_shuffle):
     """
@@ -54,79 +26,30 @@ def mlp_eg_save_data_to_folder(x,y,target_model,mod_dir,random_shuffle):
         None.
 
     """
-    #Save data:
-    if(random_shuffle == False):
-        with open(os.path.join(mod_dir,'data_x'),'wb') as f: pickle.dump(x, f)
-        with open(os.path.join(mod_dir,'data_y'),'wb') as f: pickle.dump(y, f)
-    else:
-        if(isinstance(y,list)):
-            shuffle_list = [x] + y
-        else:
-            shuffle_list = [x] + [y]
-        #Make random shuffle
-        ind_shuffle, datalist  = mlp_eg_make_random_shuffle(shuffle_list)
-        x_out = datalist[0]
-        if(len(datalist)>2):
-            y_out = datalist[1:] 
-        else:
-            y_out = datalist[1] 
-        np.save(os.path.join(mod_dir,'shuffle_index.npy'),ind_shuffle)
-        with open(os.path.join(mod_dir,'data_x'),'wb') as f: pickle.dump(x_out, f)
-        with open(os.path.join(mod_dir,'data_y'),'wb') as f: pickle.dump(y_out, f)   
+    save_data_to_folder(x,y,target_model,mod_dir,random_shuffle)
         
-        
-def mlp_eg_merge_data_in_chunks(data1,data2,split_size):
+
+
+
+def mlp_eg_merge_data_in_chunks(mx1,my1,mx2,my2,val_split):
     """
-    Merge data in chunks of split-size. Goal is to keep validation k-splits for fit.
-    
-    Idea: [a+a+a] + [b+b+b] = [(a+b)+(a+b)+(a+b)] and NOT [a+a+a+b+b+b].
+    Merge Data in chunks.
 
     Args:
-        data1 (np.array): Data to merge.
-        data2 (np.array): Data to merge.
-        split_size (float): Relative size of junks 0 < split_size < 1.
+        mx1 (list,np.array): Coordinates as x-data.
+        my1 (list,np.array): A possible list of np.arrays for y-values. Energy, Gradients.
+        mx2 (list,np.array): Coordinates as x-data.
+        my2 (list,np.array): A list of np.arrays for y-values. Energy, Gradients.
+        val_split (float, optional): Validation split. Defaults to 0.1.
 
     Returns:
-        np.array: Merged data.
-
+        x: Merged x data. Depending on model.
+        y: Merged y data. Depending on model.
+            
     """
-    pacs1 = int(len(data1)*split_size)
-    pacs2 = int(len(data2)*split_size)
-    
-    data1frac = [data1[i*pacs1:(i+1)*pacs1] for i in range(int(np.ceil(1/split_size)))]
-    data2frac = [data2[i*pacs2:(i+1)*pacs2] for i in range(int(np.ceil(1/split_size)))]
-    
-    for i in range(len(data1frac)):
-        data1frac[i] = np.concatenate([data1frac[i],data2frac[i]],axis=0)
-        
-    return np.concatenate(data1frac,axis=0)    
+    x_merge = merge_np_arrays_in_chunks(mx1,mx2,val_split)
+    y1_merge = merge_np_arrays_in_chunks(my1[0],my2[0],val_split)
+    y2_merge = merge_np_arrays_in_chunks(my1[1],my2[1],val_split)       
+    return x_merge,[y1_merge,y2_merge]
 
 
-def split_validation_training_index(allind,splitsize,do_offset,offset_steps):
-    """
-    Make a train-validation split for indexarray. Validation set is taken from beginning with possible offset.
- 
-    Args:
-        allind (np.array): Indexlist for full dataset of same length.
-        splitsize (int): Total number of validation samples to take.
-        do_offset (bool): Whether to take validation set not from beginnig but with offset.
-        offset_steps (int): Number of validation sizes offseted from the beginning to start to take validation set.
-
-    Returns:
-        i_train (np.array): Training indices
-        i_val (np.array): Validation indices.
-
-    """
-    i = offset_steps
-    lval = splitsize
-    if(do_offset == False):
-        i_val = allind[:lval]
-        i_train = allind[lval:]
-    else:
-        i_val = allind[i*lval:(i+1)*lval]
-        i_train = np.concatenate([allind[0:i*lval],allind[(i+1)*lval:]],axis=0)
-    if(len(i_val) <= 0):
-        print("Warning: #Validation data is 0, take 1 training sample instead")
-        i_val = i_train[:1]
-    
-    return i_train,i_val
