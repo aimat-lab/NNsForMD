@@ -1,8 +1,8 @@
 """
 Tensorflow keras model definitions for energy and gradient.
 
-There are two definitions: the subclassed EnergyGradientModel and a precomputed model to 
-multiply with the feature derivative for training, which overwrites training/predict step.
+There are two definitions: the subclassed EnergyModel and a precomputed model to 
+train energies. The subclassed Model will also predict gradients.
 """
 
 import numpy as np
@@ -10,12 +10,11 @@ import tensorflow as tf
 import tensorflow.keras as ks
 
 
-from pyNNsMD.nn_pes_src.hypers.hyper_mlp_eg import DEFAULT_HYPER_PARAM_ENERGY_GRADS as hyper_model_energy_gradient
-from pyNNsMD.nn_pes_src.keras_utils.layers import InverseDistance,Angles,Dihydral,MLP,EmptyGradient,ConstLayerNormalization
-from pyNNsMD.nn_pes_src.keras_utils.loss import get_lr_metric,r2_metric
+from pyNNsMD.nn_pes_src.hypers.hyper_mlp_e import DEFAULT_HYPER_PARAM_ENERGY as hyper_model_energy
+from pyNNsMD.nn_pes_src.keras_utils.layers import InverseDistance,Angles,Dihydral,MLP,ConstLayerNormalization
+from pyNNsMD.nn_pes_src.keras_utils.loss import get_lr_metric,r2_metric,ScaledMeanAbsoluteError
 
-
-class EnergyGradientModel(ks.Model):
+class EnergyModel(ks.Model):
     """
     Subclassed tf.keras.model for energy/gradient which outputs both energy and gradient from coordinates.
     
@@ -35,7 +34,7 @@ class EnergyGradientModel(ks.Model):
             tf.keras.model.
             
         """
-        super(EnergyGradientModel, self).__init__(**kwargs)
+        super(EnergyModel, self).__init__(**kwargs)
         out_dim = int( hyper['states'])
         indim = int( hyper['atoms'])
         use_invdist = hyper['invd_index'] != []
@@ -125,80 +124,11 @@ class EnergyGradientModel(ks.Model):
 
 
 
-class EnergyGradientModelPrecomputed(ks.Model):
-    def __init__(self,eg_atoms ,eg_states, **kwargs):
-        super(EnergyGradientModelPrecomputed, self).__init__(**kwargs)
-        self.eg_atoms = eg_atoms
-        self.eg_states = eg_states
-        self.metrics_y_gradient_std = tf.constant(np.ones((1,1,1,1)),dtype=tf.float32)
-        self.metrics_y_energy_std = tf.constant(np.ones((1,1)),dtype=tf.float32)
-        
-    def train_step(self, data):
-        x, y, sample_weight = tf.keras.utils.unpack_x_y_sample_weight(data)
- 
-        x1 = x[0]
-        x2 = x[1]
-        with tf.GradientTape() as tape:
-            with tf.GradientTape() as tape2:
-                tape2.watch(x1)
-                atpot = self(x1, training=True)[0]  # Forward pass      
-            grad = tape2.batch_jacobian(atpot, x1)           
-            grad = ks.backend.batch_dot(grad,x2,axes=(2,1))            
-            y_pred = [atpot,grad]
-            
-            loss = self.compiled_loss(
-                y,
-                y_pred,
-                sample_weight=sample_weight,
-                regularization_losses=self.losses
-            )
-
-        trainable_vars = self.trainable_variables
-        gradients = tape.gradient(loss, trainable_vars)
-
-        self.optimizer.apply_gradients(zip(gradients, trainable_vars))
-        
-        self.compiled_metrics.update_state([y[0]*self.metrics_y_energy_std,y[1]*self.metrics_y_gradient_std], [y_pred[0]*self.metrics_y_energy_std,y_pred[1]*self.metrics_y_gradient_std], sample_weight=sample_weight)
-
-        return {m.name: m.result() for m in self.metrics}
-    
-    def test_step(self, data):
-        x, y, sample_weight = tf.keras.utils.unpack_x_y_sample_weight(data)
-        # Compute predictions
-        x1 = x[0]
-        x2 = x[1]
-        with tf.GradientTape() as tape2:
-            tape2.watch(x1)
-            atpot = self(x1, training=False)[0]  # Forward pass 
-        grad = tape2.batch_jacobian(atpot, x1)
-        grad = ks.backend.batch_dot(grad,x2,axes=(2,1))            
-        y_pred = [atpot,grad]
-        
-        self.compiled_loss(y,y_pred , regularization_losses=self.losses)
-        self.compiled_metrics.update_state([y[0]*self.metrics_y_energy_std,y[1]*self.metrics_y_gradient_std], [y_pred[0]*self.metrics_y_energy_std,y_pred[1]*self.metrics_y_gradient_std], sample_weight=sample_weight)
-        
-        return {m.name: m.result() for m in self.metrics}
-    
-    def predict_step(self, data):
-        # Unpack the data
-        x,_,_ = tf.keras.utils.unpack_x_y_sample_weight(data)
-        # Compute predictions
-        x1 = x[0]
-        x2 = x[1]
-        with tf.GradientTape() as tape2:
-            tape2.watch(x1)
-            atpot = self(x1, training=False)[0]  # Forward pass 
-        grad = tape2.batch_jacobian(atpot, x1)          
-        grad = ks.backend.batch_dot(grad,x2,axes=(2,1))        
-        y_pred = [atpot,grad]
-        return y_pred
 
 
 
-
-def create_model_energy_gradient_precomputed(hyper=hyper_model_energy_gradient['model'],
-                                             learning_rate_start = 1e-3,
-                                             loss_weights = [1,1]):
+def create_model_energy_precomputed(hyper=hyper_model_energy['model'],
+                                             learning_rate_start = 1e-3):
     """
     Full Model y = model(feat) with feat=[f,df/dx] features and its derivative to coordinates x.
 
@@ -255,24 +185,17 @@ def create_model_energy_gradient_precomputed(hyper=hyper_model_energy_gradient['
              )(full)
     
     energy =  ks.layers.Dense(out_dim,name='energy',use_bias=True,activation='linear')(full)
-    #grads = EnergyGradient(mult_states=out_dim)([energy,geo_input])
-    #force = PropagateEnergyGradient(mult_states=out_dim,name='force')([grads,grad_input])
+
     
-    force = EmptyGradient(name='force')(geo_input)  #Will be differentiated in fit/predict/evaluate
-    
-    model = EnergyGradientModelPrecomputed(inputs=geo_input, outputs=[energy,force],
-                        eg_atoms = indim,
-                        eg_states = out_dim)
-    
-    #model.output_names = ['energy','force']
-    #model = ks.Model(inputs=[geo_input,grad_input], outputs=[energy,grads ])
+    model = tf.keras.Model(inputs=geo_input, outputs=energy)
     
     optimizer = tf.keras.optimizers.Adam(lr=learning_rate_start)
     lr_metric = get_lr_metric(optimizer)
+    scmae = ScaledMeanAbsoluteError(scaling_shape=(1,out_dim))
     model.compile(optimizer=optimizer,
-                  loss=['mean_squared_error','mean_squared_error'],loss_weights = loss_weights,
-                  metrics=['mean_absolute_error'  ,lr_metric,r2_metric])
-    return model
+                  loss='mean_squared_error',
+                  metrics=[scmae  ,lr_metric,r2_metric])
+    return model,scmae 
 
 
 class FeatureEnergyModel(ks.Model):
