@@ -11,7 +11,7 @@ import tensorflow.keras as ks
 
 
 from pyNNsMD.nn_pes_src.hypers.hyper_mlp_eg import DEFAULT_HYPER_PARAM_ENERGY_GRADS as hyper_model_energy_gradient
-from pyNNsMD.nn_pes_src.keras_utils.layers import InverseDistance,Angles,Dihydral,MLP,EmptyGradient,ConstLayerNormalization
+from pyNNsMD.nn_pes_src.keras_utils.layers import MLP,EmptyGradient,ConstLayerNormalization,FeatureGeometric
 from pyNNsMD.nn_pes_src.keras_utils.loss import get_lr_metric,r2_metric
 
 
@@ -52,19 +52,11 @@ class EnergyGradientModel(ks.Model):
         use_dropout = hyper['use_dropout']
         dropout = hyper['dropout']
         
-        self.use_dihyd_angles = use_dihyd_angles
-        self.use_bond_angles = use_bond_angles
-        self.use_invdist = use_invdist
         #geo_input = ks.Input(shape=(indim,3), dtype='float32' ,name='geo_input')
-        if(self.use_invdist==True):        
-            self.invd_layer = InverseDistance()
-        if(self.use_bond_angles==True):
-            self.ang_layer = Angles(angle_list=angle_index)
-            self.concat_ang = ks.layers.Concatenate(axis=-1)
-        if(self.use_dihyd_angles==True):
-            self.dih_layer = Dihydral(angle_list=dihyd_index)
-            self.concat_dih = ks.layers.Concatenate(axis=-1)
-        self.flat_layer = ks.layers.Flatten(name='feat_flat')
+        self.feat_layer = FeatureGeometric(invd_index = use_invdist,
+                                angle_index = angle_index ,
+                                dihyd_index = dihyd_index,
+                                )
         self.std_layer = ConstLayerNormalization(axis=-1,name='feat_std')
         self.mlp_layer = MLP( nn_size,
                  dense_depth = depth,
@@ -100,22 +92,7 @@ class EnergyGradientModel(ks.Model):
         # Compute predictions
         with tf.GradientTape() as tape2:
             tape2.watch(x)
-            if(self.use_invdist==True):
-                feat = self.invd_layer(x)
-            if(self.use_bond_angles==True):
-                if(self.use_invdist==False):
-                    feat = self.ang_layer(x)
-                else:
-                    angs = self.ang_layer(x)
-                    feat = self.concat_ang([feat,angs])
-            if(self.use_dihyd_angles==True):
-                if(self.use_invdist==False and self.use_bond_angles==False):
-                    feat = self.dih_layer(x)
-                else:
-                    dih = self.dih_layer(x)
-                    feat = self.concat_dih([feat,dih])
-
-            feat_flat = self.flat_layer(feat)
+            feat_flat = self.feat_layer(x)
             feat_flat_std = self.std_layer(feat_flat)
             temp_hidden = self.mlp_layer(feat_flat_std,training=training)
             temp_e = self.energy_layer(temp_hidden)
@@ -275,80 +252,3 @@ def create_model_energy_gradient_precomputed(hyper=hyper_model_energy_gradient['
     return model
 
 
-class FeatureEnergyModel(ks.Model):
-    def __init__(self, **kwargs):
-        super(FeatureEnergyModel, self).__init__(**kwargs)
-    #No training here possible
-        
-    def predict_step(self, data):
-        #Precompute features with gradient:
-        x,_,_ = tf.keras.utils.unpack_x_y_sample_weight(data)
-        # Compute predictions
-        with tf.GradientTape() as tape2:
-            tape2.watch(x)
-            feat_pred = self(x, training=False)  # Forward pass 
-        grad = tape2.batch_jacobian(feat_pred, x)
-        return [feat_pred,grad]
-
-    def predict_in_chunks(self,x,batch_size):
-        np_x = []
-        np_grad = []
-        for j in range(int(np.ceil(len(x)/batch_size))):
-            a = int(batch_size*j)
-            b = int(batch_size*j + batch_size)
-            invd,grad = self.predict(x[a:b])
-            np_x.append(np.array(invd)) 
-            np_grad.append(np.array(grad))
-            
-        np_x = np.concatenate(np_x,axis=0) 
-        np_grad = np.concatenate(np_grad,axis=0)
-        return np_x,np_grad
-
-
-def create_feature_models(hyper,model_name="feat",run_eagerly=False):
-    """
-    Model to precompute features feat = model(x).
-
-    Args:
-        hyper (dict): Hyper dictionary.
-        model_name (str, optional): Name of the Model. Defaults to "feat".
-        run_eagerly (bool, optional): Whether to run eagerly. Defaults to False.
-
-    Returns:
-        model (keras.model): tf.keras model with coordinate input.
-
-    """
-    #out_dim = int( hyper['states'])
-    indim = int( hyper['atoms'])
-    use_invdist = hyper['invd_index'] != []
-    use_bond_angles = hyper['angle_index'] != []
-    angle_index = hyper['angle_index'] 
-    use_dihyd_angles = hyper['dihyd_index'] != []
-    dihyd_index = hyper['dihyd_index']
-    
-    geo_input = ks.Input(shape=(indim,3), dtype='float32' ,name='geo_input')
-    #Features precompute layer        
-    if(use_invdist==True):
-        invdlayer = InverseDistance()
-        feat = invdlayer(geo_input)
-    if(use_bond_angles==True):
-        if(use_invdist==False):
-            feat = Angles(angle_list=angle_index)(geo_input)
-        else:
-            angs = Angles(angle_list=angle_index)(geo_input)
-            feat = ks.layers.concatenate([feat,angs], axis=-1)
-    if(use_dihyd_angles==True):
-        if(use_invdist==False and use_bond_angles==False):
-            feat = Dihydral(angle_list=dihyd_index)(geo_input)
-        else:
-            dih = Dihydral(angle_list=dihyd_index)(geo_input)
-            feat = ks.layers.concatenate([feat,dih], axis=-1)
-    
-    feat = ks.layers.Flatten(name='feat_flat')(feat)
-    model = FeatureEnergyModel(inputs=geo_input, outputs=feat,name=model_name)
-    
-    model.compile(run_eagerly=run_eagerly) 
-    #Strange bug with tensorflow.python.framework.errors_impl.InvalidArgumentError: assertion failed: [0] [Op:Assert] name: EagerVariableNameReuse
-
-    
-    return model
