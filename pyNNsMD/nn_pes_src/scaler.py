@@ -9,9 +9,9 @@ import numpy as np
 import json
 #import os
 
-
-from pyNNsMD.nn_pes_src.scaling.scale_mlp_nac import DEFAULT_STD_SCALER_NAC, rescale_nac,scale_x_nac
-from pyNNsMD.nn_pes_src.scaling.scale_mlp_eg import DEFAULT_STD_SCALER_ENERGY_GRADS, rescale_eg,scale_x_eg
+from pyNNsMD.nn_pes_src.scaling.scale_general import scale_x
+from pyNNsMD.nn_pes_src.scaling.scale_mlp_nac import DEFAULT_STD_SCALER_NAC, rescale_nac
+from pyNNsMD.nn_pes_src.scaling.scale_mlp_eg import DEFAULT_STD_SCALER_ENERGY_GRADS, rescale_eg
 
 
 
@@ -30,6 +30,8 @@ def _get_default_scaler_dict(model_type):
         return DEFAULT_STD_SCALER_ENERGY_GRADS
     elif(model_type == 'mlp_nac'):
         return DEFAULT_STD_SCALER_NAC
+    elif(model_type == 'mlp_e'):
+        return DEFAULT_STD_SCALER_ENERGY_GRADS
     else:
         print("Error: Unknown model type",model_type)
         raise TypeError(f"Error: Unknown model type for default scaling {model_type}")
@@ -37,9 +39,11 @@ def _get_default_scaler_dict(model_type):
 
 def _scale_x(model_type,x,scaler = {'x_mean' : np.zeros((1,1,1)),'x_std' : np.ones((1,1,1))}):
     if(model_type == 'mlp_eg'):
-        return scale_x_eg(x,scaler)
+        return scale_x(x,scaler)
     elif(model_type == 'mlp_nac'):
-        return scale_x_nac(x,scaler)
+        return scale_x(x,scaler)
+    elif(model_type == 'mlp_e'):
+        return scale_x(x,scaler)
     else:
         print("Error: Unknown model type",model_type)
         raise TypeError(f"Error: Unknown model type for x-scaling {model_type}")
@@ -51,6 +55,8 @@ def _rescale_output(model_type,temp, scaler):
         return rescale_eg(temp,scaler)
     elif(model_type == 'mlp_nac'):
         return rescale_nac(temp,scaler)
+    elif(model_type == 'mlp_e'):
+        return rescale_eg(temp,scaler)
     else:
         print("Error: Unknown model type",model_type)
         raise TypeError(f"Error: Unknown model type for rescaling {model_type}")

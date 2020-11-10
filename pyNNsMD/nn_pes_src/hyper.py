@@ -5,6 +5,7 @@ Default hyperparameters
 import json
 
 from pyNNsMD.nn_pes_src.hypers.hyper_mlp_eg import DEFAULT_HYPER_PARAM_ENERGY_GRADS
+from pyNNsMD.nn_pes_src.hypers.hyper_mlp_e import DEFAULT_HYPER_PARAM_ENERGY
 from pyNNsMD.nn_pes_src.hypers.hyper_mlp_nac import DEFAULT_HYPER_PARAM_NAC
 
 
@@ -22,6 +23,8 @@ def _get_default_hyperparameters_by_modeltype(model_type):
     """
     if(model_type == 'mlp_eg'):
         return DEFAULT_HYPER_PARAM_ENERGY_GRADS
+    elif(model_type == 'mlp_e'):
+        return DEFAULT_HYPER_PARAM_ENERGY
     elif(model_type == 'mlp_nac'):
         return DEFAULT_HYPER_PARAM_NAC
     else:

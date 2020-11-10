@@ -31,7 +31,7 @@ def get_path_for_fit_script(model_type):
     locdiR = os.getcwd()
     filepath = os.path.abspath(os.path.dirname(__file__) )
     STATIC_PATH_FIT_SCRIPT = ""
-    fit_script = {"mlp_eg" : "training_mlp_eg.py","mlp_nac" : "training_mlp_nac.py"}
+    fit_script = {"mlp_eg" : "training_mlp_eg.py","mlp_nac" : "training_mlp_nac.py","mlp_e" : "training_mlp_e.py"}
     outpath = os.path.join(filepath,"training",fit_script[model_type])
     return outpath
 

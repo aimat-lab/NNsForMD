@@ -48,7 +48,7 @@ def set_gpu(gpu_ids_list):
                 print("Restrict Memory:",gpu)
                 tf.config.experimental.set_memory_growth(gpu, True)
             logical_gpus = tf.config.experimental.list_logical_devices('GPU')
-            print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPU")
+            print("Info:",len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPU")
         except RuntimeError as e:
             # Visible devices must be set before GPUs have been initialized
             print(e)
