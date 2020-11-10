@@ -10,6 +10,37 @@ import os
 import pickle
 
 
+def make_random_shuffle(datalist,shuffle_ind=None):
+    """
+    Shuffle a list od data.
+
+    Args:
+        datalist (list): List of numpy arrays of same length (axis=0).
+        shuffle_ind (np.array): Array of shuffled index
+
+    Returns:
+        outlist (list): List of the shuffled data.
+
+    """
+    datalen = len(datalist[0]) #this should be x data
+    for x in datalist:
+        if(len(x) != datalen):
+            print("Error: Data has inconsisten length")   
+    
+    if(shuffle_ind is None):
+        allind = shuffle(np.arange(datalen))
+    else:    
+        allind = shuffle_ind
+        if(len(allind) != datalen):
+            print("Warning: Datalength and shuffle index does not match")
+    
+    outlist = []
+    for x in datalist:
+        outlist.append(x[allind])
+    return allind, outlist
+
+
+
 def save_data_to_folder(x,y,target_model,mod_dir,random_shuffle):
     """
     Save all training data for model mlp_eg to folder.
@@ -76,34 +107,6 @@ def split_validation_training_index(allind,splitsize,do_offset,offset_steps):
     return i_train,i_val
 
 
-def make_random_shuffle(datalist,shuffle_ind=None):
-    """
-    Shuffle a list od data.
-
-    Args:
-        datalist (list): List of numpy arrays of same length (axis=0).
-        shuffle_ind (np.array): Array of shuffled index
-
-    Returns:
-        outlist (list): List of the shuffled data.
-
-    """
-    datalen = len(datalist[0]) #this should be x data
-    for x in datalist:
-        if(len(x) != datalen):
-            print("Error: Data has inconsisten length")   
-    
-    if(shuffle_ind is None):
-        allind = shuffle(np.arange(datalen))
-    else:    
-        allind = shuffle_ind
-        if(len(allind) != datalen):
-            print("Warning: Datalength and shuffle index does not match")
-    
-    outlist = []
-    for x in datalist:
-        outlist.append(x[allind])
-    return allind, outlist
 
 
 def merge_np_arrays_in_chunks(data1,data2,split_size):

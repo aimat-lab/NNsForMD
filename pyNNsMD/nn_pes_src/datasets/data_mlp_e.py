@@ -13,24 +13,6 @@ from sklearn.utils import shuffle
 from pyNNsMD.nn_pes_src.datasets.data_general import make_random_shuffle,merge_np_arrays_in_chunks,save_data_to_folder
 
 
-def mlp_e_save_data_to_folder(x,y,target_model,mod_dir,random_shuffle):
-    """
-    Save all training data for model mlp_eg to folder.
-
-    Args:
-        x (np.array): Coordinates as x-data.
-        y (np.array): np.array for y-values. Energy.
-        target_model (str): Name of the Model to save data for.
-        mod_dir (str): Path of model directory.
-        random_shuffle (bool, optional): Whether to shuffle data before save. The default is False.
-
-    Returns:
-        None.
-
-    """
-    save_data_to_folder(x,y,target_model,mod_dir,random_shuffle)
-        
-
 
 
 def mlp_e_merge_data_in_chunks(mx1,my1,mx2,my2,val_split):
