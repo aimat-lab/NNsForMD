@@ -74,15 +74,15 @@ def plot_energy_fit_result(i,xval,xtrain,yval,ytrain,
         
     try:
         #Training curve
-        trainlossall_energy = hist.history['loss']
-        testlossall_energy = hist.history['val_loss']
+        trainlossall_energy = hist.history['mean_absolute_error']
+        testlossall_energy = hist.history['val_mean_absolute_error']
         outname = os.path.join(dir_save,"fit"+str(i)+"_loss"+filetypeout)
         plt.figure()
         plt.plot(np.arange(1,len(trainlossall_energy)+1),trainlossall_energy,label='Training energy',color='c')
         plt.plot(np.array(range(1,len(testlossall_energy)+1))*epostep,testlossall_energy,label='Test energy',color='b')
         plt.xlabel('Epochs')
-        plt.ylabel('Scaled Loss ' +"["+ unit_energy+ "]")
-        plt.title("Standardized loss vs. epochs")
+        plt.ylabel('Mean absolute Error ' +"["+ unit_energy+ "]")
+        plt.title("Mean absolute Error vs. epochs")
         plt.legend(loc='upper right',fontsize='x-large')
         plt.savefig(outname)
         plt.close()
