@@ -2,9 +2,9 @@
 Main class for neural network (NN) container to provide multiple NN instances.
 
 Enables uncertainty estimate as well as training and prediction of tf.keras models
-for energy plus gradient and non-adiabatic couplings (NAC) and further models. 
+for potentials plus gradients, couplings and further models. 
 The python class is supposed to allow parallel training and 
-further operations like resampling and hyper optimization. 
+further operations like resampling and hyperparameter optimization. 
 """
 
 #import logging
@@ -53,7 +53,7 @@ class NeuralNetPes:
         Returns:
             NueralNetPes instance.
         """
-        self._models_implemented = ['mlp_eg', 'mlp_nac']
+        self._models_implemented = ['mlp_eg', 'mlp_nac','mlp_e']
 
         #self.logger = logging.getLogger(type(self).__name__)
         print("Info: Operating System: ",sys.platform)
@@ -362,7 +362,7 @@ class NeuralNetPes:
     
       
     def _fit_models(self, target_model,x, y,gpu,proc_async,fitmode,random_shuffle=False):
-        # Pick modeltype from fist hyper
+        # Pick modeltype from first hyper
         model_type = self._models_hyper[target_model][0]['general']['model_type']
         # modelfolder
         mod_dir = os.path.join(os.path.abspath(self._directory),target_model)
@@ -461,19 +461,19 @@ class NeuralNetPes:
 
         return fit_error
 
+
+    def _predict_model_list(self,x_list,model_list,batch_size_list):
+        out = [model_list[i].predict(x_list[i],batch_size=batch_size_list[i]) for i in range(len(model_list))]
+        return out
+
     
     def _predict_models(self,name,x): 
         #Check type with first hyper
         out = []
         model_type = self._models_hyper[name][0]['general']['model_type']
-        for i in range(self._addNN):
-            x_scaled = _scale_x(model_type,x,scaler = self._models_scaler[name][i])
-            temp = self._models[name][i].predict(
-                            x_scaled,
-                            batch_size = self._models_hyper[name][i]['predict']['batch_size_predict']
-                            )
-            temp = _rescale_output(model_type,temp,scaler = self._models_scaler[name][i])
-            out.append(temp) 
+        x_scaled = [_scale_x(model_type,x,scaler = self._models_scaler[name][i]) for i in range(self._addNN)]
+        temp =  self._predict_model_list(x_scaled ,self._models[name],[self._models_hyper[name][i]['predict']['batch_size_predict'] for i in range(self._addNN)])
+        out = [_rescale_output(model_type,temp[i],scaler = self._models_scaler[name][i]) for i in range(self._addNN)]
         return _predict_uncertainty(model_type,out)
         
     
