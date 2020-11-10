@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 """
-Created on Thu Oct 29 12:52:27 2020
+Predicting 
 
 @author: Patrick
 """
