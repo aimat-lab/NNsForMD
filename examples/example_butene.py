@@ -38,6 +38,29 @@ nn = NeuralNetPes("NN5fit4g")
 
 hyper_energy =  {    #Model
                 'general':{
+                    'model_type' : 'mlp_e'
+                },
+                'model':{
+                    'atoms': 12,
+                    'states': 2, 
+                    'depth' : 3,                    
+                    'nn_size' : 1000,   # size of each layer
+                    'use_reg_activ' : {'class_name': 'L1', 'config': {'l1': 1e-4}},
+                    'invd_index' : True,
+                    'angle_index' : [],# anglist,
+                    'dihyd_index'  : [], #dihydlist ,  # list of dihydral angles with index ijkl angle is between ijk and jkl
+                },
+                'training':{
+                    'normalization_mode' : 2,
+                    'epo': 50,
+                    'val_split' : 0.1, 
+                    'batch_size' : 64,
+                    'step_callback' : {'use': True , 'epoch_step_reduction' : [2000,2000,500,500],'learning_rate_step' :[1e-3,1e-4,1e-5,1e-6]},
+                }
+                }
+
+hyper_grads =  {    #Model
+                'general':{
                     'model_type' : 'mlp_eg'
                 },
                 'model':{
@@ -52,7 +75,7 @@ hyper_energy =  {    #Model
                 },
                 'training':{
                     'normalization_mode' : 2,
-                    'epo': 100,
+                    'epo': 50,
                     'loss_weights' : [1,10], 
                     'val_split' : 0.1, 
                     'batch_size' : 64,
@@ -87,20 +110,23 @@ hyper_nac =  {    #Model
 
 
 nn.create({ 
-            'eg': hyper_energy,
-            'nac': hyper_nac  
+            'e': hyper_energy,
+            #'eg': hyper_grads,
+            #'nac': hyper_nac  
             })
 
 
 y = {
-      'eg': [Energy,grads],
-      'nac' : nacs,
+     'e' : Energy,
+      #'eg': [Energy,grads],
+      #'nac' : nacs,
       }
 
 
 fitres = nn.fit(x,
                 y,
                 gpu_dist= { #Set to {} or to -1 if no gpu to use
+                            'e' : [0,0],
                             'eg' : [0,0],
                             'nac' : [0,0],
                             },
