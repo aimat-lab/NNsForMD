@@ -41,7 +41,7 @@ print("Logic Devices:",tf.config.experimental.list_logical_devices('GPU'))
 from pyNNsMD.nn_pes_src.keras_utils.callbacks import EarlyStopping,lr_lin_reduction,lr_exp_reduction,lr_step_reduction
 from pyNNsMD.nn_pes_src.plotting.plot_mlp_nac import plot_nac_fit_result
 from pyNNsMD.nn_pes_src.models.models_features import create_feature_models
-from pyNNsMD.nn_pes_src.models.models_mlp_nac import create_model_nac_precomputed,NACModel
+from pyNNsMD.nn_pes_src.models.models_mlp_nac2 import create_model_nac_precomputed,NACModel2
 from pyNNsMD.nn_pes_src.hyper import _load_hyp
 from pyNNsMD.nn_pes_src.datasets.data_general import split_validation_training_index
 from pyNNsMD.nn_pes_src.scaler import save_std_scaler_dict,load_std_scaler_dict
@@ -180,9 +180,9 @@ def train_model_nac(i=0, outdir=None, mode = 'training'):
     print("Info: Train-Test split at Train:",len(i_train),"Test",len(i_val),"Total",len(x))
     
     #Make all Models
-    out_model = NACModel(hypermodel)
+    out_model = NACModel2(hypermodel)
     temp_model_feat = create_feature_models(hypermodel)
-    temp_model = create_model_nac_precomputed(hypermodel,learning_rate,phase_less_loss)
+    temp_model,scaled_mae = create_model_nac_precomputed(hypermodel,learning_rate,phase_less_loss)
     
     npeps = np.finfo(float).eps
     if(initialize_weights==False):
@@ -236,7 +236,7 @@ def train_model_nac(i=0, outdir=None, mode = 'training'):
     
     #Actutal Fitting
     temp_model.get_layer('feat_std').set_weights([feat_x_mean,feat_x_std])   
-    temp_model.metrics_y_nac_std = tf.constant(y_nac_std,dtype=tf.float32) # For metrics
+    ks.backend.set_value(scaled_mae.scale,y_nac_std )
     temp_model.summary()
     
     print("Info: All-data NAC std",y.shape,":",np.std(y_in,axis=(0,3),keepdims=True)[0,:,:,0])
@@ -252,7 +252,7 @@ def train_model_nac(i=0, outdir=None, mode = 'training'):
     
     #Prefit if necessary
     if(pre_epo>0):
-        temp_model_prefit = create_model_nac_precomputed(hypermodel,learning_rate,False)
+        temp_model_prefit,_ = create_model_nac_precomputed(hypermodel,learning_rate,False)
         temp_model_prefit.set_weights(temp_model.get_weights())
         temp_model_prefit.fit(x=xtrain, y=ytrain, epochs=pre_epo,batch_size=batch_size,verbose=2)
         temp_model.set_weights(temp_model_prefit.get_weights())

@@ -39,7 +39,7 @@ print("Logic Devices:",tf.config.experimental.list_logical_devices('GPU'))
 
 from pyNNsMD.nn_pes_src.keras_utils.callbacks import EarlyStopping,lr_lin_reduction,lr_exp_reduction,lr_step_reduction
 from pyNNsMD.nn_pes_src.plotting.plot_mlp_e import plot_energy_fit_result
-from pyNNsMD.nn_pes_src.models.models_mlp_e import create_feature_models
+from pyNNsMD.nn_pes_src.models.models_features import create_feature_models
 from pyNNsMD.nn_pes_src.models.models_mlp_e import create_model_energy_precomputed,EnergyModel
 #from pyNNsMD.nn_pes_src.legacy import compute_feature_derivative
 from pyNNsMD.nn_pes_src.hyper import _load_hyp
