@@ -88,9 +88,13 @@ class ConstLayerNormalization(ks.layers.Layer):
         return config 
 
 
-
-
 class MLP(ks.layers.Layer):
+    """
+    Multilayer perceptron that consist of N dense keras layers.
+    
+    Last layer can be modified sperately. Hidden layers are all the same.
+    """
+    
     def __init__(self,
                  dense_units,
                  dense_depth = 1,
@@ -104,6 +108,24 @@ class MLP(ks.layers.Layer):
                  dropout_use = False,
                  dropout_dropout = 0,
                  **kwargs):
+        """
+        Init MLP as for dense.
+
+        Args:
+            dense_units (int): Size of hidden layers.
+            dense_depth (int, optional): Number of hidden layers. Defaults to 1.
+            dense_bias (bool, optional): Use bias for hidden layers. Defaults to True.
+            dense_bias_last (bool, optional): Bias for last layer. Defaults to True.
+            dense_activ (str, optional): Activity identifier. Defaults to None.
+            dense_activ_last (str, optional): Activity identifier for last layer. Defaults to None.
+            dense_activity_regularizer (str, optional): Activity regularizer identifier. Defaults to None.
+            dense_kernel_regularizer (str, optional): Kernel regularizer identifier. Defaults to None.
+            dense_bias_regularizer (str, optional): Bias regularizer identifier. Defaults to None.
+            dropout_use (bool, optional): Use dropout. Defaults to False.
+            dropout_dropout (float, optional): Fraction of dropout. Defaults to 0.
+            **kwargs 
+
+        """
         super(MLP, self).__init__(**kwargs) 
         self.dense_units = dense_units
         self.dense_depth = dense_depth 
@@ -140,8 +162,26 @@ class MLP(ks.layers.Layer):
         if(self.dropout_use == True):
             self.mlp_dropout =  ks.layers.Dropout(self.dropout_dropout,name=self.name + '_dropout')
     def build(self, input_shape):
+        """
+        Build layer.
+
+        Args:
+            input_shape (list): Input shape.
+
+        """
         super(MLP, self).build(input_shape)          
     def call(self, inputs,training=False):
+        """
+        Forward pass.
+
+        Args:
+            inputs (tf.tensor): Input tensor of shape (...,N).
+            training (bool, optional): Training mode. Defaults to False.
+
+        Returns:
+            out (tf.tensor): Last activity.
+
+        """
         x = inputs
         for i in range(self.dense_depth-1):
             x = self.mlp_dense_activ[i](x)
@@ -151,6 +191,13 @@ class MLP(ks.layers.Layer):
         out = x
         return out
     def get_config(self):
+        """
+        Update config.
+
+        Returns:
+            config (dict): Base class config plus MLP info.
+
+        """
         config = super(MLP, self).get_config()
         config.update({"dense_units": self.dense_units,
                        'dense_depth': self.dense_depth,
@@ -199,15 +246,52 @@ class InverseDistance(ks.layers.Layer):
 
 
 class Angles(ks.layers.Layer):
-    def __init__(self, angle_list, **kwargs):
+    """
+    Compute angles from coordinates.
+    
+    The index-list of atoms to compute angles from is added as a static non-trainable weight.
+    This should be cleaner than always have to move the index within the model.
+    """
+    
+    def __init__(self, angle_shape, **kwargs):
+        """
+        Init the layer. The angle list is initialized to zero.
+
+        Args:
+            angle_shape (list): Shape of the angle list without batch dimension (N,3).
+            **kwargs.
+            
+        """
         super(Angles, self).__init__(**kwargs)  
-        self.angle_list = angle_list
-        self.angle_list_tf = tf.constant(np.array(angle_list))
+        #self.angle_list = angle_list
+        #self.angle_list_tf = tf.constant(np.array(angle_list))
+        self.angle_list = self.add_weight('angle_list',
+                                        shape=angle_shape,
+                                        initializer=tf.keras.initializers.Zeros(),
+                                        dtype='int64',
+                                        trainable=False)         
     def build(self, input_shape):
+        """
+        Build model. Angle list is built in init.
+
+        Args:
+            input_shape (list): Input shape.
+
+        """
         super(Angles, self).build(input_shape)          
     def call(self, inputs):
+        """
+        Forward pass.
+
+        Args:
+            inputs (tf.tensor): Coordinate input as (batch,N,3).
+
+        Returns:
+            angs_rad (tf.tensor): Flatten list of angles from index.
+
+        """
         cordbatch  = inputs
-        angbatch  = tf.repeat(ks.backend.expand_dims(self.angle_list_tf,axis=0) , ks.backend.shape(cordbatch)[0], axis=0)
+        angbatch  = tf.repeat(ks.backend.expand_dims(self.angle_list,axis=0) , ks.backend.shape(cordbatch)[0], axis=0)
         vcords1 = tf.gather(cordbatch, angbatch[:,:,1],axis=1,batch_dims=1)
         vcords2a = tf.gather(cordbatch, angbatch[:,:,0],axis=1,batch_dims=1)
         vcords2b = tf.gather(cordbatch, angbatch[:,:,2],axis=1,batch_dims=1)
@@ -219,23 +303,67 @@ class Angles(ks.layers.Layer):
         angs_rad = tf.math.acos(angle_cos)
         return angs_rad
     def get_config(self):
+        """
+        Return config for layer.
+
+        Returns:
+            config (dict): Config from base class plus angle index shape.
+
+        """
         config = super(Angles, self).get_config()
-        config.update({"angle_list": self.angle_list})
+        config.update({"angle_shape": self.angle_shape})
         return config
 
 
 class Dihydral(ks.layers.Layer):
-    def __init__(self ,angle_list, **kwargs):
+    """
+    Compute dihydral angles from coordinates.
+    
+    The index-list of atoms to compute angles from is added as a static non-trainable weight.
+    This should be cleaner than always have to move the index within the model.
+    """
+    
+    def __init__(self ,angle_shape, **kwargs):
+        """
+        Init the layer. The angle list is initialized to zero.
+
+        Args:
+            angle_shape (list): Shape of the angle list without batch dimension of (N,4).
+            **kwargs
+
+        """
         super(Dihydral, self).__init__(**kwargs)  
-        self.angle_list = angle_list
-        self.angle_list_tf = tf.constant(np.array(angle_list))
+        #self.angle_list = angle_list
+        #self.angle_list_tf = tf.constant(np.array(angle_list))
+        self.angle_list = self.add_weight('angle_list',
+                                shape=angle_shape,
+                                initializer=tf.keras.initializers.Zeros(),
+                                dtype='int64',
+                                trainable=False)        
     def build(self, input_shape):
+        """
+        Build model. Angle list is built in init.
+
+        Args:
+            input_shape (list): Input shape.
+
+        """
         super(Dihydral, self).build(input_shape)          
     def call(self, inputs):
+        """
+        Forward pass.
+
+        Args:
+            inputs (tf.tensor): Coordinates of shape (batch, N,3).
+
+        Returns:
+            angs_rad (tf.tensor): Dihydral angles from index list and coordinates of shape (batch,M).
+
+        """
         #implementation from
         #https://en.wikipedia.org/wiki/Dihedral_angle
         cordbatch = inputs
-        indexbatch  = tf.repeat(ks.backend.expand_dims(self.angle_list_tf,axis=0) , ks.backend.shape(cordbatch)[0], axis=0)
+        indexbatch  = tf.repeat(ks.backend.expand_dims(self.angle_list,axis=0) , ks.backend.shape(cordbatch)[0], axis=0)
         p1 = tf.gather(cordbatch, indexbatch[:,:,0],axis=1,batch_dims=1)
         p2 = tf.gather(cordbatch, indexbatch[:,:,1],axis=1,batch_dims=1)
         p3 = tf.gather(cordbatch, indexbatch[:,:,2],axis=1,batch_dims=1)
@@ -248,53 +376,57 @@ class Dihydral(ks.layers.Layer):
         angs_rad = tf.math.atan2(arg1,arg2) 
         return angs_rad
     def get_config(self):
-        config = super(Dihydral, self).get_config()
-        config.update({"angle_list": self.angle_list})
-        return config
+        """
+        Return config for layer.
 
+        Returns:
+            config (dict): Config from base class plus angle index shape.
+
+        """
+        config = super(Dihydral, self).get_config()
+        config.update({"angle_shape": self.angle_shape})
+        return config
 
 
 class FeatureGeometric(ks.layers.Layer):
     """
     Feautre representation consisting of inverse distances, angles and dihydral angles.
     
-    Uses InverseDistance, Angle, Dihydral if input index is not empty.
+    Uses InverseDistance, Angle, Dihydral layer definition if input index is not empty.
     
     """
     
     def __init__(self ,
-                 invd_index = [],
-                 angle_index = [],
-                 dihyd_index = [],
+                 invd_shape = None,
+                 angle_shape = None,
+                 dihyd_shape = None,
                  **kwargs):
         """
         Init of the layer.
 
         Args:
-            invd_index (list, optional): Index of atoms to calculate inverse distances. Defaults to [].
-            angle_index (list, optional): Index of atoms to calculate angles between. Defaults to [].
-            dihyd_index (list, optional): Index of atoms to calculate dihyd between. Defaults to [].
+            invd_shape (list, optional): Index-Shape of atoms to calculate inverse distances. Defaults to None.
+            angle_shape (list, optional): Index-Shape of atoms to calculate angles between. Defaults to None.
+            dihyd_shape (list, optional): Index-Shape of atoms to calculate dihyd between. Defaults to None.
             **kwargs
 
         """
         super(FeatureGeometric, self).__init__(**kwargs)
-        use_invdist = invd_index != []
-        use_bond_angles = angle_index != []
-        self.angle_index = angle_index 
-        use_dihyd_angles = dihyd_index != []
-        self.dihyd_index = dihyd_index
-        
-        self.use_dihyd_angles = use_dihyd_angles
-        self.use_bond_angles = use_bond_angles
-        self.use_invdist = use_invdist
+        #Inverse distances are always taken all for the moment
+        self.use_invdist = True
+        self.invd_shape = invd_shape
+        self.use_bond_angles = angle_shape is not None
+        self.angle_shape = angle_shape 
+        self.use_dihyd_angles = dihyd_shape is not None
+        self.dihyd_shape = dihyd_shape
 
         if(self.use_invdist==True):        
             self.invd_layer = InverseDistance()
         if(self.use_bond_angles==True):
-            self.ang_layer = Angles(angle_list=angle_index)
+            self.ang_layer = Angles(angle_shape=angle_shape)
             self.concat_ang = ks.layers.Concatenate(axis=-1)
         if(self.use_dihyd_angles==True):
-            self.dih_layer = Dihydral(angle_list=dihyd_index)
+            self.dih_layer = Dihydral(angle_shape=dihyd_shape)
             self.concat_dih = ks.layers.Concatenate(axis=-1)
         self.flat_layer = ks.layers.Flatten(name='feat_flat')
     def build(self, input_shape):
@@ -325,17 +457,45 @@ class FeatureGeometric(ks.layers.Layer):
                 feat = self.ang_layer(x)
             else:
                 angs = self.ang_layer(x)
-                feat = self.concat_ang([feat,angs],axis=-1)
+                feat = self.concat_ang([feat,angs])
         if(self.use_dihyd_angles==True):
             if(self.use_invdist==False and self.use_bond_angles==False):
                 feat = self.dih_layer(x)
             else:
                 dih = self.dih_layer(x)
-                feat = self.concat_dih([feat,dih],axis=-1)
+                feat = self.concat_dih([feat,dih])
     
         feat_flat = self.flat_layer(feat)
         out = feat_flat
         return out 
+    def set_mol_index(self,invd_index,angle_index,dihyd_index):
+        """
+        Set weights for atomic index for distance and angles.
+
+        Args:
+            invd_index (np.array): Index for inverse distances. Shape (N,2)
+            angle_index (np.array): Index for angles. Shape (N,3).
+            dihyd_index (np.array):Index for dihed angles. Shape (N,4).
+
+        """
+        if(self.use_dihyd_angles == True):
+            self.dih_layer.set_weights([dihyd_index])
+        if(self.use_bond_angles == True):
+            self.ang_layer.set_weights([angle_index])
+    def get_config(self):
+        """
+        Return config for layer.
+
+        Returns:
+            config (dict): Config from base class plus index info.
+
+        """
+        config = super(FeatureGeometric, self).get_config()
+        config.update({"invd_shape" : self.invd_shape,
+                       "angle_shape" : self.angle_shape,
+                       "dihyd_shape" : self.dihyd_shape
+                       })
+        return config
     
 
 class EnergyGradient(ks.layers.Layer):
