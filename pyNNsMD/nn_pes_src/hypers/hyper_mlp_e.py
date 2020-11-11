@@ -4,11 +4,11 @@ Default hyperparameters for MLP model for energy+gradient
 @author: Patrick
 """
 
-DEFAULT_HYPER_PARAM_ENERGY_GRADS = {
+DEFAULT_HYPER_PARAM_ENERGY = {
     
                     'general':
                     {
-                        'model_type' : 'mlp_eg',   #which model type to use
+                        'model_type' : 'mlp_e',   #which model type to use
                         'main_dir' : '',     # not used atm
                         'model_dir' : '',    # not used atm
                         'info' : '',     # not used atm

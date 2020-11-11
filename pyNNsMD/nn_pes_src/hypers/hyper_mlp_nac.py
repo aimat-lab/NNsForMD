@@ -18,7 +18,7 @@ DEFAULT_HYPER_PARAM_NAC = {
                         'model':#Model Parameters # fixed model, cannot be changed after init
                         { 
                             'atoms' : 2,
-                            'states' : 1, #(batch,states,atoms,3)
+                            'states' : 1, #(batch,states*(states-1)/2,atoms,3)
                             'depth' : 3,
                             'activ' : { 'class_name': "leaky_softplus", "config" : {'alpha': 0.03}} ,  # activation function,
                             'nn_size' : 100,
@@ -35,7 +35,7 @@ DEFAULT_HYPER_PARAM_NAC = {
                         },
                         'training':{
                             #Fit information
-                            'auto_scaling' : True,
+                            'auto_scaling' : {'x_mean':False,'x_std':False,'nac_std':True,'nac_mean':False}, # Scale nac und coordinates, can be also done in data preparation,
                             'normalization_mode' : 1,
                             'learning_rate' : 1e-3,
                             'phase_less_loss' : True,
@@ -54,7 +54,7 @@ DEFAULT_HYPER_PARAM_NAC = {
                         },
                         'retraining':{
                             #Fit information
-                            'auto_scaling' : True,
+                            'auto_scaling' : {'x_mean':False,'x_std':False,'nac_std':True,'nac_mean':False}, # Scale nac und coordinates, can be also done in data preparation,
                             'normalization_mode' : 1,
                             'learning_rate' : 1e-3,
                             'phase_less_loss' : True,
