@@ -5,24 +5,6 @@ Created on Tue Nov 10 11:47:49 2020
 """
 import numpy as np
 
-def scale_x(x,scaler = {'x_mean' : np.zeros((1,1,1)),'x_std' : np.ones((1,1,1))}):
-    """
-    Scale coordinates.
-
-    Args:
-        x (np.array): Coordinates.
-        scaler (dict, optional): X-scale to apply. The default is {'x_mean' : np.zeros((1,1,1)),'x_std' : np.ones((1,1,1))}.
-
-    Returns:
-        x_res (np.array): Rescaled coordinates.
-
-    """
-    x_mean = scaler['x_mean']
-    x_std = scaler['x_std']
-    
-    #Prediction
-    x_res = (x -x_mean)/x_std 
-    return x_res
 
 
 def scale_feature(feats,hyper):
