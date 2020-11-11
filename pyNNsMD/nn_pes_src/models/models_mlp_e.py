@@ -14,6 +14,7 @@ from pyNNsMD.nn_pes_src.hypers.hyper_mlp_e import DEFAULT_HYPER_PARAM_ENERGY as 
 from pyNNsMD.nn_pes_src.keras_utils.layers import MLP,ConstLayerNormalization,FeatureGeometric
 from pyNNsMD.nn_pes_src.keras_utils.loss import get_lr_metric,r2_metric,ScaledMeanAbsoluteError
 
+
 class EnergyModel(ks.Model):
     """
     Subclassed tf.keras.model for energy/gradient which outputs both energy and gradient from coordinates.
@@ -37,11 +38,9 @@ class EnergyModel(ks.Model):
         super(EnergyModel, self).__init__(**kwargs)
         out_dim = int( hyper['states'])
         indim = int( hyper['atoms'])
-        use_invdist = hyper['invd_index'] != []
-        use_bond_angles = hyper['angle_index'] != []
-        angle_index = hyper['angle_index'] 
-        use_dihyd_angles = hyper['dihyd_index'] != []
-        dihyd_index = hyper['dihyd_index']
+        #invd_index = np.array(hyper['invd_index'])
+        angle_index = np.array(hyper['angle_index'])
+        dihyd_index = np.array(hyper['dihyd_index'])
         nn_size = hyper['nn_size']
         depth = hyper['depth']
         activ = hyper['activ']
@@ -51,11 +50,14 @@ class EnergyModel(ks.Model):
         use_dropout = hyper['use_dropout']
         dropout = hyper['dropout']
         
-
-        self.feat_layer = FeatureGeometric(invd_index = use_invdist,
-                                           angle_index = angle_index ,
-                                           dihyd_index = dihyd_index,
+        use_bond_angles = angle_index.shape if len(angle_index)>0 else None
+        use_dihyd_angles = dihyd_index.shape if len(dihyd_index)>0 else None
+        self.feat_layer = FeatureGeometric(invd_shape = None,
+                                           angle_shape = use_bond_angles,
+                                           dihyd_shape = use_dihyd_angles,
                                            )
+        self.feat_layer.set_mol_index(None, angle_index , dihyd_index)
+        
         self.std_layer = ConstLayerNormalization(axis=-1,name='feat_std')
         self.mlp_layer = MLP( nn_size,
                  dense_depth = depth,
@@ -72,6 +74,7 @@ class EnergyModel(ks.Model):
                  )
         self.energy_layer =  ks.layers.Dense(out_dim,name='energy',use_bias=True,activation='linear')
         
+
         self.build((None,indim,3))
         
     def call(self, data, training=False):
@@ -98,10 +101,6 @@ class EnergyModel(ks.Model):
         temp_g = tape2.batch_jacobian(temp_e, x)
         y_pred = [temp_e,temp_g]
         return y_pred
-
-
-
-
 
 
 def create_model_energy_precomputed(hyper=hyper_model_energy['model'],
@@ -172,4 +171,5 @@ def create_model_energy_precomputed(hyper=hyper_model_energy['model'],
     model.compile(optimizer=optimizer,
                   loss='mean_squared_error',
                   metrics=[scmae  ,lr_metric,r2_metric])
+    
     return model,scmae 

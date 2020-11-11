@@ -44,7 +44,7 @@ class FeatureModel(ks.Model):
         return np_x,np_grad
 
 
-def create_feature_models(hyper,model_name="feat",run_eagerly=False):
+def create_feature_models(hyper,model_name="feat",run_eagerly=False,use_derivative = True):
     """
     Model to precompute features feat = model(x).
 
@@ -58,21 +58,26 @@ def create_feature_models(hyper,model_name="feat",run_eagerly=False):
 
     """
     indim = int( hyper['atoms'])
-    use_invdist = hyper['invd_index'] != []
-    use_bond_angles = hyper['angle_index'] != []
-    angle_index = hyper['angle_index'] 
-    use_dihyd_angles = hyper['dihyd_index'] != []
-    dihyd_index = hyper['dihyd_index']
+    angle_index = np.array(hyper['angle_index'])
+    dihyd_index = np.array(hyper['dihyd_index'])
+    use_bond_angles = angle_index.shape if len(angle_index)>0 else None
+    use_dihyd_angles = dihyd_index.shape if len(dihyd_index)>0 else None
     
     geo_input = ks.Input(shape=(indim,3), dtype='float32' ,name='geo_input')
-    #Features precompute layer        
-    feat = FeatureGeometric(invd_index = use_invdist,
-                            angle_index = angle_index ,
-                            dihyd_index = dihyd_index,
-                            )(geo_input)
+    #Features precompute layer  
+
+    feat_layer = FeatureGeometric(invd_shape = None,
+                                  angle_shape = use_bond_angles,
+                                  dihyd_shape = use_dihyd_angles,
+                                  )
+    feat_layer.set_mol_index(None, angle_index , dihyd_index)      
+    feat = feat_layer(geo_input)
     
     feat = ks.layers.Flatten(name='feat_flat')(feat)
-    model = FeatureModel(inputs=geo_input, outputs=feat,name=model_name)
+    if(use_derivative == True):
+        model = FeatureModel(inputs=geo_input, outputs=feat,name=model_name)
+    else:
+        model = ks.Model(inputs=geo_input, outputs=feat,name=model_name)
     
     model.compile(run_eagerly=run_eagerly) 
     #Strange bug with tensorflow.python.framework.errors_impl.InvalidArgumentError: assertion failed: [0] [Op:Assert] name: EagerVariableNameReuse

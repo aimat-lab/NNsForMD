@@ -38,11 +38,8 @@ class NACModel2(ks.Model):
         super(NACModel2, self).__init__(**kwargs)
         out_dim = int( hyper['states']*(hyper['states']-1)/2)
         indim = int( hyper['atoms'])
-        use_invdist = hyper['invd_index'] != []
-        use_bond_angles = hyper['angle_index'] != []
-        angle_index = hyper['angle_index'] 
-        use_dihyd_angles = hyper['dihyd_index'] != []
-        dihyd_index = hyper['dihyd_index']
+        angle_index = np.array(hyper['angle_index'])
+        dihyd_index = np.array(hyper['dihyd_index'])
         nn_size = hyper['nn_size']
         depth = hyper['depth']
         activ = hyper['activ']
@@ -53,18 +50,20 @@ class NACModel2(ks.Model):
         dropout = hyper['dropout']
         
         in_model_dim = 0
-        if(use_invdist==True):
-            in_model_dim += int(indim*(indim-1)/2)
-        if(use_bond_angles == True):
+        in_model_dim += int(indim*(indim-1)/2)
+        if(len(angle_index) >0):
             in_model_dim += len(angle_index) 
-        if(use_dihyd_angles == True):
+        if(len(dihyd_index)  == True):
             in_model_dim += len(dihyd_index) 
 
         self.y_atoms = indim
-        self.feat_layer = FeatureGeometric(invd_index = use_invdist,
-                                angle_index = angle_index ,
-                                dihyd_index = dihyd_index,
-                                )
+        use_bond_angles = angle_index.shape if len(angle_index)>0 else None
+        use_dihyd_angles = dihyd_index.shape if len(dihyd_index)>0 else None
+        self.feat_layer = FeatureGeometric(invd_shape = None,
+                                           angle_shape = use_bond_angles,
+                                           dihyd_shape = use_dihyd_angles,
+                                           )
+        self.feat_layer.set_mol_index(None, angle_index , dihyd_index)
         self.std_layer = ConstLayerNormalization(name='feat_std')
         self.mlp_layer = MLP(   nn_size,
                                 dense_depth = depth,
