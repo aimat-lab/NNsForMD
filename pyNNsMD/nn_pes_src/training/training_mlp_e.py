@@ -44,8 +44,8 @@ from pyNNsMD.nn_pes_src.models.models_mlp_e import create_model_energy_precomput
 #from pyNNsMD.nn_pes_src.legacy import compute_feature_derivative
 from pyNNsMD.nn_pes_src.hyper import _load_hyp
 from pyNNsMD.nn_pes_src.datasets.data_general import split_validation_training_index
-from pyNNsMD.nn_pes_src.scaler import save_std_scaler_dict,load_std_scaler_dict
-from pyNNsMD.nn_pes_src.scaling.scale_mlp_eg import DEFAULT_STD_SCALER_ENERGY_GRADS
+from pyNNsMD.nn_pes_src.scaler import save_std_scaler_dict
+from pyNNsMD.nn_pes_src.scaling.scale_mlp_eg import EnergyGradientStandardScaler
 from pyNNsMD.nn_pes_src.scaling.scale_general import scale_feature
 
 
@@ -79,9 +79,9 @@ def train_model_energy(i = 0, outdir=None,  mode='training'):
     except:
         print("Error: Can not load hyper for fit",outdir)
     
-    scaler = DEFAULT_STD_SCALER_ENERGY_GRADS
+    scaler = EnergyGradientStandardScaler()
     try:
-        scaler = load_std_scaler_dict(os.path.join(outdir,'scaler'+'_v%i'%i+".json"))
+        scaler.load(os.path.join(outdir,'scaler'+'_v%i'%i+".json"))
     except:
         print("Error: Can not load scaling info for fit",outdir)
         
@@ -125,12 +125,12 @@ def train_model_energy(i = 0, outdir=None,  mode='training'):
     learning_rate_stop_early = hyper['linear_callback']['learning_rate_stop']
 
     #scaler
-    y_energy_std = scaler['energy_std']
-    y_energy_mean = scaler['energy_mean']
-    y_gradient_std = scaler['gradient_std']
-    y_gradient_mean = scaler['gradient_mean']
-    x_mean = scaler['x_mean']
-    x_std = scaler['x_std']
+    y_energy_std = scaler.energy_std
+    y_energy_mean = scaler.energy_mean
+    y_gradient_std = scaler.gradient_std
+    y_gradient_mean = scaler.gradient_mean
+    x_mean = scaler.x_mean
+    x_std = scaler.x_std
 
     #Data Check here:
     if(len(x.shape) != 3):
@@ -183,7 +183,7 @@ def train_model_energy(i = 0, outdir=None,  mode='training'):
     #Make all Model
     out_model = EnergyModel(hypermodel)
     temp_model,scaled_metric = create_model_energy_precomputed(hypermodel,learning_rate)
-    temp_model_feat = create_feature_models(hypermodel)
+    temp_model_feat = create_feature_models(hypermodel,use_derivative=False)
     
     #Look for loading weights
     npeps = np.finfo(float).eps
@@ -201,25 +201,31 @@ def train_model_energy(i = 0, outdir=None,  mode='training'):
     else:
         print("Info: Making new initialized weights.")
     
-    if(auto_scale == True):
-        print("Info: Calculating std-values.")
+    #Recalculate standardization    
+    if(auto_scale['x_mean'] == True):
+        x_mean = np.mean(x)
+        print("Info: Calculating x-mean.")
+    if(auto_scale['x_std'] == True):
+        x_std = np.std(x) + npeps
+    if(auto_scale['energy_mean'] == True):
+        print("Info: Calculating energy-mean.")
         y1 = y[i_train]
         y_energy_mean = np.mean(y1,axis=0,keepdims=True)
+    if(auto_scale['energy_std'] == True):
+        print("Info: Calculating energy-std.")
+        y1 = y[i_train]
         y_energy_std = np.std(y1,axis=0,keepdims=True) + npeps
-        x_std = np.std(x) + npeps
-        x_mean = np.mean(x)
-        #Gradient is not independent!!
-        y_gradient_std = np.expand_dims(np.expand_dims(y_energy_std,axis=-1),axis=-1) /x_std + npeps
-        y_gradient_mean = np.zeros_like(y_gradient_std, dtype=np.float32) #no mean shift expected
-    else:
-        print("Info: Keeping std scaler",scaler)
+    print("Info: Adjusting gradient std.")    
+    #Gradient is not independent!!
+    y_gradient_std = np.expand_dims(np.expand_dims(y_energy_std,axis=-1),axis=-1) /x_std + npeps
+    y_gradient_mean = np.zeros_like(y_gradient_std, dtype=np.float32) #no mean shift expected
     
     #Apply Scaling
     x_rescale = (x-x_mean) / (x_std)
     y1 = (y - y_energy_mean)/(y_energy_std)
     
     #Model + Model precompute layer +feat
-    feat_x, feat_grad = temp_model_feat.predict_in_chunks(x_rescale,batch_size=batch_size)
+    feat_x = temp_model_feat.predict(x_rescale,batch_size=batch_size)
     
     #Finding Normalization
     feat_x_mean,feat_x_std = temp_model.get_layer('feat_std').get_weights()
@@ -233,9 +239,9 @@ def train_model_energy(i = 0, outdir=None,  mode='training'):
         print("Info: Keeping old normalization (default/unity or loaded from file).")
         
     #Train Test split
-    xtrain = [feat_x[i_train],feat_grad[i_train]]
+    xtrain = feat_x[i_train]
     ytrain = y1[i_train]
-    xval = [feat_x[i_val],feat_grad[i_val]]
+    xval = feat_x[i_val]
     yval = y1[i_val]
     
     #Setting constant feature normalization
@@ -273,7 +279,7 @@ def train_model_energy(i = 0, outdir=None,  mode='training'):
         out_model.save_weights(os.path.join(outdir,"weights"+'_v%i'%i+'.h5'))
         #print(out_model.get_weights())
     except:
-          print("Warning: Cant save weights")
+          print("Error: Cant save weights")
           
     try:
         print("Info: Saving auto-scaling to file...")
@@ -281,7 +287,8 @@ def train_model_energy(i = 0, outdir=None,  mode='training'):
                      'energy_mean' : y_energy_mean, 'energy_std' : y_energy_std,
                      'gradient_mean' : y_gradient_mean, 'gradient_std' : y_gradient_std
                      }
-        save_std_scaler_dict(outscaler,os.path.join(outdir,"scaler"+'_v%i'%i+'.json'))
+        scaler.set_dict(outscaler)
+        scaler.save(os.path.join(outdir,"scaler"+'_v%i'%i+'.json'))
     except:
         print("Error: Can not export scaling info. Model prediciton will be wrongly scaled.")
     

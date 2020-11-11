@@ -44,8 +44,7 @@ from pyNNsMD.nn_pes_src.models.models_features import create_feature_models
 from pyNNsMD.nn_pes_src.models.models_mlp_nac import create_model_nac_precomputed,NACModel
 from pyNNsMD.nn_pes_src.hyper import _load_hyp
 from pyNNsMD.nn_pes_src.datasets.data_general import split_validation_training_index
-from pyNNsMD.nn_pes_src.scaler import save_std_scaler_dict,load_std_scaler_dict
-from pyNNsMD.nn_pes_src.scaling.scale_mlp_nac import DEFAULT_STD_SCALER_NAC
+from pyNNsMD.nn_pes_src.scaling.scale_mlp_nac import NACStandardScaler
 from pyNNsMD.nn_pes_src.scaling.scale_general import scale_feature
 
 def train_model_nac(i=0, outdir=None, mode = 'training'):
@@ -78,9 +77,9 @@ def train_model_nac(i=0, outdir=None, mode = 'training'):
     except:
         print("Error: Can not load hyper for fit",outdir)
     
-    scaler = DEFAULT_STD_SCALER_NAC
+    scaler = NACStandardScaler()
     try:
-        scaler = load_std_scaler_dict(os.path.join(outdir,'scaler'+'_v%i'%i+".json"))
+        scaler.load(os.path.join(outdir,'scaler'+'_v%i'%i+".json"))
     except:
         print("Error: Can not load scaling info for fit",outdir)
         
@@ -126,10 +125,10 @@ def train_model_nac(i=0, outdir=None, mode = 'training'):
     learning_rate_stop_early = hyper['linear_callback']['learning_rate_stop']
 
     #Transfer scaler
-    y_nac_std = scaler['nac_std']
-    y_nac_mean = scaler['nac_mean']
-    x_mean = scaler['x_mean']
-    x_std = scaler['x_std']
+    y_nac_std = scaler.nac_std
+    y_nac_mean = scaler.nac_mean
+    x_mean = scaler.x_mean
+    x_std = scaler.x_std
     
     #Data Check here:
     if(len(x.shape) != 3):
@@ -199,21 +198,23 @@ def train_model_nac(i=0, outdir=None, mode = 'training'):
             print("Error: Can't load old weights...")
     else:
         print("Info: Making new initialized weights..")
-        
-    if(auto_scale == True):
-        print("Info: Calculating std-values.")
+    
+    if(auto_scale['x_mean'] == True):
+        x_mean = np.mean(x)
+        print("Info: Calculating x-mean.")
+    if(auto_scale['x_std'] == True):
+        x_std = np.std(x) + npeps
+    if(auto_scale['nac_std'] == True):
+        print("Info: Calculating nac-std.")
         yit = y_in[i_train]
         y_nac_std = np.std(yit,axis=(0,3),keepdims=True)+ npeps
         y_nac_mean = np.zeros_like(y_nac_std)
-        x_mean = np.array(0.0)
-        x_std = np.array(1.0)+ npeps
-    else:
-        print("Info: Keeping std scaler from file",scaler)
         
     # No x-scale for the moment
     y = (y_in - y_nac_mean) / (y_nac_std )
-    #x_rescale = (x - x_mean) / (x_std )
     x_rescale = x
+    #x_rescale = (x - x_mean) / (x_std )
+
     
     #Calculate features
     feat_x, feat_grad = temp_model_feat.predict_in_chunks(x_rescale,batch_size=batch_size)
@@ -284,7 +285,8 @@ def train_model_nac(i=0, outdir=None, mode = 'training'):
         print("Info: Saving auto-scaling to file...")
         outscaler = {'x_mean' : x_mean,'x_std' : x_std,
                      'nac_mean' : y_nac_mean, 'nac_std' : y_nac_std}
-        save_std_scaler_dict(outscaler,os.path.join(outdir,"scaler"+'_v%i'%i+'.json'))
+        scaler.set_dict(outscaler)
+        scaler.save(os.path.join(outdir,"scaler"+'_v%i'%i+'.json'))
     except:
         print("Error: Can not export scaling info. Model prediciton will be wrongly scaled.")
     
