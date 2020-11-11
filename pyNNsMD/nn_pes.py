@@ -15,13 +15,12 @@ import tensorflow as tf
 
 
 from pyNNsMD.nn_pes_src.modeltype import _get_model_by_type
-from pyNNsMD.nn_pes_src.scaler import _get_default_scaler_dict
 from pyNNsMD.nn_pes_src.hyper import _save_hyp,_load_hyp,_get_default_hyperparameters_by_modeltype
 from pyNNsMD.nn_pes_src.fit import _fit_model_by_modeltype
 from pyNNsMD.nn_pes_src.data import model_save_data_to_folder,model_make_random_shuffle,model_merge_data_in_chunks,index_make_random_shuffle
 from pyNNsMD.nn_pes_src.resample import find_samples_with_max_error,index_data_in_y_dict
 from pyNNsMD.nn_pes_src.plot import _plot_resampling
-from pyNNsMD.nn_pes_src.scaler import _scale_x,_rescale_output,save_std_scaler_dict,load_std_scaler_dict
+from pyNNsMD.nn_pes_src.scaler import get_default_scaler
 from pyNNsMD.nn_pes_src.predict import _predict_uncertainty,_call_convert_x_to_tensor,_call_convert_y_to_numpy
 
 
@@ -130,7 +129,7 @@ class NeuralNetPes:
             temp = self._merge_hyper(_get_default_hyperparameters_by_modeltype(model_type),hyp[i])              
             hyp[i] = temp
             models[key].append(_get_model_by_type(model_type,hyper=temp['model']))
-            scaler[key].append(_get_default_scaler_dict(model_type))
+            scaler[key].append(get_default_scaler(model_type))
             
         return models,hyp,scaler
     
@@ -203,7 +202,7 @@ class NeuralNetPes:
         for i,x in enumerate(self._models_hyper[name]):
             _save_hyp(x,os.path.join(filename,'hyper'+'_v%i'%i+".json"))
         for i,x in enumerate(self._models_scaler[name]):   
-            save_std_scaler_dict(x,os.path.join(filename,'scaler'+'_v%i'%i+".json"))
+            x.save(os.path.join(filename,'scaler'+'_v%i'%i+".json"))
         
         return filename
         
@@ -319,7 +318,7 @@ class NeuralNetPes:
         
         #Load scaler  
         for i in range(self._addNN):
-            self._models_scaler[model_name][i] = load_std_scaler_dict(os.path.join(fname,'scaler'+'_v%i'%i+".json"))
+            self._models_scaler[model_name][i].load(os.path.join(fname,'scaler'+'_v%i'%i+".json"))
             print("Info: Imported scaling for: %s"%(model_name+'_v%i'%i))
                      
     
@@ -471,9 +470,9 @@ class NeuralNetPes:
         #Check type with first hyper
         out = []
         model_type = self._models_hyper[name][0]['general']['model_type']
-        x_scaled = [_scale_x(model_type,x,scaler = self._models_scaler[name][i]) for i in range(self._addNN)]
+        x_scaled = [self._models_scaler[name][i].scale_x(x) for i in range(self._addNN)]
         temp =  self._predict_model_list(x_scaled ,self._models[name],[self._models_hyper[name][i]['predict']['batch_size_predict'] for i in range(self._addNN)])
-        out = [_rescale_output(model_type,temp[i],scaler = self._models_scaler[name][i]) for i in range(self._addNN)]
+        out = [self._models_scaler[name][i].rescale_y(temp[i]) for i in range(self._addNN)]
         return _predict_uncertainty(model_type,out)
         
     
@@ -515,11 +514,11 @@ class NeuralNetPes:
         #Check type with first hyper
         out = []
         model_type = self._models_hyper[name][0]['general']['model_type']
-        x_scaled = [_scale_x(model_type,x,scaler = self._models_scaler[name][i]) for i in range(self._addNN)]
+        x_scaled = [self._models_scaler[name][i].scale_x(x) for i in range(self._addNN)]
         x_res = [_call_convert_x_to_tensor(model_type,xs) for xs in x_scaled]
         temp =  self._call_model_list(x_res,self._models[name])
         temp = [_call_convert_y_to_numpy(model_type,xout) for xout in temp]
-        out = [_rescale_output(model_type,temp[i],scaler = self._models_scaler[name][i]) for i in range(self._addNN)]
+        out = [self._models_scaler[name][i].rescale_y(temp[i]) for i in range(self._addNN)]
         return _predict_uncertainty(model_type,out)
 
     
@@ -641,120 +640,120 @@ class NeuralNetPes:
     
     
     
-    def _resample_update_active(self,x,y,indall,ind_act,chunks):
-        #Select indall/indact = ind_unkwon
-        ind_unknown = indall[np.isin(indall,ind_act,invert=True)]
-        x_unknown = x[ind_unknown]
-        y_unknown = index_data_in_y_dict(y,ind_unknown)
+    # def _resample_update_active(self,x,y,indall,ind_act,chunks):
+    #     #Select indall/indact = ind_unkwon
+    #     ind_unknown = indall[np.isin(indall,ind_act,invert=True)]
+    #     x_unknown = x[ind_unknown]
+    #     y_unknown = index_data_in_y_dict(y,ind_unknown)
         
-        #Predict unkown
-        y_pred = self.predict(x_unknown)[0]
+    #     #Predict unkown
+    #     y_pred = self.predict(x_unknown)[0]
         
-        #Get most dataindex of largest error
-        maxerrind,errors = find_samples_with_max_error(y_unknown ,y_pred)
-        #Select a chunk of the largest error index
-        ind_add = ind_unknown[maxerrind[:chunks]]
-        #Add new 
-        ind_new = np.concatenate([ind_act,ind_add],axis=0)
+    #     #Get most dataindex of largest error
+    #     maxerrind,errors = find_samples_with_max_error(y_unknown ,y_pred)
+    #     #Select a chunk of the largest error index
+    #     ind_add = ind_unknown[maxerrind[:chunks]]
+    #     #Add new 
+    #     ind_new = np.concatenate([ind_act,ind_add],axis=0)
         
-        return ind_new,errors
+    #     return ind_new,errors
     
     
         
-    def _resample_plot_stats(self,name,out_index,out_error,out_fiterr,out_testerr):
-        # Take type and scaling into from first NN for each model
-        model_type = self._models_hyper[name][0]['general']['model_type']
-        _plot_resampling(model_type,os.path.join(self._directory,name,"fit_stats"),
-                         out_index,out_error,out_fiterr,out_testerr,
-                         self._models_hyper[name][0]['plots'])
+    # def _resample_plot_stats(self,name,out_index,out_error,out_fiterr,out_testerr):
+    #     # Take type and scaling into from first NN for each model
+    #     model_type = self._models_hyper[name][0]['general']['model_type']
+    #     _plot_resampling(model_type,os.path.join(self._directory,name,"fit_stats"),
+    #                      out_index,out_error,out_fiterr,out_testerr,
+    #                      self._models_hyper[name][0]['plots'])
 
 
 
-    def resample(self,x,y,gpu_dist,proc_async=True,random_shuffle=False,stepsize = 0.05,test_size = 0.05):
-        """
-        Use uncertainty sampling as active learning to effectively reduce dataset size.
+    # def resample(self,x,y,gpu_dist,proc_async=True,random_shuffle=False,stepsize = 0.05,test_size = 0.05):
+    #     """
+    #     Use uncertainty sampling as active learning to effectively reduce dataset size.
 
-        Args:
-            x (np.array): Coordinates in Angstroem of shape (batch,Atoms,3)
-            y (dict):   Dictionary of y values for each model. 
-                        Energy in Bohr, Gradients in Hatree/Bohr. NAC in 1/Hatree.
-                        Units are cast for fitting into eV/Angstroem.
-            gpu_dist (dict):    Dictionary with same modelname and list of GPUs for each NN. Default is {}
-                                Example {'nac' : [0,0] } both NNs for NAC on GPU:0
-            proc_async (bool, optional): Try to run parallel. Default is True.    
-            random_shuffle (bool, optional): Whether to shuffle data before fitting. Default is False. 
-            stepsize (float, optional): Fraction of the original dataset size to add during each iteration. Defaults to 0.05.
-            test_size (float, optional): Fraction of test set which is kept out of sampling. Defaults to 0.05.
+    #     Args:
+    #         x (np.array): Coordinates in Angstroem of shape (batch,Atoms,3)
+    #         y (dict):   Dictionary of y values for each model. 
+    #                     Energy in Bohr, Gradients in Hatree/Bohr. NAC in 1/Hatree.
+    #                     Units are cast for fitting into eV/Angstroem.
+    #         gpu_dist (dict):    Dictionary with same modelname and list of GPUs for each NN. Default is {}
+    #                             Example {'nac' : [0,0] } both NNs for NAC on GPU:0
+    #         proc_async (bool, optional): Try to run parallel. Default is True.    
+    #         random_shuffle (bool, optional): Whether to shuffle data before fitting. Default is False. 
+    #         stepsize (float, optional): Fraction of the original dataset size to add during each iteration. Defaults to 0.05.
+    #         test_size (float, optional): Fraction of test set which is kept out of sampling. Defaults to 0.05.
 
-        Returns:
-            out_index (list): List of np.array of used indices from original data for each iteration.
-            out_error (dict): Error of the unseen data.
-            out_fiterr (dict): Validation error of fit.
-            out_testerr (dict): Error on test set.  
+    #     Returns:
+    #         out_index (list): List of np.array of used indices from original data for each iteration.
+    #         out_error (dict): Error of the unseen data.
+    #         out_fiterr (dict): Validation error of fit.
+    #         out_testerr (dict): Error on test set.  
 
-        """
-        #Output stats and info
-        out_index = []  # the used data-indices for each iteration
-        out_error = []  # Error of total datast
-        out_fiterr = [] # Error of validation set
-        out_testerr = [] # Error of test set
+    #     """
+    #     #Output stats and info
+    #     out_index = []  # the used data-indices for each iteration
+    #     out_error = []  # Error of total datast
+    #     out_fiterr = [] # Error of validation set
+    #     out_testerr = [] # Error of test set
                 
-        #Temporary set number of NN to 1
-        numNN = self._addNN
-        self._addNN = 1
+    #     #Temporary set number of NN to 1
+    #     numNN = self._addNN
+    #     self._addNN = 1
         
-        # Length of sets
-        total_len = len(x)
-        chunks = int(total_len*stepsize)
-        testchunk = int(total_len*test_size)
-        # Index list is used for active learning
-        index_all = np.arange(0,total_len)
+    #     # Length of sets
+    #     total_len = len(x)
+    #     chunks = int(total_len*stepsize)
+    #     testchunk = int(total_len*test_size)
+    #     # Index list is used for active learning
+    #     index_all = np.arange(0,total_len)
         
-        if(random_shuffle==True):
-            index_all = index_make_random_shuffle(index_all)
+    #     if(random_shuffle==True):
+    #         index_all = index_make_random_shuffle(index_all)
           
-        #select active and test indices
-        ind_test = index_all[:testchunk] 
-        index_all = index_all[testchunk:] #Remove testset from all index
-        ind_activ = index_all[:chunks]
+    #     #select active and test indices
+    #     ind_test = index_all[:testchunk] 
+    #     index_all = index_all[testchunk:] #Remove testset from all index
+    #     ind_activ = index_all[:chunks]
         
-        #Fix test data
-        x_test = x[ind_test]
-        y_test = index_data_in_y_dict(y,ind_test)
+    #     #Fix test data
+    #     x_test = x[ind_test]
+    #     y_test = index_data_in_y_dict(y,ind_test)
         
-        #Start selection
-        for i_runs in range(int(1/stepsize)):
-            out_index.append(ind_activ)
-            #Select active data
-            x_active = x[ind_activ]
-            y_active = index_data_in_y_dict(y,ind_activ)
-            #Make fit
-            fiterrfun = self.fit(x_active,y_active,gpu_dist,proc_async,fitmode='training',random_shuffle=False)
-            out_fiterr.append(fiterrfun)
-            #Get test error
-            _, ertestd = find_samples_with_max_error(y_test,self.predict(x_test)[0])
-            out_testerr.append(ertestd)
-            #Resample
-            ind_new,errs = self._resample_update_active(x,y,index_all,ind_activ,chunks)
-            out_error.append(errs)
+    #     #Start selection
+    #     for i_runs in range(int(1/stepsize)):
+    #         out_index.append(ind_activ)
+    #         #Select active data
+    #         x_active = x[ind_activ]
+    #         y_active = index_data_in_y_dict(y,ind_activ)
+    #         #Make fit
+    #         fiterrfun = self.fit(x_active,y_active,gpu_dist,proc_async,fitmode='training',random_shuffle=False)
+    #         out_fiterr.append(fiterrfun)
+    #         #Get test error
+    #         _, ertestd = find_samples_with_max_error(y_test,self.predict(x_test)[0])
+    #         out_testerr.append(ertestd)
+    #         #Resample
+    #         ind_new,errs = self._resample_update_active(x,y,index_all,ind_activ,chunks)
+    #         out_error.append(errs)
             
-            #Set new acitve
-            ind_activ = ind_new
+    #         #Set new acitve
+    #         ind_activ = ind_new
             
-            if(len(ind_activ)>= len(index_all)):
-                break
-            else:
-                print("Next fit with length: ",len(ind_activ))
+    #         if(len(ind_activ)>= len(index_all)):
+    #             break
+    #         else:
+    #             print("Next fit with length: ",len(ind_activ))
         
-        self._addNN = numNN
+    #     self._addNN = numNN
         
-        # Possible plot of results here.
-        for name in y.keys():
-            self._resample_plot_stats(name,
-                                      out_index,
-                                      [x[name] for x in out_error],
-                                      [x[name] for x in out_fiterr],
-                                      [x[name] for x in out_testerr])
+    #     # Possible plot of results here.
+    #     for name in y.keys():
+    #         self._resample_plot_stats(name,
+    #                                   out_index,
+    #                                   [x[name] for x in out_error],
+    #                                   [x[name] for x in out_fiterr],
+    #                                   [x[name] for x in out_testerr])
                 
         
-        return out_index,out_error,out_fiterr,out_testerr
+    #     return out_index,out_error,out_fiterr,out_testerr
