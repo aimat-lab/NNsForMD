@@ -1,5 +1,5 @@
 """
-Methods for active sampling.
+Methods for active sampling. This was just a test and will not work smoothly at the moment.
 
 This can be improved on how to pick new points.
 """
