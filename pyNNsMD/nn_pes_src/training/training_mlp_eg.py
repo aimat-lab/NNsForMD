@@ -44,7 +44,7 @@ from pyNNsMD.nn_pes_src.models.models_mlp_eg import create_model_energy_gradient
 #from pyNNsMD.nn_pes_src.legacy import compute_feature_derivative
 from pyNNsMD.nn_pes_src.hyper import _load_hyp
 from pyNNsMD.nn_pes_src.datasets.data_general import split_validation_training_index
-from pyNNsMD.nn_pes_src.scaler import save_std_scaler_dict
+#from pyNNsMD.nn_pes_src.scaler import save_std_scaler_dict
 from pyNNsMD.nn_pes_src.scaling.scale_mlp_eg import EnergyGradientStandardScaler
 from pyNNsMD.nn_pes_src.scaling.scale_general import scale_feature
 
