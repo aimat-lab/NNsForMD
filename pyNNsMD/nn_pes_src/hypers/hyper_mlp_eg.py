@@ -54,7 +54,7 @@ DEFAULT_HYPER_PARAM_ENERGY_GRADS = {
                     'retraining':
                     {
                         #can be changed after model created    
-                        'auto_scaling' : True, # Scale energy und coordinates, can be also done in data preparation
+                        'auto_scaling' : {'x_mean':True,'x_std':True,'energy_std':True,'energy_mean':True}, # Scale energy und coordinates, can be also done in data preparation
                         'normalization_mode' : 1, # Normalization False/0 for no normalization/unity mulitplication
                         'loss_weights' : [1,10],     # weights between energy and gradients
                         'learning_rate' : 1e-3,  # learning rate, can be modified by callbacks
