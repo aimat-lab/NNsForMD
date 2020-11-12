@@ -13,8 +13,8 @@ class NACStandardScaler():
     def __init__(self):
         self.x_mean = np.zeros((1,1,1))
         self.x_std = np.ones((1,1,1))
-        self.nac_mean = np.zeros((1,1))
-        self.nac_std = np.ones((1,1))
+        self.nac_mean = np.zeros((1,1,1,1))
+        self.nac_std = np.ones((1,1,1,1))
 
     def scale_x(self,x=None):
         x_res = (x-self.x_mean)/self.x_std 
