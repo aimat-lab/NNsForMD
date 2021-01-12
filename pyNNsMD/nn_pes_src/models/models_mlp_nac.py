@@ -37,8 +37,9 @@ class NACModel(ks.Model):
         super(NACModel, self).__init__(**kwargs)
         out_dim = int( hyper['states']*(hyper['states']-1)/2)
         indim = int( hyper['atoms'])
-        angle_index = np.array(hyper['angle_index'])
-        dihyd_index = np.array(hyper['dihyd_index'])
+        invd_index = hyper['invd_index']
+        angle_index = hyper['angle_index']
+        dihyd_index = hyper['dihyd_index']
         nn_size = hyper['nn_size']
         depth = hyper['depth']
         activ = hyper['activ']
@@ -49,13 +50,25 @@ class NACModel(ks.Model):
         dropout = hyper['dropout']
 
         self.y_atoms = indim
-        use_bond_angles = angle_index.shape if len(angle_index)>0 else None
-        use_dihyd_angles = dihyd_index.shape if len(dihyd_index)>0 else None
-        self.feat_layer = FeatureGeometric(invd_shape = None,
-                                           angle_shape = use_bond_angles,
-                                           dihyd_shape = use_dihyd_angles,
+        
+        use_invd_index = len(invd_index)>0 if isinstance(invd_index,list) or isinstance(invd_index,np.ndarray) else False
+        use_angle_index = len(angle_index)>0 if isinstance(angle_index,list) or isinstance(angle_index,np.ndarray) else False
+        use_dihyd_index = len(dihyd_index)>0 if isinstance(dihyd_index,list) or isinstance(dihyd_index,np.ndarray) else False
+        
+        invd_index = np.array(invd_index,dtype = np.int64) if use_invd_index else None
+        angle_index = np.array(angle_index ,dtype = np.int64) if use_angle_index else None
+        dihyd_index = np.array(dihyd_index,dtype = np.int64) if use_dihyd_index else None
+        
+        invd_shape = invd_index.shape if use_invd_index else None
+        angle_shape = angle_index.shape if use_angle_index else None
+        dihyd_shape = dihyd_index.shape if use_dihyd_index else None
+    
+        self.feat_layer = FeatureGeometric(invd_shape = invd_shape,
+                                           angle_shape = angle_shape,
+                                           dihyd_shape = dihyd_shape,
                                            )
-        self.feat_layer.set_mol_index(None, angle_index , dihyd_index)
+        self.feat_layer.set_mol_index(invd_index, angle_index , dihyd_index)
+        
         self.std_layer = ConstLayerNormalization(name='feat_std')
         self.mlp_layer = MLP(   nn_size,
                                 dense_depth = depth,
@@ -190,10 +203,8 @@ def create_model_nac_precomputed(hyper=hyper_create_model_nac['model'],
     """
     num_outstates = int(hyper['states'])
     indim = int( hyper['atoms'])
-    use_invdist = hyper['invd_index'] != []
-    use_bond_angles = hyper['angle_index'] != []
-    angle_index = hyper['angle_index'] 
-    use_dihyd_angles = hyper['dihyd_index'] != []
+    invd_index = hyper['invd_index']
+    angle_index = hyper['angle_index']
     dihyd_index = hyper['dihyd_index']
     nn_size = hyper['nn_size']
     depth = hyper['depth']
@@ -204,14 +215,21 @@ def create_model_nac_precomputed(hyper=hyper_create_model_nac['model'],
     use_dropout = hyper['use_dropout']
     dropout = hyper['dropout']
     
+    
+    use_invd_index = len(invd_index)>0 if isinstance(invd_index,list) or isinstance(invd_index,np.ndarray) else False
+    use_angle_index = len(angle_index)>0 if isinstance(angle_index,list) or isinstance(angle_index,np.ndarray) else False
+    use_dihyd_index = len(dihyd_index)>0 if isinstance(dihyd_index,list) or isinstance(dihyd_index,np.ndarray) else False
+    
     out_dim = int(num_outstates*(num_outstates-1)/2)
     
     in_model_dim = 0
-    if(use_invdist==True):
-        in_model_dim += int(indim*(indim-1)/2)
-    if(use_bond_angles == True):
+    if(use_invd_index==True):
+        in_model_dim += len(invd_index)
+    else:
+        in_model_dim += int(indim*(indim-1)/2) #default is all inverse distances
+    if(use_angle_index == True):
         in_model_dim += len(angle_index) 
-    if(use_dihyd_angles == True):
+    if(use_dihyd_index == True):
         in_model_dim += len(dihyd_index) 
 
     geo_input = ks.Input(shape=(in_model_dim,), dtype='float32' ,name='geo_input')
