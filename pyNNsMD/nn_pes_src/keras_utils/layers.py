@@ -245,6 +245,73 @@ class InverseDistance(ks.layers.Layer):
         return out 
 
 
+class InverseDistanceIndexed(ks.layers.Layer):
+    """
+    Compute inverse distances from coordinates.
+    
+    The index-list of atoms to compute distances from is added as a static non-trainable weight.
+    This should be cleaner than always have to move the index within the model.
+    """
+    
+    def __init__(self, invd_shape, **kwargs):
+        """
+        Init the layer. The index list is initialized to zero.
+
+        Args:
+            invd_shape (list): Shape of the index piar list without batch dimension (N,2).
+            **kwargs.
+            
+        """
+        super(InverseDistanceIndexed, self).__init__(**kwargs)  
+        #self.angle_list = angle_list
+        #self.angle_list_tf = tf.constant(np.array(angle_list))
+        self.angle_list = self.add_weight('invd_list',
+                                        shape=invd_shape,
+                                        initializer=tf.keras.initializers.Zeros(),
+                                        dtype='int64',
+                                        trainable=False)         
+    def build(self, input_shape):
+        """
+        Build model. Index list is built in init.
+
+        Args:
+            input_shape (list): Input shape.
+
+        """
+        super(InverseDistanceIndexed, self).build(input_shape)          
+    def call(self, inputs):
+        """
+        Forward pass.
+
+        Args:
+            inputs (tf.tensor): Coordinate input as (batch,N,3).
+
+        Returns:
+            angs_rad (tf.tensor): Flatten list of angles from index.
+
+        """
+        cordbatch  = inputs
+        angbatch  = tf.repeat(ks.backend.expand_dims(self.angle_list,axis=0) , ks.backend.shape(cordbatch)[0], axis=0)
+        vcords1 = tf.gather(cordbatch, angbatch[:,:,0],axis=1,batch_dims=1)
+        vcords2 = tf.gather(cordbatch, angbatch[:,:,1],axis=1,batch_dims=1)
+        vec=vcords2-vcords1
+        norm_vec = ks.backend.sqrt(ks.backend.sum(vec*vec,axis=-1))
+        invd_out = tf.math.divide_no_nan(tf.ones_like(norm_vec),norm_vec)
+        return invd_out
+    def get_config(self):
+        """
+        Return config for layer.
+
+        Returns:
+            config (dict): Config from base class plus angle invd shape.
+
+        """
+        config = super(InverseDistanceIndexed, self).get_config()
+        config.update({"invd_shape": self.invd_shape})
+        return config
+
+
+
 class Angles(ks.layers.Layer):
     """
     Compute angles from coordinates.
@@ -413,7 +480,7 @@ class FeatureGeometric(ks.layers.Layer):
         """
         super(FeatureGeometric, self).__init__(**kwargs)
         #Inverse distances are always taken all for the moment
-        self.use_invdist = True
+        self.use_invdist = invd_shape is not None
         self.invd_shape = invd_shape
         self.use_bond_angles = angle_shape is not None
         self.angle_shape = angle_shape 
@@ -421,7 +488,9 @@ class FeatureGeometric(ks.layers.Layer):
         self.dihyd_shape = dihyd_shape
 
         if(self.use_invdist==True):        
-            self.invd_layer = InverseDistance()
+            self.invd_layer = InverseDistanceIndexed(invd_shape)
+        else:
+            self.invd_layer = InverseDistance() #default always
         if(self.use_bond_angles==True):
             self.ang_layer = Angles(angle_shape=angle_shape)
             self.concat_ang = ks.layers.Concatenate(axis=-1)
@@ -450,8 +519,8 @@ class FeatureGeometric(ks.layers.Layer):
 
         """
         x = inputs
-        if(self.use_invdist==True):
-            feat = self.invd_layer(x)
+        
+        feat = self.invd_layer(x)
         if(self.use_bond_angles==True):
             if(self.use_invdist==False):
                 feat = self.ang_layer(x)
@@ -478,6 +547,8 @@ class FeatureGeometric(ks.layers.Layer):
             dihyd_index (np.array):Index for dihed angles. Shape (N,4).
 
         """
+        if(self.use_invdist==True):
+            self.invd_layer.set_weights([invd_index])
         if(self.use_dihyd_angles == True):
             self.dih_layer.set_weights([dihyd_index])
         if(self.use_bond_angles == True):
