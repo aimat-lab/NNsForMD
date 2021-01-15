@@ -263,9 +263,9 @@ class InverseDistanceIndexed(ks.layers.Layer):
             
         """
         super(InverseDistanceIndexed, self).__init__(**kwargs)  
-        #self.angle_list = angle_list
-        #self.angle_list_tf = tf.constant(np.array(angle_list))
-        self.angle_list = self.add_weight('invd_list',
+        self.invd_shape = invd_shape
+
+        self.invd_list = self.add_weight('invd_list',
                                         shape=invd_shape,
                                         initializer=tf.keras.initializers.Zeros(),
                                         dtype='int64',
@@ -291,9 +291,9 @@ class InverseDistanceIndexed(ks.layers.Layer):
 
         """
         cordbatch  = inputs
-        angbatch  = tf.repeat(ks.backend.expand_dims(self.angle_list,axis=0) , ks.backend.shape(cordbatch)[0], axis=0)
-        vcords1 = tf.gather(cordbatch, angbatch[:,:,0],axis=1,batch_dims=1)
-        vcords2 = tf.gather(cordbatch, angbatch[:,:,1],axis=1,batch_dims=1)
+        invdbatch  = tf.repeat(ks.backend.expand_dims(self.invd_list,axis=0) , ks.backend.shape(cordbatch)[0], axis=0)
+        vcords1 = tf.gather(cordbatch, invdbatch[:,:,0],axis=1,batch_dims=1)
+        vcords2 = tf.gather(cordbatch, invdbatch[:,:,1],axis=1,batch_dims=1)
         vec=vcords2-vcords1
         norm_vec = ks.backend.sqrt(ks.backend.sum(vec*vec,axis=-1))
         invd_out = tf.math.divide_no_nan(tf.ones_like(norm_vec),norm_vec)
