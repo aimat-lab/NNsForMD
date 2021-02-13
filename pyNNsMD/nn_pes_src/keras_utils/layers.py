@@ -522,17 +522,11 @@ class FeatureGeometric(ks.layers.Layer):
         
         feat = self.invd_layer(x)
         if(self.use_bond_angles==True):
-            if(self.use_invdist==False):
-                feat = self.ang_layer(x)
-            else:
-                angs = self.ang_layer(x)
-                feat = self.concat_ang([feat,angs])
+            angs = self.ang_layer(x)
+            feat = self.concat_ang([feat,angs])
         if(self.use_dihyd_angles==True):
-            if(self.use_invdist==False and self.use_bond_angles==False):
-                feat = self.dih_layer(x)
-            else:
-                dih = self.dih_layer(x)
-                feat = self.concat_dih([feat,dih])
+            dih = self.dih_layer(x)
+            feat = self.concat_dih([feat,dih])
     
         feat_flat = self.flat_layer(feat)
         out = feat_flat
