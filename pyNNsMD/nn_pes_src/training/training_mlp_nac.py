@@ -89,7 +89,7 @@ def train_model_nac(i=0, outdir=None, mode = 'training'):
     unit_label_nac = hyperall['plots']['unit_nac']
     #Fit
     hyper = hyperall[mode]
-    phase_less_loss= ['phase_less_loss']
+    phase_less_loss= hyper['phase_less_loss']
     epo = hyper['epo']
     batch_size = hyper['batch_size']
     epostep = hyper['epostep']
