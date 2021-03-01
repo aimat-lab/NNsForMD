@@ -48,7 +48,7 @@ class EnergyGradientStandardScaler():
         if(auto_scale['energy_std'] == True):
             y1 = y[0]
             self.energy_std = np.std(y1,axis=0,keepdims=True) + npeps
-        self.gradient_std = np.expand_dims(np.expand_dims(self.energy_std,axis=-1),axis=-1) /x_std + npeps
+        self.gradient_std = np.expand_dims(np.expand_dims(self.energy_std,axis=-1),axis=-1) /self.x_std  + npeps
         self.gradient_mean = np.zeros_like(self.gradient_std, dtype=np.float32) #no mean shift expected
     
     def save(self,filepath):

@@ -32,7 +32,7 @@ class NACStandardScaler():
             self.x_std = np.std(x) + npeps
         if(auto_scale['nac_std'] == True):
             self.nac_std = np.std(y,axis=(0,3),keepdims=True)+ npeps
-            self.nac_mean = np.zeros_like(y_nac_std)
+            self.nac_mean = np.zeros_like(self.nac_std)
     
     def save(self,filepath):
         outdict = {'x_mean' : self.x_mean.tolist(),
