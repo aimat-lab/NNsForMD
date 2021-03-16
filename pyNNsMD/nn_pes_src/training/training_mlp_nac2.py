@@ -5,10 +5,8 @@ import numpy as np
 import tensorflow as tf
 import tensorflow.keras as ks
 #from sklearn.utils import shuffle
-import time
 import matplotlib as mpl
 mpl.use('Agg')
-import matplotlib.pyplot as plt
 import os
 import json
 import pickle
@@ -38,14 +36,14 @@ set_gpu([int(args['gpus'])])
 print("Logic Devices:",tf.config.experimental.list_logical_devices('GPU'))
 
 
-from pyNNsMD.nn_pes_src.keras_utils.callbacks import EarlyStopping,lr_lin_reduction,lr_exp_reduction,lr_step_reduction
-from pyNNsMD.nn_pes_src.plotting.plot_mlp_nac import plot_nac_fit_result
-from pyNNsMD.nn_pes_src.models.models_features import create_feature_models
-from pyNNsMD.nn_pes_src.models.models_mlp_nac2 import create_model_nac_precomputed,NACModel2
-from pyNNsMD.nn_pes_src.hyper import _load_hyp
-from pyNNsMD.nn_pes_src.datasets.data_general import split_validation_training_index
-from pyNNsMD.nn_pes_src.scaling.scale_mlp_nac import NACStandardScaler
-from pyNNsMD.nn_pes_src.scaling.scale_general import scale_feature
+from pyNNsMD.utils.callbacks import EarlyStopping,lr_lin_reduction,lr_exp_reduction,lr_step_reduction
+from pyNNsMD.plotting.plot_mlp_nac import plot_nac_fit_result
+from pyNNsMD.models.features import create_feature_models
+from pyNNsMD.models.mlp_nac2 import create_model_nac_precomputed,NACModel2
+from pyNNsMD.datasets.general import load_hyp
+from pyNNsMD.datasets.general import split_validation_training_index
+from pyNNsMD.scaler.nac import NACStandardScaler
+from pyNNsMD.scaler.general import scale_feature
 
 def train_model_nac(i=0, outdir=None, mode = 'training'):
     """
@@ -73,7 +71,7 @@ def train_model_nac(i=0, outdir=None, mode = 'training'):
         return
     hyperall  = None
     try:    
-        hyperall = _load_hyp(os.path.join(outdir,'hyper'+'_v%i'%i+".json"))
+        hyperall = load_hyp(os.path.join(outdir,'hyper'+'_v%i'%i+".json"))
     except:
         print("Error: Can not load hyper for fit",outdir)
     
@@ -81,7 +79,7 @@ def train_model_nac(i=0, outdir=None, mode = 'training'):
     try:
         scaler.load(os.path.join(outdir,'scaler'+'_v%i'%i+".json"))
     except:
-        print("Error: Can not load scaling info for fit",outdir)
+        print("Error: Can not load scaler info for fit",outdir)
         
     #Model
     hypermodel = hyperall['model']
@@ -281,13 +279,13 @@ def train_model_nac(i=0, outdir=None, mode = 'training'):
         print("Error: Cant save weights")
       
     try:
-        print("Info: Saving auto-scaling to file...")
+        print("Info: Saving auto-scaler to file...")
         outscaler = {'x_mean' : x_mean,'x_std' : x_std,
                      'nac_mean' : y_nac_mean, 'nac_std' : y_nac_std}
         scaler.set_dict(outscaler)
         scaler.save(os.path.join(outdir,"scaler"+'_v%i'%i+'.json'))
     except:
-        print("Error: Can not export scaling info. Model prediciton will be wrongly scaled.")
+        print("Error: Can not export scaler info. Model prediciton will be wrongly scaled.")
     
     try:
         #Plot stats

@@ -6,37 +6,11 @@ The training scripts are supposed to read all necessary information from folder.
 NOTE: Path information of folder and training scripts as well as os info are made fetchable but could fail in certain
 circumstances.
 """
-import numpy as np
-import time
 import os
-import sys
 import subprocess
 import sys
 
-
-def get_path_for_fit_script(model_type):
-    """
-    Interface to find the path of training scripts.
-    
-    For now they are expected to be in the same folder-system as calling .py script.
-    
-    Args:
-        model_type (str): Name of the model.
-
-    Returns:
-        filepath (str): Filepath pointing to training scripts.
-
-    """
-    #Ways of finding path either os.getcwd() or __file__ or just set static path with install...
-    locdiR = os.getcwd()
-    filepath = os.path.abspath(os.path.dirname(__file__) )
-    STATIC_PATH_FIT_SCRIPT = ""
-    fit_script = {"mlp_eg" : "training_mlp_eg.py",
-                  "mlp_nac" : "training_mlp_nac.py",
-                  "mlp_nac2" : "training_mlp_nac2.py",
-                  "mlp_e" : "training_mlp_e.py"}
-    outpath = os.path.join(filepath,"training",fit_script[model_type])
-    return outpath
+from pyNNsMD.nn_pes_src.selection import get_path_for_fit_script
 
 
 def fit_model_get_python_cmd_os():
@@ -48,13 +22,13 @@ def fit_model_get_python_cmd_os():
 
     """
     # python or python3 to run
-    if(sys.platform[0:3] == 'win'):
-        return 'python' # or 'python.exe'
+    if sys.platform[0:3] == 'win':
+        return 'python'  # or 'python.exe'
     else:
         return 'python3'
 
 
-def _fit_model_by_modeltype(model_type,dist_method,i,filepath,g,m):
+def fit_model_by_modeltype(model_type, dist_method, i, filepath, g, m):
     """
     Run the training script in subprocess.
 
@@ -70,15 +44,15 @@ def _fit_model_by_modeltype(model_type,dist_method,i,filepath,g,m):
         None.
 
     """
-    print("Run:",filepath, "Instance:",i, "on GPU:",g,m)
+    print("Run:", filepath, "Instance:", i, "on GPU:", g, m)
     py_script = get_path_for_fit_script(model_type)
     py_cmd = fit_model_get_python_cmd_os()
-    if(os.path.exists(py_script) == False):
-        print("Error: Can not find trainingsript, please check path",py_script)
-    if(dist_method==True):
-        proc = subprocess.Popen([py_cmd,py_script,"-i",str(i),'-f',filepath,"-g",str(g),'-m',str(m)]) 
+    if not os.path.exists(py_script):
+        print("Error: Can not find trainingsript, please check path", py_script)
+    if dist_method:
+        proc = subprocess.Popen([py_cmd, py_script, "-i", str(i), '-f', filepath, "-g", str(g), '-m', str(m)])
         return proc
-    if(dist_method==False):
-        proc = subprocess.run([py_cmd,py_script, "-i",str(i),'-f',filepath,"-g",str(g),'-m',str(m)],capture_output=False,shell = False)
+    if not dist_method:
+        proc = subprocess.run([py_cmd, py_script, "-i", str(i), '-f', filepath, "-g", str(g), '-m', str(m)],
+                              capture_output=False, shell=False)
         return proc
-    

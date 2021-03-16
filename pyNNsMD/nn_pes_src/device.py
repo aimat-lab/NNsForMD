@@ -19,37 +19,36 @@ def set_gpu(gpu_ids_list):
         None.
 
     """
-    #Check if set is possible
-    if(len(gpu_ids_list) <= 0): 
+    # Check if set is possible
+    if len(gpu_ids_list) <= 0:
         print("Info: No gpu to set")
-        return 
+        return
 
-    if(tf.test.is_built_with_gpu_support() == False and tf.test.is_built_with_cuda() == False ):
+    if tf.test.is_built_with_gpu_support() is False and tf.test.is_built_with_cuda() is False:
         print("Warning: No cuda support")
         print("Warning: Can not set GPU")
-        return 
-    
+        return
+
     try:
         gpus = tf.config.list_physical_devices('GPU')
     except:
         print("Error: Can not get device list, do nothing")
         return
-    
-    if(isinstance(gpus, list)):
-        if(len(gpus) <= 0):
+
+    if isinstance(gpus, list):
+        if len(gpus) <= 0:
             print("Warning: No devices found")
             print("Warning: Can not set GPU")
-            return 
+            return
         try:
-            gpus_used = [gpus[i] for i in gpu_ids_list if i >= 0 and i < len(gpus)]
+            gpus_used = [gpus[i] for i in gpu_ids_list if 0 <= i < len(gpus)]
             tf.config.set_visible_devices(gpus_used, 'GPU')
-            print("Info: Setting visible devices: ",gpus_used)
+            print("Info: Setting visible devices: ", gpus_used)
             for gpu in gpus_used:
-                print("Restrict Memory:",gpu)
+                print("Restrict Memory:", gpu)
                 tf.config.experimental.set_memory_growth(gpu, True)
             logical_gpus = tf.config.experimental.list_logical_devices('GPU')
-            print("Info:",len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPU")
+            print("Info:", len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPU")
         except RuntimeError as e:
             # Visible devices must be set before GPUs have been initialized
             print(e)
-    

@@ -3,12 +3,10 @@ The main training script for energy gradient model. Called with ArgumentParse.
 """
 import numpy as np
 import tensorflow as tf
-import tensorflow.keras as ks
 #from sklearn.utils import shuffle
 #import time
 import matplotlib as mpl
 mpl.use('Agg')
-import matplotlib.pyplot as plt
 import os
 import json
 import pickle
@@ -37,16 +35,16 @@ from pyNNsMD.nn_pes_src.device import set_gpu
 set_gpu([int(args['gpus'])])
 print("Logic Devices:",tf.config.experimental.list_logical_devices('GPU'))
 
-from pyNNsMD.nn_pes_src.keras_utils.callbacks import EarlyStopping,lr_lin_reduction,lr_exp_reduction,lr_step_reduction
-from pyNNsMD.nn_pes_src.plotting.plot_mlp_eg import plot_energy_gradient_fit_result
-from pyNNsMD.nn_pes_src.models.models_features import create_feature_models
-from pyNNsMD.nn_pes_src.models.models_mlp_eg import create_model_energy_gradient_precomputed,EnergyGradientModel
-#from pyNNsMD.nn_pes_src.legacy import compute_feature_derivative
-from pyNNsMD.nn_pes_src.hyper import _load_hyp
-from pyNNsMD.nn_pes_src.datasets.data_general import split_validation_training_index
-#from pyNNsMD.nn_pes_src.scaler import save_std_scaler_dict
-from pyNNsMD.nn_pes_src.scaling.scale_mlp_eg import EnergyGradientStandardScaler
-from pyNNsMD.nn_pes_src.scaling.scale_general import scale_feature
+from pyNNsMD.utils.callbacks import EarlyStopping,lr_lin_reduction,lr_exp_reduction,lr_step_reduction
+from pyNNsMD.plotting.plot_mlp_eg import plot_energy_gradient_fit_result
+from pyNNsMD.models.features import create_feature_models
+from pyNNsMD.models.mlp_eg import create_model_energy_gradient_precomputed,EnergyGradientModel
+# from pyNNsMD.nn_pes_src.legacy import compute_feature_derivative
+from pyNNsMD.datasets.general import load_hyp
+from pyNNsMD.datasets.general import split_validation_training_index
+# from pyNNsMD.nn_pes_src.scaler import save_std_scaler_dict
+from pyNNsMD.scaler.energy import EnergyGradientStandardScaler
+from pyNNsMD.scaler.general import scale_feature
 
 
 def train_model_energy_gradient(i = 0, outdir=None,  mode='training'): 
@@ -75,7 +73,7 @@ def train_model_energy_gradient(i = 0, outdir=None,  mode='training'):
         return
     hyperall  = None
     try:    
-        hyperall = _load_hyp(os.path.join(outdir,'hyper'+'_v%i'%i+".json"))
+        hyperall = load_hyp(os.path.join(outdir,'hyper'+'_v%i'%i+".json"))
     except:
         print("Error: Can not load hyper for fit",outdir)
     
@@ -83,7 +81,7 @@ def train_model_energy_gradient(i = 0, outdir=None,  mode='training'):
     try:
         scaler.load(os.path.join(outdir,'scaler'+'_v%i'%i+".json"))
     except:
-        print("Error: Can not load scaling info for fit",outdir)
+        print("Error: Can not load scaler info for fit",outdir)
         
     #Model
     hypermodel  = hyperall['model']
@@ -295,7 +293,7 @@ def train_model_energy_gradient(i = 0, outdir=None,  mode='training'):
           print("Warning: Cant save weights")
           
     try:
-        print("Info: Saving auto-scaling to file...")
+        print("Info: Saving auto-scaler to file...")
         outscaler = {'x_mean' : x_mean,'x_std' : x_std,
                      'energy_mean' : y_energy_mean, 'energy_std' : y_energy_std,
                      'gradient_mean' : y_gradient_mean, 'gradient_std' : y_gradient_std
@@ -303,13 +301,13 @@ def train_model_energy_gradient(i = 0, outdir=None,  mode='training'):
         scaler.set_dict(outscaler)
         scaler.save(os.path.join(outdir,"scaler"+'_v%i'%i+'.json'))
     except:
-        print("Error: Can not export scaling info. Model prediciton will be wrongly scaled.")
+        print("Error: Can not export scaler info. Model prediciton will be wrongly scaled.")
     
     try:
         #Plot and Save
         yval_plot = [y[0][i_val] , y[1][i_val] ]
         ytrain_plot = [y[0][i_train] , y[1][i_train] ]
-        # Convert back scaling
+        # Convert back scaler
         pval = temp_model.predict(xval)
         ptrain = temp_model.predict(xtrain)
         pval = [pval[0] * y_energy_std + y_energy_mean,
