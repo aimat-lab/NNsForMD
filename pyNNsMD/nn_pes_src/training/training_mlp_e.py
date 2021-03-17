@@ -4,8 +4,8 @@ The main training script for energy gradient model. Called with ArgumentParse.
 import numpy as np
 import tensorflow as tf
 import tensorflow.keras as ks
-#from sklearn.utils import shuffle
-#import time
+# from sklearn.utils import shuffle
+# import time
 import matplotlib as mpl
 mpl.use('Agg')
 import os
@@ -37,15 +37,14 @@ set_gpu([int(args['gpus'])])
 print("Logic Devices:",tf.config.experimental.list_logical_devices('GPU'))
 
 from pyNNsMD.utils.callbacks import EarlyStopping,lr_lin_reduction,lr_exp_reduction,lr_step_reduction
-from pyNNsMD.plotting.plot_mlp_e import plot_energy_fit_result
-from pyNNsMD.models.features import create_feature_models
-from pyNNsMD.models.mlp_e import create_model_energy_precomputed,EnergyModel
+from pyNNsMD.nn_pes_src.plotting.plot_mlp_e import plot_energy_fit_result
+from pyNNsMD.models.mlp_e import EnergyModel
 # from pyNNsMD.nn_pes_src.legacy import compute_feature_derivative
 from pyNNsMD.datasets.general import split_validation_training_index, load_hyp
 # from pyNNsMD.nn_pes_src.scaler import save_std_scaler_dict
-from pyNNsMD.scaler.energy import EnergyGradientStandardScaler
+from pyNNsMD.scaler.energy import EnergyStandardScaler
 from pyNNsMD.scaler.general import scale_feature
-
+from pyNNsMD.utils.loss import ScaledMeanAbsoluteError,get_lr_metric,r2_metric
 
 def train_model_energy(i = 0, outdir=None,  mode='training'): 
     """
@@ -77,7 +76,7 @@ def train_model_energy(i = 0, outdir=None,  mode='training'):
     except:
         print("Error: Can not load hyper for fit",outdir)
     
-    scaler = EnergyGradientStandardScaler()
+    scaler = EnergyStandardScaler()
     try:
         scaler.load(os.path.join(outdir,'scaler'+'_v%i'%i+".json"))
     except:
@@ -121,14 +120,6 @@ def train_model_energy(i = 0, outdir=None,  mode='training'):
     loss_monitor = hyper['early_callback']['loss_monitor']
     learning_rate_start_early = hyper['linear_callback']['learning_rate_start']
     learning_rate_stop_early = hyper['linear_callback']['learning_rate_stop']
-
-    #scaler
-    y_energy_std = scaler.energy_std
-    y_energy_mean = scaler.energy_mean
-    y_gradient_std = scaler.gradient_std
-    y_gradient_mean = scaler.gradient_mean
-    x_mean = scaler.x_mean
-    x_std = scaler.x_std
 
     #Data Check here:
     if(len(x.shape) != 3):
@@ -178,55 +169,31 @@ def train_model_energy(i = 0, outdir=None,  mode='training'):
     i_train,i_val = split_validation_training_index(allind,lval,val_disjoint,i)
     print("Info: Train-Test split at Train:",len(i_train),"Test",len(i_val),"Total",len(x))
     
-    #Make all Model
-    out_model = EnergyModel(hypermodel)
-    temp_model,scaled_metric = create_model_energy_precomputed(hypermodel,learning_rate)
-    temp_model_feat = create_feature_models(hypermodel,use_derivative=False)
-    
+    #Make Model
+    out_model = EnergyModel(**hypermodel)
+    out_model.precomputed_features = True
+
     #Look for loading weights
     npeps = np.finfo(float).eps
     if(initialize_weights==False):
         try:
             out_model.load_weights(os.path.join(outdir,"weights"+'_v%i'%i+'.h5'))
             print("Info: Load old weights at:",os.path.join(outdir,"weights"+'_v%i'%i+'.h5'))
-            print("Info: Transferring weights...")
-            temp_model.get_layer('mlp').set_weights(out_model.get_layer('mlp').get_weights())
-            temp_model.get_layer('energy').set_weights(out_model.get_layer('energy').get_weights())
-            print("Info: Reading standardization...")
-            temp_model.get_layer('feat_std').set_weights(out_model.get_layer('feat_std').get_weights())
         except:
             print("Error: Can't load old weights...")
     else:
         print("Info: Making new initialized weights.")
     
-    #Recalculate standardization    
-    if(auto_scale['x_mean'] == True):
-        x_mean = np.mean(x)
-        print("Info: Calculating x-mean.")
-    if(auto_scale['x_std'] == True):
-        x_std = np.std(x) + npeps
-    if(auto_scale['energy_mean'] == True):
-        print("Info: Calculating energy-mean.")
-        y1 = y[i_train]
-        y_energy_mean = np.mean(y1,axis=0,keepdims=True)
-    if(auto_scale['energy_std'] == True):
-        print("Info: Calculating energy-std.")
-        y1 = y[i_train]
-        y_energy_std = np.std(y1,axis=0,keepdims=True) + npeps
-    print("Info: Adjusting gradient std.")    
-    #Gradient is not independent!!
-    y_gradient_std = np.expand_dims(np.expand_dims(y_energy_std,axis=-1),axis=-1) /x_std + npeps
-    y_gradient_mean = np.zeros_like(y_gradient_std, dtype=np.float32) #no mean shift expected
-    
-    #Apply Scaling
-    x_rescale = (x-x_mean) / (x_std)
-    y1 = (y - y_energy_mean)/(y_energy_std)
-    
-    #Model + Model precompute layer +feat
-    feat_x = temp_model_feat.predict(x_rescale,batch_size=batch_size)
+    #Recalculate standardization
+    scaler.fit(x,y)
+    x_rescale, y1 = scaler.transform(x,y)
+
+    # Model + Model precompute layer +feat
+    feat_x, _ = out_model.precompute_feature_in_chunks(x_rescale,batch_size=batch_size)
     
     #Finding Normalization
-    feat_x_mean,feat_x_std = temp_model.get_layer('feat_std').get_weights()
+    feat_x_mean,feat_x_std = out_model.get_layer('feat_std').get_weights()
+    print(feat_x.shape)
     if(normalize_feat==1):
         print("Info: Making new feature normalization for last dimension.")
         feat_x_mean = np.mean(feat_x[i_train],axis=0,keepdims=True)
@@ -243,21 +210,29 @@ def train_model_energy(i = 0, outdir=None,  mode='training'):
     yval = y1[i_val]
     
     #Setting constant feature normalization
-    temp_model.get_layer('feat_std').set_weights([feat_x_mean,feat_x_std])  
+    out_model.get_layer('feat_std').set_weights([feat_x_mean,feat_x_std])
     # This is only for metric to without std.
-    ks.backend.set_value(scaled_metric.scale,y_energy_std)
+    scaled_metric = ScaledMeanAbsoluteError(scaling_shape=scaler.energy_std.shape)
+    ks.backend.set_value(scaled_metric.scale,scaler.energy_std)
+
+    # Compile model
+    optimizer = tf.keras.optimizers.Adam(lr=learning_rate_start)
+    lr_metric = get_lr_metric(optimizer)
+    out_model.compile(optimizer=optimizer,
+                      loss='mean_squared_error',
+                      metrics=[scaled_metric, lr_metric, r2_metric])
 
     print("Info: Total-Data energy std",y.shape,":",np.std(y,axis=0))
-    print("Info: Using energy-std",y_energy_std.shape,":", y_energy_std)
-    print("Info: Using energy-mean" ,y_energy_mean.shape,":", y_energy_mean)
-    print("Info: Using x-scale",x_std.shape,":", x_std)
-    print("Info: Using x-offset", x_mean.shape,":",x_mean)
+    print("Info: Using energy-std",scaler.energy_std.shape,":", scaler.energy_std)
+    print("Info: Using energy-mean" ,scaler.energy_mean.shape,":", scaler.energy_mean)
+    print("Info: Using x-scale",scaler.x_std.shape,":", scaler.x_std)
+    print("Info: Using x-offset", scaler.x_mean.shape,":",scaler.x_mean)
     print("Info: Using feature-scale", feat_x_std.shape,":",feat_x_std)
     print("Info: Using feature-offset", feat_x_mean.shape,":",feat_x_mean)
-    temp_model.summary()
+    out_model.summary()
     print("")
     print("Start fit.")
-    hist = temp_model.fit(x=xtrain, y=ytrain, epochs=epo,batch_size=batch_size,callbacks=cbks,validation_freq=epostep,validation_data=(xval,yval),verbose=2)
+    hist = out_model.fit(x=xtrain, y=ytrain, epochs=epo,batch_size=batch_size,callbacks=cbks,validation_freq=epostep,validation_data=(xval,yval),verbose=2)
     print("End fit.")
     print("")
     
@@ -270,10 +245,6 @@ def train_model_energy(i = 0, outdir=None,  mode='training'):
           print("Warning: Cant save history")
     
     try:
-        #Save weights
-        out_model.get_layer('mlp').set_weights(temp_model.get_layer('mlp').get_weights())
-        out_model.get_layer('energy').set_weights(temp_model.get_layer('energy').get_weights())
-        out_model.get_layer('feat_std').set_weights([feat_x_mean,feat_x_std])
         out_model.save_weights(os.path.join(outdir,"weights"+'_v%i'%i+'.h5'))
         #print(out_model.get_weights())
     except:
@@ -281,11 +252,6 @@ def train_model_energy(i = 0, outdir=None,  mode='training'):
           
     try:
         print("Info: Saving auto-scaler to file...")
-        outscaler = {'x_mean' : x_mean,'x_std' : x_std,
-                     'energy_mean' : y_energy_mean, 'energy_std' : y_energy_std,
-                     'gradient_mean' : y_gradient_mean, 'gradient_std' : y_gradient_std
-                     }
-        scaler.set_dict(outscaler)
         scaler.save(os.path.join(outdir,"scaler"+'_v%i'%i+'.json'))
     except:
         print("Error: Can not export scaler info. Model prediciton will be wrongly scaled.")
@@ -295,10 +261,10 @@ def train_model_energy(i = 0, outdir=None,  mode='training'):
         yval_plot = y[i_val] 
         ytrain_plot = y[i_train]
         # Convert back scaler
-        pval = temp_model.predict(xval)
-        ptrain = temp_model.predict(xtrain)
-        pval = pval * y_energy_std + y_energy_mean
-        ptrain = ptrain* y_energy_std + y_energy_mean
+        pval = out_model.predict(xval)
+        ptrain = out_model.predict(xtrain)
+        pval = pval * scaler.energy_std + scaler.energy_mean
+        ptrain = ptrain* scaler.energy_std + scaler.energy_mean
     
     
         print("Info: Predicted Energy shape:",ptrain.shape)
@@ -319,12 +285,13 @@ def train_model_energy(i = 0, outdir=None,  mode='training'):
     error_val = None
     try:
         #Safe fitting Error MAE
-        pval = temp_model.predict(xval)
-        ptrain = temp_model.predict(xtrain)
-        pval = pval  * y_energy_std + y_energy_mean
-        ptrain = ptrain * y_energy_std+ y_energy_mean
+        pval = out_model.predict(xval)
+        ptrain = out_model.predict(xtrain)
+        pval = pval  * scaler.energy_std + scaler.energy_mean
+        ptrain = ptrain * scaler.energy_std+ scaler.energy_mean
+        out_model.precomputed_features = False
         ptrain2 = out_model.predict(x_rescale[i_train])
-        ptrain2 = ptrain2[0] * y_energy_std+ y_energy_mean
+        ptrain2 = ptrain2 * scaler.energy_std+ scaler.energy_mean
 
         print("Info: Max error between precomputed and full keras model:")
         print("Energy",np.max(np.abs(ptrain-ptrain2)))        

@@ -14,7 +14,7 @@ from pyNNsMD.nn_pes_src.hypers.hyper_mlp_eg import DEFAULT_HYPER_PARAM_ENERGY_GR
 from pyNNsMD.nn_pes_src.hypers.hyper_mlp_nac import DEFAULT_HYPER_PARAM_NAC
 from pyNNsMD.nn_pes_src.predicting.predict_mlp_eg import predict_uncertainty_mlp_eg
 from pyNNsMD.nn_pes_src.predicting.predict_mlp_nac import predict_uncertainty_mlp_nac
-from pyNNsMD.scaler.energy import EnergyGradientStandardScaler
+from pyNNsMD.scaler.energy import EnergyGradientStandardScaler,EnergyStandardScaler
 from pyNNsMD.scaler.nac import NACStandardScaler
 
 
@@ -72,7 +72,9 @@ def get_default_scaler(model_type):
         Dict: Scaling dictionary.
 
     """
-    if (model_type == 'mlp_eg' or model_type == 'mlp_e'):
+    if (model_type == 'mlp_e'):
+        return EnergyStandardScaler()
+    elif model_type == 'mlp_eg':
         return EnergyGradientStandardScaler()
     elif (model_type == 'mlp_nac' or 'mlp_nac2'):
         return NACStandardScaler()
@@ -98,9 +100,9 @@ def get_model_by_type(model_type, hyper):
     elif (model_type == 'mlp_nac2'):
         return NACModel2(hyper)
     elif (model_type == 'mlp_eg'):
-        return EnergyGradientModel(hyper)
+        return EnergyGradientModel(**hyper)
     elif (model_type == 'mlp_e'):
-        return EnergyModel(hyper)
+        return EnergyModel(**hyper)
     else:
         print("Error: Unknown model type", model_type)
         raise TypeError(f"Error: Unknown model type forn{model_type}")

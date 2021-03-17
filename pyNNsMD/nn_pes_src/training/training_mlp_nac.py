@@ -36,7 +36,7 @@ print("Logic Devices:",tf.config.experimental.list_logical_devices('GPU'))
 
 
 from pyNNsMD.utils.callbacks import EarlyStopping,lr_lin_reduction,lr_exp_reduction,lr_step_reduction
-from pyNNsMD.plotting.plot_mlp_nac import plot_nac_fit_result
+from pyNNsMD.nn_pes_src.plotting.plot_mlp_nac import plot_nac_fit_result
 from pyNNsMD.models.features import create_feature_models
 from pyNNsMD.models.mlp_nac import create_model_nac_precomputed,NACModel
 from pyNNsMD.datasets.general import load_hyp

@@ -466,11 +466,11 @@ class NeuralNetPes:
     def _predict_models(self, name, x):
         # Check type with first hyper
         model_type = self._models_hyper[name][0]['general']['model_type']
-        x_scaled = [self._models_scaler[name][i].scale_x(x) for i in range(self._addNN)]
+        x_scaled = [self._models_scaler[name][i].transform(x=x)[0] for i in range(self._addNN)]
         temp = self._predict_model_list(x_scaled, self._models[name],
                                         [self._models_hyper[name][i]['predict']['batch_size_predict'] for i in
                                          range(self._addNN)])
-        out = [self._models_scaler[name][i].rescale_y(temp[i]) for i in range(self._addNN)]
+        out = [self._models_scaler[name][i].inverse_transform(y=temp[i])[1] for i in range(self._addNN)]
         return predict_uncertainty(model_type, out)
 
     def predict(self, x):
@@ -509,11 +509,11 @@ class NeuralNetPes:
     def _call_models(self, name, x):
         # Check type with first hyper
         model_type = self._models_hyper[name][0]['general']['model_type']
-        x_scaled = [self._models_scaler[name][i].scale_x(x) for i in range(self._addNN)]
+        x_scaled = [self._models_scaler[name][i].transform(x=x)[0] for i in range(self._addNN)]
         x_res = [call_convert_x_to_tensor(model_type, xs) for xs in x_scaled]
         temp = self._call_model_list(x_res, self._models[name])
         temp = [call_convert_y_to_numpy(model_type, xout) for xout in temp]
-        out = [self._models_scaler[name][i].rescale_y(temp[i]) for i in range(self._addNN)]
+        out = [self._models_scaler[name][i].inverse_transform(y=temp[i])[1] for i in range(self._addNN)]
         return predict_uncertainty(model_type, out)
 
     def call(self, x):
