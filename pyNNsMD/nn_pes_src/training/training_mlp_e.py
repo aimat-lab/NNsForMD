@@ -98,28 +98,10 @@ def train_model_energy(i = 0, outdir=None,  mode='training'):
     auto_scale = hyper['auto_scaling']
     normalize_feat = int(hyper['normalization_mode'])
     #step
-    use_step_callback = hyper['step_callback']['use']
-    epoch_step_reduction = hyper['step_callback']['epoch_step_reduction']
-    learning_rate_step = hyper['step_callback']['learning_rate_step']
-    #lin
-    use_linear_callback = hyper['linear_callback']['use']
-    learning_rate_start = hyper['linear_callback']['learning_rate_start']
-    learning_rate_stop = hyper['linear_callback']['learning_rate_stop']
-    epomin_lin = hyper['linear_callback']['epomin']
-    #exp
-    use_exp_callback = hyper['exp_callback']['use']    
-    epomin_exp = hyper['exp_callback']['epomin']
-    factor_lr_exp = hyper['exp_callback']['factor_lr']
-    #early
-    use_early_callback = hyper['early_callback']['use']
-    epomin_early = hyper['early_callback']['epomin']
-    factor_lr_early = hyper['early_callback']['factor_lr']
-    patience =  hyper['early_callback']['patience']
-    max_time = hyper['early_callback']['max_time']
-    delta_loss = hyper['early_callback']['delta_loss']
-    loss_monitor = hyper['early_callback']['loss_monitor']
-    learning_rate_start_early = hyper['linear_callback']['learning_rate_start']
-    learning_rate_stop_early = hyper['linear_callback']['learning_rate_stop']
+    use_step_callback = hyper['step_callback']
+    use_linear_callback = hyper['linear_callback']
+    use_exp_callback = hyper['exp_callback']
+    use_early_callback = hyper['early_callback']
 
     #Data Check here:
     if(len(x.shape) != 3):
@@ -138,28 +120,19 @@ def train_model_energy(i = 0, outdir=None,  mode='training'):
 
     #cbks,Learning rate schedule  
     cbks = []
-    if(use_early_callback == True):
-        es_cbk = EarlyStopping(patience = patience,
-                       minutes=max_time,
-                       epochs=epo,
-                       learning_rate=learning_rate_start_early,
-                       min_delta=delta_loss,
-                       epostep=epostep,
-                       min_lr=learning_rate_stop_early,
-                       monitor=loss_monitor,
-                       factor=factor_lr_early,
-                       minEpoch=epomin_early) 
+    if use_early_callback['use']:
+        es_cbk = EarlyStopping(**use_early_callback)
         cbks.append(es_cbk)
-    if(use_linear_callback == True):
-        lr_sched = lr_lin_reduction(learning_rate_start,learning_rate_stop,epo,epomin_lin)
+    if use_linear_callback['use']:
+        lr_sched = lr_lin_reduction(**use_linear_callback)
         lr_cbk = tf.keras.callbacks.LearningRateScheduler(lr_sched)
         cbks.append(lr_cbk)
-    if(use_exp_callback == True):
-        lr_exp = lr_exp_reduction(learning_rate_start,epomin_exp,epostep,factor_lr_exp)
+    if use_exp_callback['use']:
+        lr_exp = lr_exp_reduction(**use_exp_callback)
         exp_cbk = tf.keras.callbacks.LearningRateScheduler(lr_exp)
         cbks.append(exp_cbk)
-    if(use_step_callback == True):
-        lr_step = lr_step_reduction(learning_rate_step,epoch_step_reduction)
+    if use_step_callback['use']:
+        lr_step = lr_step_reduction(**use_step_callback)
         step_cbk = tf.keras.callbacks.LearningRateScheduler(lr_step)
         cbks.append(step_cbk)
     
@@ -185,8 +158,8 @@ def train_model_energy(i = 0, outdir=None,  mode='training'):
         print("Info: Making new initialized weights.")
     
     #Recalculate standardization
-    scaler.fit(x,y)
-    x_rescale, y1 = scaler.transform(x,y,auto_scale=auto_scale)
+    scaler.fit(x,y,auto_scale=auto_scale)
+    x_rescale, y1 = scaler.transform(x,y)
 
     # Model + Model precompute layer +feat
     feat_x, _ = out_model.precompute_feature_in_chunks(x_rescale,batch_size=batch_size)

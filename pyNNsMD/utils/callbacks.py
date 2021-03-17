@@ -9,7 +9,7 @@ import numpy as np
 import tensorflow as tf
 
 
-def lr_step_reduction(learnrate_steps=[1e-3, 1e-4, 1e-5], learnrate_epochs=[500, 1000, 5000]):
+def lr_step_reduction(learning_rate_step=[1e-3, 1e-4, 1e-5], epoch_step_reduction=[500, 1000, 5000],use=None):
     """
     Make learning rate schedule function for step reduction.
 
@@ -25,20 +25,20 @@ def lr_step_reduction(learnrate_steps=[1e-3, 1e-4, 1e-5], learnrate_epochs=[500,
         lr_schedule_steps = tf.keras.callbacks.LearningRateScheduler(lr_step_reduction)
 
     """
-    learning_rate_abs = np.cumsum(np.array(learnrate_epochs))
+    learning_rate_abs = np.cumsum(np.array(epoch_step_reduction))
 
     def lr_out_step(epoch):
         # epo = int(learning_rate_abs[-1])
-        learning_rate = float(learnrate_steps[-1])
+        learning_rate = float(learning_rate_step[-1])
         le = np.array(learning_rate_abs)
-        lr = np.array(learnrate_steps)
+        lr = np.array(learning_rate_step)
         out = np.select(epoch <= le, lr, default=learning_rate)
         return float(out)
 
     return lr_out_step
 
 
-def lr_lin_reduction(learning_rate_start=1e-3, learning_rate_stop=1e-5, epo=10000, epomin=1000):
+def lr_lin_reduction(learning_rate_start=1e-3, learning_rate_stop=1e-5, epo=10000, epomin=1000,use=None):
     """
     Make learning rate schedule function for linear reduction.
 
@@ -68,12 +68,12 @@ def lr_lin_reduction(learning_rate_start=1e-3, learning_rate_stop=1e-5, epo=1000
     return lr_out_lin
 
 
-def lr_exp_reduction(lr_start, epomin, epostep, facred):
+def lr_exp_reduction(learning_rate_start, epomin, epostep, factor_lr,use=None):
     """
     Make learning rate schedule function for exponential reduction.
 
     Args:
-        lr_start (float): Learning rate to start with.
+        learning_rate_start (float): Learning rate to start with.
         epomin (float): Minimum number of epochs to keep learning rate constant.
         epostep (float): The epochs to divide factor by.
         facred (float): Reduce learning rate by factor.
@@ -88,12 +88,13 @@ def lr_exp_reduction(lr_start, epomin, epostep, facred):
 
     def lr_out_exp(epo):
         if epo < epomin:
-            out = lr_start
+            out = learning_rate_start
         else:
-            out = lr_start * np.power(facred, (epo - epomin) / epostep)
+            out = learning_rate_start * np.power(factor_lr, (epo - epomin) / epostep)
         return float(out)
 
     return lr_out_exp
+
 
 
 class EarlyStopping(tf.keras.callbacks.Callback):
@@ -107,18 +108,19 @@ class EarlyStopping(tf.keras.callbacks.Callback):
     """
 
     def __init__(self,
-                 minutes=np.Infinity,
+                 max_time=np.Infinity,
                  epochs=np.Infinity,
-                 learning_rate=1e-3,
+                 learning_rate_start=1e-3,
                  epostep=1,
-                 monitor='val_loss',
-                 min_delta=0.00001,
+                 loss_monitor='val_loss',
+                 delta_loss=0.00001,
                  patience=100,
-                 min_epoch=0,
-                 factor=0.5,
-                 min_lr=0.000001,
+                 epomin=0,
+                 factor_lr=0.5,
+                 learning_rate_stop=0.000001,
                  store_weights=False,
                  restore_weights_on_lr_decay=False,
+                 use = None
                  ):
         """
         Make Callback for early stopping.
@@ -141,22 +143,22 @@ class EarlyStopping(tf.keras.callbacks.Callback):
         """
         super().__init__()
         self.logger = logging.getLogger(type(self).__name__)
-        self.minutes = minutes
+        self.minutes = max_time
         self.epochs = epochs
         self.epostep = epostep
-        self.minEpoch = min_epoch
+        self.minEpoch = epomin
 
         self.start = None
         self.stopped = False
         self.batch_size = None
         self.batch_size_initial = None
-        self.learning_rate = learning_rate
+        self.learning_rate = learning_rate_start
 
-        self.monitor = monitor
-        self.min_delta = min_delta
-        self.factor = factor
+        self.monitor = loss_monitor
+        self.min_delta = delta_loss
+        self.factor = factor_lr
         self.patience = patience
-        self.min_lr = min_lr
+        self.min_lr = learning_rate_stop
         self.restore_weights_on_lr_decay = restore_weights_on_lr_decay
         self.store_weights = store_weights
 
