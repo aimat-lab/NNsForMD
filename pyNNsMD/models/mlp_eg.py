@@ -104,6 +104,7 @@ class EnergyGradientModel(ks.Model):
         # Control the properties
         self.energy_only = False
         self.precomputed_features = False
+        self.output_as_dict = False
 
         # Will remove later
         self.eg_atoms = atoms
@@ -154,7 +155,10 @@ class EnergyGradientModel(ks.Model):
             grad = ks.backend.batch_dot(grad, x2, axes=(2, 1))
             y_pred = [atpot, grad]
 
-        out = {'energy': y_pred[0], 'force' : y_pred[1]}
+        if self.output_as_dict:
+            out = {'energy': y_pred[0], 'force' : y_pred[1]}
+        else:
+            out = y_pred
         return out
 
 

@@ -96,9 +96,9 @@ def get_model_by_type(model_type, hyper):
 
     """
     if (model_type == 'mlp_nac'):
-        return NACModel(hyper)
+        return NACModel(**hyper)
     elif (model_type == 'mlp_nac2'):
-        return NACModel2(hyper)
+        return NACModel2(**hyper)
     elif (model_type == 'mlp_eg'):
         return EnergyGradientModel(**hyper)
     elif (model_type == 'mlp_e'):

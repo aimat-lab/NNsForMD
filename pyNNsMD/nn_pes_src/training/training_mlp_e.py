@@ -186,7 +186,7 @@ def train_model_energy(i = 0, outdir=None,  mode='training'):
     
     #Recalculate standardization
     scaler.fit(x,y)
-    x_rescale, y1 = scaler.transform(x,y)
+    x_rescale, y1 = scaler.transform(x,y,auto_scale=auto_scale)
 
     # Model + Model precompute layer +feat
     feat_x, _ = out_model.precompute_feature_in_chunks(x_rescale,batch_size=batch_size)
@@ -216,7 +216,7 @@ def train_model_energy(i = 0, outdir=None,  mode='training'):
     ks.backend.set_value(scaled_metric.scale,scaler.energy_std)
 
     # Compile model
-    optimizer = tf.keras.optimizers.Adam(lr=learning_rate_start)
+    optimizer = tf.keras.optimizers.Adam(lr=learning_rate)
     lr_metric = get_lr_metric(optimizer)
     out_model.compile(optimizer=optimizer,
                       loss='mean_squared_error',

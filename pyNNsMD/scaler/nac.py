@@ -10,15 +10,28 @@ class NACStandardScaler():
         self.nac_mean = np.zeros((1,1,1,1))
         self.nac_std = np.ones((1,1,1,1))
 
-    def scale_x(self,x=None):
-        x_res = (x-self.x_mean)/self.x_std 
-        return x_res
+    def transform(self,x=None,y=None):
+        x_res = x
+        y_res = y
+        if x is not None:
+            x_res = (x-self.x_mean)/self.x_std
+        if y is not None:
+            y_res = (y-self.nac_mean)/self.nac_std
+        return x_res,y_res
     
-    def rescale_y(self,y=None):
-        out_nac = y * self.nac_std + self.nac_mean
+    def inverse_transform(self,x=None,y=None):
+        x_res = x
+        out_nac = y
+        if x is not None:
+            x_res = x * self.x_std + self.nac_mean
+        if y is not None:
+            out_nac = y * self.nac_std + self.nac_mean
         return out_nac
     
-    def fit(self,x,y,auto_scale = {'x_mean':False,'x_std':False,'nac_std':True,'nac_mean':False} ):
+    def fit(self,x,y, auto_scale = None ):
+        if auto_scale is None:
+            auto_scale = {'x_mean': False, 'x_std': False, 'nac_std': True, 'nac_mean': False}
+
         npeps = np.finfo(float).eps
         if(auto_scale['x_mean'] == True):
             self.x_mean = np.mean(x)
@@ -46,7 +59,7 @@ class NACStandardScaler():
         self.nac_mean = np.array(indict['nac_mean'])
         self.nac_std = np.array(indict['nac_std'])
 
-    def get(self):
+    def get_params(self):
         outdict = {'x_mean' : self.x_mean.tolist(),
                     'x_std' : self.x_std.tolist(),
                     'nac_mean' : self.nac_mean.tolist(),
@@ -54,7 +67,7 @@ class NACStandardScaler():
                     }
         return outdict
     
-    def set_dict(self,indict):
+    def set_params(self,indict):
         self.x_mean = np.array(indict['x_mean'])
         self.x_std = np.array(indict['x_std'])
         self.nac_mean = np.array(indict['nac_mean'])

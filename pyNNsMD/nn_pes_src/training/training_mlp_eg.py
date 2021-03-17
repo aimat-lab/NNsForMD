@@ -183,6 +183,7 @@ def train_model_energy_gradient(i=0, outdir=None, mode='training'):
     # Make all Model
     out_model = EnergyGradientModel(**hypermodel)
     out_model.precomputed_features = True
+    out_model.output_as_dict = True
 
     # Look for loading weights
     npeps = np.finfo(float).eps
@@ -197,7 +198,7 @@ def train_model_energy_gradient(i=0, outdir=None, mode='training'):
         print("Info: Making new initialized weights.")
 
     scaler.fit(x, y)
-    x_rescale, y_rescale = scaler.transform(x, y)
+    x_rescale, y_rescale = scaler.transform(x, y,auto_scale=auto_scale)
     y1, y2 = y_rescale
 
     # Model + Model precompute layer +feat
@@ -222,10 +223,7 @@ def train_model_energy_gradient(i=0, outdir=None, mode='training'):
 
     # Setting constant feature normalization
     out_model.get_layer('feat_std').set_weights([feat_x_mean, feat_x_std])
-    # This is only for metric to without std.
-    # out_model.metrics_y_gradient_std = tf.constant(y_gradient_std,dtype=tf.float32)
-    # out_model.metrics_y_energy_std = tf.constant(y_energy_std,dtype=tf.float32)
-    optimizer = tf.keras.optimizers.Adam(lr=learning_rate_start)
+    optimizer = tf.keras.optimizers.Adam(lr=learning_rate)
     lr_metric = get_lr_metric(optimizer)
     mae_energy = ScaledMeanAbsoluteError(scaling_shape=scaler.energy_std.shape)
     mae_force = ScaledMeanAbsoluteError(scaling_shape=scaler.gradient_std.shape)
@@ -278,10 +276,10 @@ def train_model_energy_gradient(i=0, outdir=None, mode='training'):
         # Convert back scaler
         pval = out_model.predict(xval)
         ptrain = out_model.predict(xtrain)
-        pval = [pval[0] * scaler.energy_std + scaler.energy_mean,
-                pval[1] * scaler.gradient_std]
-        ptrain = [ptrain[0] * scaler.energy_std + scaler.energy_mean,
-                  ptrain[1] * scaler.gradient_std]
+        pval = [pval['energy'] * scaler.energy_std + scaler.energy_mean,
+                pval['force'] * scaler.gradient_std]
+        ptrain = [ptrain['energy'] * scaler.energy_std + scaler.energy_mean,
+                  ptrain['force'] * scaler.gradient_std]
 
         print("Info: Predicted Energy shape:", ptrain[0].shape)
         print("Info: Predicted Gradient shape:", ptrain[1].shape)
@@ -304,11 +302,12 @@ def train_model_energy_gradient(i=0, outdir=None, mode='training'):
         # Safe fitting Error MAE
         pval = out_model.predict(xval)
         ptrain = out_model.predict(xtrain)
-        pval = [pval[0] * scaler.energy_std + scaler.energy_mean,
-                pval[1] * scaler.gradient_std]
-        ptrain = [ptrain[0] * scaler.energy_std + scaler.energy_mean,
-                  ptrain[1] * scaler.gradient_std]
+        pval = [pval['energy'] * scaler.energy_std + scaler.energy_mean,
+                pval['force'] * scaler.gradient_std]
+        ptrain = [ptrain['energy'] * scaler.energy_std + scaler.energy_mean,
+                  ptrain['force'] * scaler.gradient_std]
         out_model.precomputed_features = False
+        out_model.output_as_dict = False
         ptrain2 = out_model.predict(x_rescale[i_train])
         ptrain2 = [ptrain2[0] * scaler.energy_std + scaler.energy_mean,
                    ptrain2[1] * scaler.gradient_std]

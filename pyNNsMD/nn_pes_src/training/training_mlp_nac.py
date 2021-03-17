@@ -37,12 +37,12 @@ print("Logic Devices:",tf.config.experimental.list_logical_devices('GPU'))
 
 from pyNNsMD.utils.callbacks import EarlyStopping,lr_lin_reduction,lr_exp_reduction,lr_step_reduction
 from pyNNsMD.nn_pes_src.plotting.plot_mlp_nac import plot_nac_fit_result
-from pyNNsMD.models.features import create_feature_models
-from pyNNsMD.models.mlp_nac import create_model_nac_precomputed,NACModel
+from pyNNsMD.models.mlp_nac import NACModel
 from pyNNsMD.datasets.general import load_hyp
 from pyNNsMD.datasets.general import split_validation_training_index
 from pyNNsMD.scaler.nac import NACStandardScaler
 from pyNNsMD.scaler.general import scale_feature
+from pyNNsMD.utils.loss import ScaledMeanAbsoluteError,get_lr_metric,r2_metric,NACphaselessLoss
 
 def train_model_nac(i=0, outdir=None, mode = 'training'):
     """
@@ -82,6 +82,8 @@ def train_model_nac(i=0, outdir=None, mode = 'training'):
         
     #Model
     hypermodel = hyperall['model']
+    num_outstates = int(hypermodel['states'])
+    indim = int(hypermodel['atoms'])
     #plots
     unit_label_nac = hyperall['plots']['unit_nac']
     #Fit
@@ -120,12 +122,6 @@ def train_model_nac(i=0, outdir=None, mode = 'training'):
     loss_monitor = hyper['early_callback']['loss_monitor']
     learning_rate_start_early = hyper['linear_callback']['learning_rate_start']
     learning_rate_stop_early = hyper['linear_callback']['learning_rate_stop']
-
-    #Transfer scaler
-    y_nac_std = scaler.nac_std
-    y_nac_mean = scaler.nac_mean
-    x_mean = scaler.x_mean
-    x_std = scaler.x_std
     
     #Data Check here:
     if(len(x.shape) != 3):
@@ -176,48 +172,29 @@ def train_model_nac(i=0, outdir=None, mode = 'training'):
     print("Info: Train-Test split at Train:",len(i_train),"Test",len(i_val),"Total",len(x))
     
     #Make all Models
-    out_model = NACModel(hypermodel)
-    temp_model_feat = create_feature_models(hypermodel)
-    temp_model = create_model_nac_precomputed(hypermodel,learning_rate,phase_less_loss)
+    out_model = NACModel(**hypermodel)
+    out_model.precomputed_features = True
     
     npeps = np.finfo(float).eps
     if(initialize_weights==False):
         try:
             out_model.load_weights(os.path.join(outdir,"weights"+'_v%i'%i+'.h5'))
             print("Info: Load old weights at:",os.path.join(outdir,"weights"+'_v%i'%i+'.h5'))
-            #Transfer weights
-            print("Info: Transferring weights...")
-            temp_model.get_layer('mlp').set_weights(out_model.get_layer('mlp').get_weights())
-            temp_model.get_layer('virt').set_weights(out_model.get_layer('virt').get_weights())
-            print("Info: Reading Normalization...")
-            temp_model.get_layer('feat_std').set_weights(out_model.get_layer('feat_std').get_weights())
         except:
             print("Error: Can't load old weights...")
     else:
         print("Info: Making new initialized weights..")
-    
-    if(auto_scale['x_mean'] == True):
-        x_mean = np.mean(x)
-        print("Info: Calculating x-mean.")
-    if(auto_scale['x_std'] == True):
-        x_std = np.std(x) + npeps
-    if(auto_scale['nac_std'] == True):
-        print("Info: Calculating nac-std.")
-        yit = y_in[i_train]
-        y_nac_std = np.std(yit,axis=(0,3),keepdims=True)+ npeps
-        y_nac_mean = np.zeros_like(y_nac_std)
-        
-    # No x-scale for the moment
-    y = (y_in - y_nac_mean) / (y_nac_std )
-    x_rescale = x
-    #x_rescale = (x - x_mean) / (x_std )
+
+
+    scaler.fit(x,y_in,auto_scale=auto_scale)
+    x_rescale,y = scaler.transform(x=x,y=y_in)
 
     
     #Calculate features
-    feat_x, feat_grad = temp_model_feat.predict_in_chunks(x_rescale,batch_size=batch_size)
+    feat_x, feat_grad = out_model.precompute_feature_in_chunks(x_rescale,batch_size=batch_size)
     
     #Finding Normalization
-    feat_x_mean,feat_x_std = temp_model.get_layer('feat_std').get_weights()
+    feat_x_mean,feat_x_std = out_model.get_layer('feat_std').get_weights()
     if(normalize_feat==1):
         print("Info: Making new feature normalization for last dimension.")
         feat_x_mean = np.mean(feat_x[i_train],axis=0,keepdims=True)
@@ -232,30 +209,46 @@ def train_model_nac(i=0, outdir=None, mode = 'training'):
     xval = [feat_x[i_val],feat_grad[i_val]]
     yval = y[i_val]
     
-    #Actutal Fitting
-    temp_model.get_layer('feat_std').set_weights([feat_x_mean,feat_x_std])   
-    temp_model.metrics_y_nac_std = tf.constant(y_nac_std,dtype=tf.float32) # For metrics
-    temp_model.summary()
+    # Set Scaling
+    out_model.get_layer('feat_std').set_weights([feat_x_mean,feat_x_std])
+    scaled_metric = ScaledMeanAbsoluteError(scaling_shape=scaler.nac_std.shape)
+    tf.keras.backend.set_value(scaled_metric.scale, scaler.nac_std)
     
     print("Info: All-data NAC std",y.shape,":",np.std(y_in,axis=(0,3),keepdims=True)[0,:,:,0])
-    print("Info: Using nac-std",y_nac_std.shape,":", y_nac_std[0,:,:,0])
-    print("Info: Using nac-mean",y_nac_mean.shape,":", y_nac_mean[0,:,:,0])
-    print("Info: Using x-scale",x_std.shape,":" , x_std)
-    print("Info: Using x-offset",x_mean.shape,":" , x_mean)
+    print("Info: Using nac-std",scaler.nac_std.shape,":", scaler.nac_std[0,:,:,0])
+    print("Info: Using nac-mean",scaler.nac_mean.shape,":", scaler.nac_mean[0,:,:,0])
+    print("Info: Using x-scale",scaler.x_std.shape,":" , scaler.x_std)
+    print("Info: Using x-offset", scaler.x_mean.shape,":" , scaler.x_mean)
     print("Info: Using feature-scale",feat_x_std.shape,":", feat_x_std)
     print("Info: Using feature-offset",feat_x_mean.shape,":", feat_x_mean)
-    
     print("")
-    print("Start fit.")   
-    
-    #Prefit if necessary
+
+    # Compile model
+    optimizer = tf.keras.optimizers.Adam(lr=learning_rate)
+    lr_metric = get_lr_metric(optimizer)
+    out_model.compile(loss='mean_squared_error',
+                        optimizer=optimizer,
+                        metrics=[scaled_metric, lr_metric, r2_metric])
+
+    #Pre -fit
     if(pre_epo>0):
-        temp_model_prefit = create_model_nac_precomputed(hypermodel,learning_rate,False)
-        temp_model_prefit.set_weights(temp_model.get_weights())
-        temp_model_prefit.fit(x=xtrain, y=ytrain, epochs=pre_epo,batch_size=batch_size,verbose=2)
-        temp_model.set_weights(temp_model_prefit.get_weights())
-    
-    hist = temp_model.fit(x=xtrain, y=ytrain, epochs=epo,batch_size=batch_size,callbacks=cbks,validation_freq=epostep,validation_data=(xval,yval),verbose=2)
+        print("Start Pre-fit without phaseless-loss.")
+        print("Used loss:", out_model.loss)
+        out_model.summary()
+        out_model.fit(x=xtrain, y=ytrain, epochs=pre_epo,batch_size=batch_size,verbose=2)
+        print("End fit.")
+        print("")
+
+    print("Start fit.")
+    if phase_less_loss:
+        print("Recompiling with phaseless loss.")
+        out_model.compile(loss=NACphaselessLoss(number_state=num_outstates, shape_nac=(indim, 3), name='phaseless_loss'),
+                            optimizer=optimizer,
+                            metrics=[scaled_metric, lr_metric, r2_metric])
+        print("Used loss:", out_model.loss)
+
+    out_model.summary()
+    hist = out_model.fit(x=xtrain, y=ytrain, epochs=epo,batch_size=batch_size,callbacks=cbks,validation_freq=epostep,validation_data=(xval,yval),verbose=2)
     print("End fit.")
     print("")
     
@@ -271,18 +264,12 @@ def train_model_nac(i=0, outdir=None, mode = 'training'):
     try:
         #Save Weights
         print("Info: Saving weights...")
-        out_model.get_layer('mlp').set_weights(temp_model.get_layer('mlp').get_weights())
-        out_model.get_layer('virt').set_weights(temp_model.get_layer('virt').get_weights())
-        out_model.get_layer('feat_std').set_weights([feat_x_mean,feat_x_std])
         out_model.save_weights(os.path.join(outdir,"weights"+'_v%i'%i+'.h5'))
     except:
         print("Error: Cant save weights")
       
     try:
         print("Info: Saving auto-scaler to file...")
-        outscaler = {'x_mean' : x_mean,'x_std' : x_std,
-                     'nac_mean' : y_nac_mean, 'nac_std' : y_nac_std}
-        scaler.set_dict(outscaler)
         scaler.save(os.path.join(outdir,"scaler"+'_v%i'%i+'.json'))
     except:
         print("Error: Can not export scaler info. Model prediciton will be wrongly scaled.")
@@ -292,10 +279,10 @@ def train_model_nac(i=0, outdir=None, mode = 'training'):
         yval_plot = y_in[i_val] 
         ytrain_plot  = y_in[i_train] 
         #Revert standard but keep unit conversion
-        pval = temp_model.predict(xval)
-        ptrain = temp_model.predict(xtrain)
-        pval = pval * (y_nac_std )+ y_nac_mean 
-        ptrain = ptrain * (y_nac_std)+ y_nac_mean 
+        pval = out_model.predict(xval)
+        ptrain = out_model.predict(xtrain)
+        pval = pval * (scaler.nac_std )+ scaler.nac_mean
+        ptrain = ptrain * (scaler.nac_std)+ scaler.nac_mean
 
         print("Info: Predicted NAC shape:",ptrain.shape)
         print("Info: Plot fit stats...")        
@@ -316,12 +303,13 @@ def train_model_nac(i=0, outdir=None, mode = 'training'):
     try:
         print("Info: saving fitting error...")
         #Safe fitting Error MAE
-        pval = temp_model.predict(xval)
-        ptrain = temp_model.predict(xtrain)
-        pval = pval * y_nac_std + y_nac_mean
-        ptrain = ptrain  * y_nac_std + y_nac_mean
+        pval = out_model.predict(xval)
+        ptrain = out_model.predict(xtrain)
+        pval = pval * scaler.nac_std + scaler.nac_mean
+        ptrain = ptrain  * scaler.nac_std + scaler.nac_mean
+        out_model.precomputed_features = False
         ptrain2 = out_model.predict(x_rescale[i_train])
-        ptrain2 = ptrain2  * y_nac_std + y_nac_mean
+        ptrain2 = ptrain2  * scaler.nac_std + scaler.nac_mean
         print("Info: MAE between precomputed and full keras model:")      
         print("NAC", np.mean(np.abs(ptrain-ptrain2))) 
         error_val = np.mean(np.abs(pval-y_in[i_val]))

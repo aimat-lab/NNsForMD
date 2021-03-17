@@ -89,8 +89,8 @@ def merge_hist(hist1, hist2):
 
 
 class NACphaselessLoss(ks.losses.Loss):
-    def __init__(self, number_state=2, shape_nac=(1, 1), **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, name='phaseless_loss', number_state=2, shape_nac=(1, 1), **kwargs):
+        super().__init__(name=name, **kwargs)
         self.number_state = number_state
         self.shape_nac = shape_nac
 

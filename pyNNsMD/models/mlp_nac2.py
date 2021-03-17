@@ -26,7 +26,21 @@ class NACModel2(ks.Model):
     The model is supposed to be saved and exported.
     """
     
-    def __init__(self,hyper, **kwargs):
+    def __init__(self,
+                atoms,
+                states,
+                invd_index = [],
+                angle_index = [],
+                dihyd_index = [],
+                nn_size = 100,
+                depth = 3,
+                activ = "selu",
+                use_reg_activ = None,
+                use_reg_weight = None,
+                use_reg_bias = None ,
+                use_dropout = False,
+                dropout = 0.01,
+                **kwargs):
         """
         Initialize a NACModel with hyperparameters.
 
@@ -39,19 +53,8 @@ class NACModel2(ks.Model):
             
         """
         super(NACModel2, self).__init__(**kwargs)
-        out_dim = int( hyper['states']*(hyper['states']-1)/2)
-        indim = int( hyper['atoms'])
-        invd_index = hyper['invd_index']
-        angle_index = hyper['angle_index']
-        dihyd_index = hyper['dihyd_index']
-        nn_size = hyper['nn_size']
-        depth = hyper['depth']
-        activ = hyper['activ']
-        use_reg_activ = hyper['use_reg_activ']
-        use_reg_weight = hyper['use_reg_weight']
-        use_reg_bias = hyper['use_reg_bias'] 
-        use_dropout = hyper['use_dropout']
-        dropout = hyper['dropout']
+        out_dim = int(states*(states-1)/2)
+        indim = int(atoms)
 
         self.y_atoms = indim
         
@@ -66,8 +69,7 @@ class NACModel2(ks.Model):
         invd_shape = invd_index.shape if use_invd_index else None
         angle_shape = angle_index.shape if use_angle_index else None
         dihyd_shape = dihyd_index.shape if use_dihyd_index else None
-    
-        in_model_dim = 0
+
         in_model_dim = 0
         if(use_invd_index==True):
             in_model_dim += len(invd_index)
@@ -102,8 +104,12 @@ class NACModel2(ks.Model):
                                 )
         self.virt_layer =  ks.layers.Dense(out_dim*in_model_dim,name='virt',use_bias=False,activation='linear')
         self.resh_layer = tf.keras.layers.Reshape((out_dim,in_model_dim))
-        
+        self.prop_grad_layer = PropagateNACGradient2(axis=(2, 1))
+
+        self.precomputed_features = False
+
         self.build((None,indim,3))
+
     def call(self, data, training=False):
         """
         Call the model output, forward pass.
@@ -118,100 +124,50 @@ class NACModel2(ks.Model):
         """
         x = data
         # Compute predictions
-        with tf.GradientTape() as tape2:
-            tape2.watch(x)
-            feat_flat = self.feat_layer(x)
-        temp_grad = tape2.batch_jacobian(feat_flat, x)
-        
-        feat_flat_std = self.std_layer(feat_flat)
-        temp_hidden = self.mlp_layer(feat_flat_std,training=training)
-        
-        temp_v = self.virt_layer(temp_hidden)
-        temp_va = self.resh_layer(temp_v)
-        
-        y_pred = ks.backend.batch_dot(temp_va,temp_grad ,axes=(2,1)) # (batch,states,atoms,atoms,3)
+        if not self.precomputed_features:
+            with tf.GradientTape() as tape2:
+                tape2.watch(x)
+                feat_flat = self.feat_layer(x)
+            temp_grad = tape2.batch_jacobian(feat_flat, x)
+
+            feat_flat_std = self.std_layer(feat_flat)
+            temp_hidden = self.mlp_layer(feat_flat_std,training=training)
+
+            temp_v = self.virt_layer(temp_hidden)
+            temp_va = self.resh_layer(temp_v)
+            # y_pred = ks.backend.batch_dot(temp_va,temp_grad ,axes=(2,1))
+            y_pred = self.prop_grad_layer([temp_va,temp_grad])
+        else:
+            x1 = x[0]
+            x2 = x[1]
+            feat_flat_std = self.std_layer(x1)
+            temp_hidden = self.mlp_layer(feat_flat_std, training=training)
+            temp_v = self.virt_layer(temp_hidden)
+            temp_va = self.resh_layer(temp_v)
+            # y_pred = ks.backend.batch_dot(temp_va, x2, axes=(2, 1))
+            y_pred = self.prop_grad_layer([temp_va, x2])
+
         return y_pred
 
+    @tf.function
+    def predict_chunk_feature(self, tf_x):
+        with tf.GradientTape() as tape2:
+            tape2.watch(tf_x)
+            feat_pred = self.feat_layer(tf_x, training=False)  # Forward pass
+        grad = tape2.batch_jacobian(feat_pred, tf_x)
+        return feat_pred, grad
 
+    def precompute_feature_in_chunks(self, x, batch_size):
+        np_x = []
+        np_grad = []
+        for j in range(int(np.ceil(len(x) / batch_size))):
+            a = int(batch_size * j)
+            b = int(batch_size * j + batch_size)
+            tf_x = tf.convert_to_tensor(x[a:b], dtype=tf.float32)
+            feat_pred, grad = self.predict_chunk_feature(tf_x)
+            np_x.append(np.array(feat_pred.numpy()))
+            np_grad.append(np.array(grad.numpy()))
 
-
-def create_model_nac_precomputed(hyper=hyper_create_model_nac['model'],
-                                 learning_rate_start = 1e-3,
-                                 make_phase_loss = False):
-    """
-    Get precomputed withmodel y = model(feat) with feat=[f,df/dx] features and its derivative to coordinates x.
-
-    Args:
-        hyper (dict, optional): Hyper model dictionary. The default is hyper_create_model_nac['model'].
-        learning_rate_start (float, optional): Initial learning rate. Default is 1e-3.
-        make_phase_loss (bool, optional): Use normal loss MSE regardless of hyper. The default is False.
-
-    Returns:
-        model (tf.keras.model): tf.keras model.
-
-    """
-    num_outstates = int(hyper['states'])
-    indim = int( hyper['atoms'])
-    invd_index = hyper['invd_index']
-    angle_index = hyper['angle_index']
-    dihyd_index = hyper['dihyd_index']
-    nn_size = hyper['nn_size']
-    depth = hyper['depth']
-    activ = hyper['activ']
-    use_reg_activ = hyper['use_reg_activ']
-    use_reg_weight = hyper['use_reg_weight']
-    use_reg_bias = hyper['use_reg_bias'] 
-    use_dropout = hyper['use_dropout']
-    dropout = hyper['dropout']
-    
-    use_invd_index = len(invd_index)>0 if isinstance(invd_index,list) or isinstance(invd_index,np.ndarray) else False
-    use_angle_index = len(angle_index)>0 if isinstance(angle_index,list) or isinstance(angle_index,np.ndarray) else False
-    use_dihyd_index = len(dihyd_index)>0 if isinstance(dihyd_index,list) or isinstance(dihyd_index,np.ndarray) else False
-      
-    out_dim = int(num_outstates*(num_outstates-1)/2)
-    
-    in_model_dim = 0
-    if(use_invd_index==True):
-        in_model_dim += len(invd_index)
-    else:
-        in_model_dim += int(indim*(indim-1)/2) #default is all inverse distances
-    if(use_angle_index == True):
-        in_model_dim += len(angle_index) 
-    if(use_dihyd_index == True):
-        in_model_dim += len(dihyd_index) 
-
-    geo_input = ks.Input(shape=(in_model_dim,), dtype='float32' ,name='geo_input')
-    grad_input = ks.Input(shape=(in_model_dim,indim,3), dtype='float32' ,name='grad_input')
-    full = ks.layers.Flatten(name='feat_flat')(geo_input)
-    full = ConstLayerNormalization(name='feat_std')(full)
-    full = MLP(  nn_size,
-         dense_depth = depth,
-         dense_bias = True,
-         dense_bias_last = False,
-         dense_activ = activ,
-         dense_activ_last = activ,
-         dense_activity_regularizer = use_reg_activ,
-         dense_kernel_regularizer = use_reg_weight,
-         dense_bias_regularizer = use_reg_bias,
-         dropout_use = use_dropout,
-         dropout_dropout = dropout,
-         name = 'mlp'
-         )(full)
-    nac =  ks.layers.Dense(out_dim*in_model_dim,name='virt',use_bias=False,activation='linear')(full)
-    nac = tf.keras.layers.Reshape((out_dim,in_model_dim))(nac)
-    nac = PropagateNACGradient2()([nac,grad_input])
-   
-    model = ks.Model(inputs=[geo_input,grad_input], outputs=nac)
-    
-    optimizer = tf.keras.optimizers.Adam(lr= learning_rate_start)
-    lr_metric = get_lr_metric(optimizer)
-    smae = ScaledMeanAbsoluteError(scaling_shape=(1,out_dim,indim,1))
-    
-    if(make_phase_loss == False):
-        model.compile(loss='mean_squared_error',optimizer=optimizer,
-              metrics=[smae ,lr_metric,r2_metric])
-    else:
-        model.compile(loss=NACphaselessLoss(number_state = num_outstates, shape_nac = (indim,3),name="phaseless_loss"),optimizer=optimizer,
-              metrics=[smae ,lr_metric,r2_metric])   
-    
-    return model,smae
+        np_x = np.concatenate(np_x, axis=0)
+        np_grad = np.concatenate(np_grad, axis=0)
+        return np_x, np_grad
