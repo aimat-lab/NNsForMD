@@ -2,7 +2,7 @@
 Model selection
 """
 import os
-
+import numpy as np
 import tensorflow as tf
 
 from pyNNsMD.models.mlp_e import EnergyModel
@@ -12,8 +12,6 @@ from pyNNsMD.models.mlp_nac2 import NACModel2
 from pyNNsMD.nn_pes_src.hypers.hyper_mlp_e import DEFAULT_HYPER_PARAM_ENERGY
 from pyNNsMD.nn_pes_src.hypers.hyper_mlp_eg import DEFAULT_HYPER_PARAM_ENERGY_GRADS
 from pyNNsMD.nn_pes_src.hypers.hyper_mlp_nac import DEFAULT_HYPER_PARAM_NAC
-from pyNNsMD.nn_pes_src.predicting.predict_mlp_eg import predict_uncertainty_mlp_eg
-from pyNNsMD.nn_pes_src.predicting.predict_mlp_nac import predict_uncertainty_mlp_nac
 from pyNNsMD.scaler.energy import EnergyGradientStandardScaler,EnergyStandardScaler
 from pyNNsMD.scaler.nac import NACStandardScaler
 
@@ -109,43 +107,31 @@ def get_model_by_type(model_type, hyper):
 
 
 
-def predict_uncertainty(model_type, out):
-    if (model_type == 'mlp_nac'):
-        return predict_uncertainty_mlp_nac(out)
-    elif (model_type == 'mlp_nac2'):
-        return predict_uncertainty_mlp_nac(out)
-    elif (model_type == 'mlp_eg'):
-        return predict_uncertainty_mlp_eg(out)
-    elif (model_type == 'mlp_e'):
-        return predict_uncertainty_mlp_eg(out)
+
+def predict_uncertainty(model_type, out, mult_nn):
+    if isinstance(out[0],list):
+        out_mean = []
+        out_std = []
+        for i in range(len(out[0])):
+            out_mean.append(np.mean(np.array([x[i] for x in out]), axis=0))
+            if mult_nn > 1:
+                out_std.append(np.std(np.array([x[i] for x in out]), axis=0, ddof=1))
+            else:
+                out_std.append(np.zeros_like(out_mean[-1]))
+
+        return out_mean, out_std
     else:
-        print("Error: Unknown model type for predict", model_type)
-        raise TypeError(f"Error: Unknown model type for predict {model_type}")
+        out_mean = np.mean(np.array(out), axis=0)
+        if mult_nn > 1:
+            out_std = np.std(np.array(out), axis=0, ddof=1)
+        else:
+            out_std = np.zeros_like(out_mean)
+        return out_mean, out_std
 
 
-def call_convert_x_to_tensor(model_type, x):
-    if (model_type == 'mlp_eg'):
-        return tf.convert_to_tensor(x, dtype=tf.float32)
-    elif (model_type == 'mlp_nac'):
-        return tf.convert_to_tensor(x, dtype=tf.float32)
-    elif (model_type == 'mlp_nac2'):
-        return tf.convert_to_tensor(x, dtype=tf.float32)
-    elif (model_type == 'mlp_e'):
-        return tf.convert_to_tensor(x, dtype=tf.float32)
+
+def unpack_convert_y_to_numpy(model_type, temp):
+    if isinstance(temp,list):
+        return [x.numpy() for x in temp]
     else:
-        print("Error: Unknown model type for predict", model_type)
-        raise TypeError(f"Error: Unknown model type for predict {model_type}")
-
-
-def call_convert_y_to_numpy(model_type, temp):
-    if (model_type == 'mlp_nac'):
         return temp.numpy()
-    if (model_type == 'mlp_nac2'):
-        return temp.numpy()
-    elif (model_type == 'mlp_eg'):
-        return [temp[0].numpy(), temp[1].numpy()]
-    elif (model_type == 'mlp_e'):
-        return [temp[0].numpy(), temp[1].numpy()]
-    else:
-        print("Error: Unknown model type for predict", model_type)
-        raise TypeError(f"Error: Unknown model type for predict {model_type}")

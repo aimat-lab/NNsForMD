@@ -17,7 +17,7 @@ from pyNNsMD.datasets.general import model_save_data_to_folder, model_make_rando
     index_make_random_shuffle
 from pyNNsMD.nn_pes_src.fit import fit_model_by_modeltype
 from pyNNsMD.nn_pes_src.selection import get_model_by_type, get_default_hyperparameters_by_modeltype
-from pyNNsMD.nn_pes_src.selection import predict_uncertainty, call_convert_x_to_tensor, call_convert_y_to_numpy
+from pyNNsMD.nn_pes_src.selection import predict_uncertainty, unpack_convert_y_to_numpy
 from pyNNsMD.nn_pes_src.selection import get_default_scaler
 
 
@@ -471,7 +471,7 @@ class NeuralNetPes:
                                         [self._models_hyper[name][i]['predict']['batch_size_predict'] for i in
                                          range(self._addNN)])
         out = [self._models_scaler[name][i].inverse_transform(y=temp[i])[1] for i in range(self._addNN)]
-        return predict_uncertainty(model_type, out)
+        return predict_uncertainty(model_type, out,self._addNN)
 
     def predict(self, x):
         """
@@ -510,11 +510,11 @@ class NeuralNetPes:
         # Check type with first hyper
         model_type = self._models_hyper[name][0]['general']['model_type']
         x_scaled = [self._models_scaler[name][i].transform(x=x)[0] for i in range(self._addNN)]
-        x_res = [call_convert_x_to_tensor(model_type, xs) for xs in x_scaled]
+        x_res = [tf.convert_to_tensor(xs, dtype=tf.float32) for xs in x_scaled]
         temp = self._call_model_list(x_res, self._models[name])
-        temp = [call_convert_y_to_numpy(model_type, xout) for xout in temp]
+        temp = [unpack_convert_y_to_numpy(model_type, xout) for xout in temp]
         out = [self._models_scaler[name][i].inverse_transform(y=temp[i])[1] for i in range(self._addNN)]
-        return predict_uncertainty(model_type, out)
+        return predict_uncertainty(model_type, out,self._addNN)
 
     def call(self, x):
         """
