@@ -195,13 +195,10 @@ def train_model_energy(i = 0, outdir=None,  mode='training'):
                       loss='mean_squared_error',
                       metrics=[scaled_metric, lr_metric, r2_metric])
 
-    print("Info: Total-Data energy std",y.shape,":",np.std(y,axis=0))
-    print("Info: Using energy-std",scaler.energy_std.shape,":", scaler.energy_std)
-    print("Info: Using energy-mean" ,scaler.energy_mean.shape,":", scaler.energy_mean)
-    print("Info: Using x-scale",scaler.x_std.shape,":", scaler.x_std)
-    print("Info: Using x-offset", scaler.x_mean.shape,":",scaler.x_mean)
-    print("Info: Using feature-scale", feat_x_std.shape,":",feat_x_std)
-    print("Info: Using feature-offset", feat_x_mean.shape,":",feat_x_mean)
+    scaler.print_params_info()
+    print("Info: Using feature-scale", feat_x_std.shape, ":", feat_x_std)
+    print("Info: Using feature-offset", feat_x_mean.shape, ":", feat_x_mean)
+
     out_model.summary()
     print("")
     print("Start fit.")
@@ -236,8 +233,8 @@ def train_model_energy(i = 0, outdir=None,  mode='training'):
         # Convert back scaler
         pval = out_model.predict(xval)
         ptrain = out_model.predict(xtrain)
-        pval = pval * scaler.energy_std + scaler.energy_mean
-        ptrain = ptrain* scaler.energy_std + scaler.energy_mean
+        _, pval = scaler.inverse_transform(y=pval)
+        _, ptrain = scaler.inverse_transform(y=ptrain)
     
     
         print("Info: Predicted Energy shape:",ptrain.shape)
@@ -260,13 +257,13 @@ def train_model_energy(i = 0, outdir=None,  mode='training'):
         #Safe fitting Error MAE
         pval = out_model.predict(xval)
         ptrain = out_model.predict(xtrain)
-        pval = pval  * scaler.energy_std + scaler.energy_mean
-        ptrain = ptrain * scaler.energy_std+ scaler.energy_mean
+        _, pval = scaler.inverse_transform(y=pval)
+        _, ptrain = scaler.inverse_transform(y=ptrain)
         out_model.precomputed_features = False
         ptrain2 = out_model.predict(x_rescale[i_train])
-        ptrain2 = ptrain2 * scaler.energy_std+ scaler.energy_mean
+        _, ptrain2 =  scaler.inverse_transform(y=ptrain2)
 
-        print("Info: Max error between precomputed and full keras model:")
+        print("Info: Max error between precomputed and direct gradient:")
         print("Energy",np.max(np.abs(ptrain-ptrain2)))        
         error_val = np.mean(np.abs(pval-y[i_val]))
         error_train = np.mean(np.abs(ptrain-y[i_train]))

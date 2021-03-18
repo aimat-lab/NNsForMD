@@ -170,8 +170,9 @@ def train_model_energy_gradient(i=0, outdir=None, mode='training'):
     else:
         print("Info: Making new initialized weights.")
 
-    scaler.fit(x, y)
-    x_rescale, y_rescale = scaler.transform(x, y,auto_scale=auto_scale)
+    # Scale x,y
+    scaler.fit(x, y,auto_scale=auto_scale)
+    x_rescale, y_rescale = scaler.transform(x, y)
     y1, y2 = y_rescale
 
     # Model + Model precompute layer +feat
@@ -187,6 +188,7 @@ def train_model_energy_gradient(i=0, outdir=None, mode='training'):
         feat_x_mean, feat_x_std = scale_feature(feat_x[i_train], hypermodel)
     else:
         print("Info: Keeping old normalization (default/unity or loaded from file).")
+    out_model.get_layer('feat_std').set_weights([feat_x_mean, feat_x_std])
 
     # Train Test split
     xtrain = [feat_x[i_train], feat_grad[i_train]]
@@ -195,7 +197,6 @@ def train_model_energy_gradient(i=0, outdir=None, mode='training'):
     yval = [y1[i_val], y2[i_val]]
 
     # Setting constant feature normalization
-    out_model.get_layer('feat_std').set_weights([feat_x_mean, feat_x_std])
     optimizer = tf.keras.optimizers.Adam(lr=learning_rate)
     lr_metric = get_lr_metric(optimizer)
     mae_energy = ScaledMeanAbsoluteError(scaling_shape=scaler.energy_std.shape)
@@ -204,19 +205,13 @@ def train_model_energy_gradient(i=0, outdir=None, mode='training'):
                       loss={'energy':'mean_squared_error', 'force':'mean_squared_error'}, loss_weights=loss_weights,
                       metrics={'energy':[mae_energy,lr_metric,r2_metric],'force':[mae_force,lr_metric,r2_metric]})
 
-    print("Info: Total-Data gradient std", y[1].shape, ":", np.std(y[1], axis=(0, 2, 3)))
-    print("Info: Total-Data energy std", y[0].shape, ":", np.std(y[0], axis=0))
-    print("Info: Using energy-std", scaler.energy_std.shape, ":", scaler.energy_std[0])
-    print("Info: Using energy-mean", scaler.energy_mean.shape, ":", scaler.energy_mean[0])
-    print("Info: Using gradient-std", scaler.gradient_std.shape, ":", scaler.gradient_std[0, :, 0, 0])
-    print("Info: Using gradient-mean", scaler.gradient_mean.shape, ":", scaler.gradient_mean[0, :, 0, 0])
-    print("Info: Using x-scale", scaler.x_std.shape, ":", scaler.x_std)
-    print("Info: Using x-offset", scaler.x_mean.shape, ":", scaler.x_mean)
+    scaler.print_params_info()
     print("Info: Using feature-scale", feat_x_std.shape, ":", feat_x_std)
     print("Info: Using feature-offset", feat_x_mean.shape, ":", feat_x_mean)
-    out_model.summary()
+
     print("")
     print("Start fit.")
+    out_model.summary()
     hist = out_model.fit(x=xtrain, y={'energy':ytrain[0],'force':ytrain[1]}, epochs=epo, batch_size=batch_size, callbacks=cbks, validation_freq=epostep,
                          validation_data=(xval, {'energy':yval[0],'force':yval[1]}), verbose=2)
     print("End fit.")
@@ -249,10 +244,8 @@ def train_model_energy_gradient(i=0, outdir=None, mode='training'):
         # Convert back scaler
         pval = out_model.predict(xval)
         ptrain = out_model.predict(xtrain)
-        pval = [pval['energy'] * scaler.energy_std + scaler.energy_mean,
-                pval['force'] * scaler.gradient_std]
-        ptrain = [ptrain['energy'] * scaler.energy_std + scaler.energy_mean,
-                  ptrain['force'] * scaler.gradient_std]
+        _, pval = scaler.inverse_transform(y=[pval['energy'], pval['force']])
+        _, ptrain = scaler.inverse_transform(y=[ptrain['energy'], ptrain['force']])
 
         print("Info: Predicted Energy shape:", ptrain[0].shape)
         print("Info: Predicted Gradient shape:", ptrain[1].shape)
@@ -275,16 +268,13 @@ def train_model_energy_gradient(i=0, outdir=None, mode='training'):
         # Safe fitting Error MAE
         pval = out_model.predict(xval)
         ptrain = out_model.predict(xtrain)
-        pval = [pval['energy'] * scaler.energy_std + scaler.energy_mean,
-                pval['force'] * scaler.gradient_std]
-        ptrain = [ptrain['energy'] * scaler.energy_std + scaler.energy_mean,
-                  ptrain['force'] * scaler.gradient_std]
+        _, pval = scaler.inverse_transform(y=[pval['energy'] , pval['force']])
+        _, ptrain = scaler.inverse_transform(y=[ptrain['energy'],ptrain['force']])
         out_model.precomputed_features = False
         out_model.output_as_dict = False
         ptrain2 = out_model.predict(x_rescale[i_train])
-        ptrain2 = [ptrain2[0] * scaler.energy_std + scaler.energy_mean,
-                   ptrain2[1] * scaler.gradient_std]
-        print("Info: Max error between precomputed and full keras model:")
+        _, ptrain2 = scaler.inverse_transform(y=[ptrain2[0], ptrain2[1]])
+        print("Info: Max error precomputed and full gradient computation:")
         print("Energy", np.max(np.abs(ptrain[0] - ptrain2[0])))
         print("Gradient", np.max(np.abs(ptrain[1] - ptrain2[1])))
         error_val = [np.mean(np.abs(pval[0] - y[0][i_val])), np.mean(np.abs(pval[1] - y[1][i_val]))]

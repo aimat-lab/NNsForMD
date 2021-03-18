@@ -4,6 +4,8 @@ Created on Tue Nov 10 11:47:49 2020
 import numpy as np
 
 
+class SegmentStandardScaler:
+    pass
 
 def scale_feature(feats,hyper):
     """

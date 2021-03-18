@@ -190,11 +190,7 @@ def train_model_nac(i=0, outdir=None, mode = 'training'):
     scaled_metric = ScaledMeanAbsoluteError(scaling_shape=scaler.nac_std.shape)
     tf.keras.backend.set_value(scaled_metric.scale, scaler.nac_std)
     
-    print("Info: All-data NAC std",y.shape,":",np.std(y_in,axis=(0,3),keepdims=True)[0,:,:,0])
-    print("Info: Using nac-std",scaler.nac_std.shape,":", scaler.nac_std[0,:,:,0])
-    print("Info: Using nac-mean",scaler.nac_mean.shape,":", scaler.nac_mean[0,:,:,0])
-    print("Info: Using x-scale",scaler.x_std.shape,":" , scaler.x_std)
-    print("Info: Using x-offset",scaler.x_mean.shape,":" , scaler.x_mean)
+    scaler.print_params_info()
     print("Info: Using feature-scale",feat_x_std.shape,":", feat_x_std)
     print("Info: Using feature-offset",feat_x_mean.shape,":", feat_x_mean)
 
@@ -260,8 +256,8 @@ def train_model_nac(i=0, outdir=None, mode = 'training'):
         #Revert standard but keep unit conversion
         pval = out_model.predict(xval)
         ptrain = out_model.predict(xtrain)
-        pval = pval * (scaler.nac_std )+ scaler.nac_mean
-        ptrain = ptrain * (scaler.nac_std)+ scaler.nac_mean
+        _, pval = scaler.inverse_transform(y=pval)
+        _, ptrain = scaler.inverse_transform(y=ptrain)
 
         print("Info: Predicted NAC shape:",ptrain.shape)
         print("Info: Plot fit stats...")        
@@ -284,8 +280,8 @@ def train_model_nac(i=0, outdir=None, mode = 'training'):
         #Safe fitting Error MAE
         pval = out_model.predict(xval)
         ptrain = out_model.predict(xtrain)
-        pval = pval * scaler.nac_std + scaler.nac_mean
-        ptrain = ptrain  * scaler.nac_std + scaler.nac_mean
+        _, pval = scaler.inverse_transform(y=pval)
+        _, ptrain = scaler.inverse_transform(y=ptrain)
         out_model.precomputed_features = False
         ptrain2 = out_model.predict(x_rescale[i_train])
         ptrain2 = ptrain2  * scaler.nac_std + scaler.nac_mean
