@@ -37,16 +37,17 @@ set_gpu([int(args['gpus'])])
 print("Logic Devices:", tf.config.experimental.list_logical_devices('GPU'))
 
 from pyNNsMD.utils.callbacks import EarlyStopping, lr_lin_reduction, lr_exp_reduction, lr_step_reduction
-from pyNNsMD.nn_pes_src.plotting.plot_mlp_eg import plot_energy_gradient_fit_result
 from pyNNsMD.models.mlp_eg import EnergyGradientModel
 # from pyNNsMD.nn_pes_src.legacy import compute_feature_derivative
 from pyNNsMD.datasets.general import load_hyp
 from pyNNsMD.datasets.general import split_validation_training_index
 # from pyNNsMD.nn_pes_src.scaler import save_std_scaler_dict
 from pyNNsMD.scaler.energy import EnergyGradientStandardScaler
-from pyNNsMD.scaler.general import scale_feature
+from pyNNsMD.scaler.general import SegmentStandardScaler
 from pyNNsMD.utils.loss import get_lr_metric, ScaledMeanAbsoluteError, r2_metric
-
+from pyNNsMD.plots.loss import plot_loss_curves, plot_learning_curve
+from pyNNsMD.plots.pred import plot_scatter_prediction
+from pyNNsMD.plots.error import plot_error_vec_mean,plot_error_vec_max
 
 def train_model_energy_gradient(i=0, outdir=None, mode='training'):
     """
@@ -185,7 +186,10 @@ def train_model_energy_gradient(i=0, outdir=None, mode='training'):
         feat_x_mean = np.mean(feat_x[i_train], axis=0, keepdims=True)
         feat_x_std = np.std(feat_x[i_train], axis=0, keepdims=True)
     elif (normalize_feat == 2):
-        feat_x_mean, feat_x_std = scale_feature(feat_x[i_train], hypermodel)
+        seg_scaler = SegmentStandardScaler(out_model.get_layer('feat_geo').get_feature_type_segmentation())
+        seg_scaler.fit(y=feat_x[i_train])
+        feat_x_mean, feat_x_std = np.array(seg_scaler.get_params()["feat_mean"]), np.array(
+            seg_scaler.get_params()["feat_std"])
     else:
         print("Info: Keeping old normalization (default/unity or loaded from file).")
     out_model.get_layer('feat_std').set_weights([feat_x_mean, feat_x_std])
@@ -252,14 +256,32 @@ def train_model_energy_gradient(i=0, outdir=None, mode='training'):
         print("Info: Plot fit stats...")
 
         # Plot
-        plot_energy_gradient_fit_result(i, xval, xtrain,
-                                        yval_plot, ytrain_plot,
-                                        pval, ptrain,
-                                        hist,
-                                        epostep=epostep,
-                                        dir_save=dir_save,
-                                        unit_energy=unit_label_energy,
-                                        unit_force=unit_label_grad)
+        plot_loss_curves([hist.history['energy_mean_absolute_error'],hist.history['force_mean_absolute_error']],
+                         [hist.history['val_energy_mean_absolute_error'],hist.history['val_force_mean_absolute_error']],
+                         label_curves=["energy","force"],
+                     val_step=epostep, save_plot_to_file=True, dir_save=dir_save,
+                    filename='fit'+str(i), filetypeout='.png', unit_loss=unit_label_energy, loss_name="MAE", plot_title="Energy")
+
+        plot_learning_curve(hist.history['energy_lr'],filename='fit'+str(i),dir_save=dir_save)
+
+        plot_scatter_prediction(pval[0], yval_plot[0], save_plot_to_file=True, dir_save=dir_save, filename='fit' + str(i)+"_energy",
+                                filetypeout='.png', unit_actual=unit_label_energy, unit_predicted=unit_label_energy,
+                                plot_title="Prediction Energy")
+
+        plot_scatter_prediction(pval[1], yval_plot[1], save_plot_to_file=True, dir_save=dir_save, filename='fit' + str(i)+"_grad",
+                                filetypeout='.png', unit_actual=unit_label_grad, unit_predicted=unit_label_grad,
+                                plot_title="Prediction Gradient")
+
+        plot_error_vec_mean([pval[1],ptrain[1]], [yval_plot[1],ytrain_plot[1]], label_curves=["Validation gradients","Training Gradients"],  unit_predicted=unit_label_grad,
+                filename='fit'+str(i)+"_grad", dir_save=dir_save, save_plot_to_file=True, filetypeout='.png',  x_label='Gradients xyz * #atoms * #states ',
+                plot_title="Gradient mean error")
+
+        plot_error_vec_max([pval[1],ptrain[1]], [yval_plot[1],ytrain_plot[1]],
+                           label_curves=["Validation","Training"],
+                           unit_predicted=unit_label_grad, filename='fit'+str(i)+"_grad",
+                           dir_save=dir_save,save_plot_to_file=True, filetypeout='.png',
+                           x_label='Gradients xyz * #atoms * #states ',  plot_title="Gradient max error")
+
     except:
         print("Error: Could not plot fitting stats")
 

@@ -28,7 +28,7 @@ DEFAULT_HYPER_PARAM_ENERGY_GRADS = {
             # Features
             'invd_index': True,  # not used yet
             'angle_index': [],  # list-only of shape (N,3) angle: 0-1-2  or alpha(1->0,1->2)
-            'dihyd_index': [],  # list of dihydral angles with index ijkl angle is between ijk and jkl
+            'dihed_index': [],  # list of dihedral angles with index ijkl angle is between ijk and jkl
         },
     'training':
         {

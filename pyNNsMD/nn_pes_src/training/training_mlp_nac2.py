@@ -37,14 +37,15 @@ print("Logic Devices:",tf.config.experimental.list_logical_devices('GPU'))
 
 
 from pyNNsMD.utils.callbacks import EarlyStopping,lr_lin_reduction,lr_exp_reduction,lr_step_reduction
-from pyNNsMD.nn_pes_src.plotting.plot_mlp_nac import plot_nac_fit_result
-from pyNNsMD.models.features import create_feature_models
 from pyNNsMD.models.mlp_nac2 import NACModel2
 from pyNNsMD.datasets.general import load_hyp
 from pyNNsMD.datasets.general import split_validation_training_index
 from pyNNsMD.scaler.nac import NACStandardScaler
-from pyNNsMD.scaler.general import scale_feature
+from pyNNsMD.scaler.general import SegmentStandardScaler
 from pyNNsMD.utils.loss import ScaledMeanAbsoluteError,get_lr_metric,r2_metric,NACphaselessLoss
+from pyNNsMD.plots.loss import plot_loss_curves, plot_learning_curve
+from pyNNsMD.plots.pred import plot_scatter_prediction
+from pyNNsMD.plots.error import plot_error_vec_mean,plot_error_vec_max
 
 def train_model_nac(i=0, outdir=None, mode = 'training'):
     """
@@ -176,17 +177,20 @@ def train_model_nac(i=0, outdir=None, mode = 'training'):
         feat_x_mean = np.mean(feat_x[i_train],axis=0,keepdims=True)
         feat_x_std = np.std(feat_x[i_train],axis=0,keepdims=True)
     elif(normalize_feat==2):
-        feat_x_mean,feat_x_std = scale_feature(feat_x[i_train],hypermodel)
+        seg_scaler = SegmentStandardScaler(out_model.get_layer('feat_geo').get_feature_type_segmentation())
+        seg_scaler.fit(y=feat_x[i_train])
+        feat_x_mean, feat_x_std = np.array(seg_scaler.get_params()["feat_mean"]), np.array(
+            seg_scaler.get_params()["feat_std"])
     else:
         print("Info: Keeping old normalization (default/unity or loaded from file).")
-        
+    out_model.get_layer('feat_std').set_weights([feat_x_mean, feat_x_std])
+
     xtrain = [feat_x[i_train],feat_grad[i_train]]
     ytrain = y[i_train]
     xval = [feat_x[i_val],feat_grad[i_val]]
     yval = y[i_val]
 
     # Set Scaling
-    out_model.get_layer('feat_std').set_weights([feat_x_mean, feat_x_std])
     scaled_metric = ScaledMeanAbsoluteError(scaling_shape=scaler.nac_std.shape)
     tf.keras.backend.set_value(scaled_metric.scale, scaler.nac_std)
     
@@ -260,15 +264,34 @@ def train_model_nac(i=0, outdir=None, mode = 'training'):
         _, ptrain = scaler.inverse_transform(y=ptrain)
 
         print("Info: Predicted NAC shape:",ptrain.shape)
-        print("Info: Plot fit stats...")        
-        
-        plot_nac_fit_result(i,xval,xtrain,
-                            yval_plot,ytrain_plot,
-                            pval,ptrain,
-                            hist,
-                            epostep = epostep,
-                            dir_save= dir_save,
-                            unit_nac=unit_label_nac)   
+        print("Info: Plot fit stats...")
+
+        plot_loss_curves(hist.history['mean_absolute_error'],
+                         hist.history['val_mean_absolute_error'],
+                         label_curves="NAC",
+                         val_step=epostep, save_plot_to_file=True, dir_save=dir_save,
+                         filename='fit' + str(i) + "_nac", filetypeout='.png', unit_loss=unit_label_nac,
+                         loss_name="MAE",
+                         plot_title="NAC")
+
+        plot_learning_curve(hist.history['lr'], filename='fit' + str(i), dir_save=dir_save)
+
+        plot_scatter_prediction(pval, yval_plot, save_plot_to_file=True, dir_save=dir_save,
+                                filename='fit' + str(i) + "_nac",
+                                filetypeout='.png', unit_actual=unit_label_nac, unit_predicted=unit_label_nac,
+                                plot_title="Prediction NAC")
+
+        plot_error_vec_mean([pval, ptrain], [yval_plot, ytrain_plot],
+                            label_curves=["Validation NAC", "Training NAC"], unit_predicted=unit_label_nac,
+                            filename='fit' + str(i) + "_nac", dir_save=dir_save, save_plot_to_file=True,
+                            filetypeout='.png', x_label='NACs xyz * #atoms * #states ',
+                            plot_title="NAC mean error")
+
+        plot_error_vec_max([pval, ptrain], [yval_plot, ytrain_plot],
+                           label_curves=["Validation", "Training"],
+                           unit_predicted=unit_label_nac, filename='fit' + str(i) + "_nc",
+                           dir_save=dir_save, save_plot_to_file=True, filetypeout='.png',
+                           x_label='NACs xyz * #atoms * #states ', plot_title="NAC max error")
     except:
         print("Warning: Could not plot fitting stats")
     

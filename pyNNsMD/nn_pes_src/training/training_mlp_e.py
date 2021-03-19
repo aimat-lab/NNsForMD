@@ -37,14 +37,15 @@ set_gpu([int(args['gpus'])])
 print("Logic Devices:",tf.config.experimental.list_logical_devices('GPU'))
 
 from pyNNsMD.utils.callbacks import EarlyStopping,lr_lin_reduction,lr_exp_reduction,lr_step_reduction
-from pyNNsMD.nn_pes_src.plotting.plot_mlp_e import plot_energy_fit_result
 from pyNNsMD.models.mlp_e import EnergyModel
 # from pyNNsMD.nn_pes_src.legacy import compute_feature_derivative
 from pyNNsMD.datasets.general import split_validation_training_index, load_hyp
 # from pyNNsMD.nn_pes_src.scaler import save_std_scaler_dict
 from pyNNsMD.scaler.energy import EnergyStandardScaler
-from pyNNsMD.scaler.general import scale_feature
+from pyNNsMD.scaler.general import SegmentStandardScaler
 from pyNNsMD.utils.loss import ScaledMeanAbsoluteError,get_lr_metric,r2_metric
+from pyNNsMD.plots.loss import plot_loss_curves, plot_learning_curve
+from pyNNsMD.plots.pred import plot_scatter_prediction
 
 def train_model_energy(i = 0, outdir=None,  mode='training'): 
     """
@@ -172,23 +173,25 @@ def train_model_energy(i = 0, outdir=None,  mode='training'):
         feat_x_mean = np.mean(feat_x[i_train],axis=0,keepdims=True)
         feat_x_std = np.std(feat_x[i_train],axis=0,keepdims=True)
     elif(normalize_feat==2):
-        feat_x_mean,feat_x_std = scale_feature(feat_x[i_train],hypermodel)
+        seg_scaler = SegmentStandardScaler(out_model.get_layer('feat_geo').get_feature_type_segmentation())
+        seg_scaler.fit(y=feat_x[i_train])
+        feat_x_mean,feat_x_std = np.array(seg_scaler.get_params()["feat_mean"]), np.array(seg_scaler.get_params()["feat_std"])
     else:
         print("Info: Keeping old normalization (default/unity or loaded from file).")
-        
+    out_model.get_layer('feat_std').set_weights([feat_x_mean,feat_x_std])
+
+
     #Train Test split
     xtrain = feat_x[i_train]
     ytrain = y1[i_train]
     xval = feat_x[i_val]
     yval = y1[i_val]
-    
-    #Setting constant feature normalization
-    out_model.get_layer('feat_std').set_weights([feat_x_mean,feat_x_std])
+
+
+    # Compile model
     # This is only for metric to without std.
     scaled_metric = ScaledMeanAbsoluteError(scaling_shape=scaler.energy_std.shape)
     ks.backend.set_value(scaled_metric.scale,scaler.energy_std)
-
-    # Compile model
     optimizer = tf.keras.optimizers.Adam(lr=learning_rate)
     lr_metric = get_lr_metric(optimizer)
     out_model.compile(optimizer=optimizer,
@@ -226,31 +229,33 @@ def train_model_energy(i = 0, outdir=None,  mode='training'):
     except:
         print("Error: Can not export scaler info. Model prediciton will be wrongly scaled.")
     
-    try:
-        #Plot and Save
-        yval_plot = y[i_val] 
-        ytrain_plot = y[i_train]
-        # Convert back scaler
-        pval = out_model.predict(xval)
-        ptrain = out_model.predict(xtrain)
-        _, pval = scaler.inverse_transform(y=pval)
-        _, ptrain = scaler.inverse_transform(y=ptrain)
-    
-    
-        print("Info: Predicted Energy shape:",ptrain.shape)
-        print("Info: Predicted Gradient shape:",ptrain.shape)
-        print("Info: Plot fit stats...")        
-        
-        #Plot
-        plot_energy_fit_result(i,xval,xtrain,
-                yval_plot,ytrain_plot,
-                pval,ptrain,
-                hist,
-                epostep = epostep,
-                dir_save= dir_save,
-                unit_energy=unit_label_energy)     
-    except:
-        print("Error: Could not plot fitting stats")
+    #try:
+    #Plot and Save
+    yval_plot = y[i_val]
+    ytrain_plot = y[i_train]
+    # Convert back scaler
+    pval = out_model.predict(xval)
+    ptrain = out_model.predict(xtrain)
+    _, pval = scaler.inverse_transform(y=pval)
+    _, ptrain = scaler.inverse_transform(y=ptrain)
+
+
+    print("Info: Predicted Energy shape:",ptrain.shape)
+    print("Info: Predicted Gradient shape:",ptrain.shape)
+    print("Info: Plot fit stats...")
+
+    #Plot
+    plot_loss_curves(hist.history['mean_absolute_error'],hist.history['val_mean_absolute_error'],
+                     val_step=epostep, save_plot_to_file=True, dir_save=dir_save,
+                    filename='fit'+str(i), filetypeout='.png', unit_loss=unit_label_energy, loss_name="MAE", plot_title="Energy")
+
+    plot_scatter_prediction(pval, yval_plot,save_plot_to_file=True,dir_save=dir_save, filename='fit'+str(i),
+                    filetypeout='.png',  unit_actual=unit_label_energy, unit_predicted=unit_label_energy, plot_title="Prediction" )
+
+    plot_learning_curve(hist.history['lr'],filename='fit'+str(i),dir_save=dir_save)
+
+    #except:
+    #    print("Error: Could not plot fitting stats")
         
     error_val = None
     try:

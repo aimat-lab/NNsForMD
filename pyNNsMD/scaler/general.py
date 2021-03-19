@@ -1,83 +1,74 @@
-"""
-Created on Tue Nov 10 11:47:49 2020
-"""
 import numpy as np
-
+import json
 
 class SegmentStandardScaler:
-    pass
+    def __init__(self, segments=None):
+        self.feat_mean = np.zeros((1, 1))
+        self.feat_std = np.ones((1, 1))
 
-def scale_feature(feats,hyper):
-    """
-    Scale features.
-    
-    This rquires knowledge on how the featue vector is composed. 
-    Must be changed with the feautre description.
+        self.segments = segments
+        self._encountered_y_shape = None
 
-    Args:
-        feats (np.array): DESCRIPTION.
-        hyp (dict): DESCRIPTION.
+    def fit(self,y=None,segments=None):
+        if segments is not None:
+            self.segments = segments
 
-    Returns:
-        out_mean (np.array): DESCRIPTION.
-        out_scale (np.array): DESCRIPTION.
+        if self.segments is None:
+            raise ValueError("Please define segments to scale features for shape", self.feat_mean.shape)
 
-    """
-    print("Feature shape", feats.shape)
+        feat_std = []
+        feat_mean = []
+        splits = np.concatenate([np.array([0]),np.cumsum(self.segments)])
+        print(splits)
+        for i in range(len(self.segments)):
+            sub_array = y[:,splits[i]:splits[i+1]]
+            feat_std.append(np.std(sub_array))
+            feat_mean.append(np.mean(sub_array))
 
-    out_dim = int( hyper['states'])
-    indim = int( hyper['atoms'])
-    invd_index = hyper['invd_index']
-    angle_index = hyper['angle_index']
-    dihyd_index = hyper['dihyd_index']
-    
-    use_invd_index = len(invd_index)>0 if isinstance(invd_index,list) or isinstance(invd_index,np.ndarray) else False
-    use_angle_index = len(angle_index)>0 if isinstance(angle_index,list) or isinstance(angle_index,np.ndarray) else False
-    use_dihyd_index = len(dihyd_index)>0 if isinstance(dihyd_index,list) or isinstance(dihyd_index,np.ndarray) else False
+        feat_mean = np.repeat(np.array(feat_mean),np.array(self.segments))
+        feat_std = np.repeat(np.array(feat_std),np.array(self.segments))
+        self.feat_std = np.expand_dims(feat_std,axis=0)
+        self.feat_mean = np.expand_dims(feat_mean, axis=0)
 
-    invd_index = np.array(invd_index,dtype = np.int64) if use_invd_index else None
-    angle_index = np.array(angle_index ,dtype = np.int64) if use_angle_index else None
-    dihyd_index = np.array(dihyd_index,dtype = np.int64) if use_dihyd_index else None
-        
-    invd_shape = invd_index.shape if use_invd_index else None
-    angle_shape = angle_index.shape if use_angle_index else None
-    dihyd_shape = dihyd_index.shape if use_dihyd_index else None
-    
-    in_model_dim = 0
-    out_scale = []
-    out_mean = []
-    
-    if(use_invd_index == True):
-        invd_dim = invd_shape[0]
-    else:
-        invd_dim = int(indim*(indim-1)/2)
-    if(invd_dim>0):
-        invd_mean = np.mean(feats[:,0:invd_dim])
-        invd_std  = np.std(feats[:,0:invd_dim])
-        out_scale.append(np.tile(np.expand_dims(invd_std,axis=-1),(1,invd_dim)))
-        out_mean.append(np.tile(np.expand_dims(invd_mean,axis=-1),(1,invd_dim)))
-    
-    if(use_angle_index == True):
-        angle_dim = angle_shape[0]
-    else:
-        angle_dim = 0
-    if(angle_dim>0):
-        angle_mean = np.mean(feats[:,invd_dim:(invd_dim+angle_dim)])
-        angle_std = np.std(feats[:,invd_dim:(invd_dim+angle_dim)])
-        out_scale.append(np.tile(np.expand_dims(angle_std,axis=-1),(1,angle_dim)))
-        out_mean.append(np.tile(np.expand_dims(angle_mean,axis=-1),(1,angle_dim)))
-        
-    if(use_dihyd_index == True):
-        dihyd_dim = dihyd_shape[0]
-    else:
-        dihyd_dim = 0
-    if(dihyd_dim > 0 ):
-        dihyd_mean = np.mean(feats[:,(invd_dim+angle_dim):(invd_dim+angle_dim+dihyd_dim)])
-        dihyd_std = np.std(feats[:,(invd_dim+angle_dim):(invd_dim+angle_dim+dihyd_dim)])
-        out_scale.append(np.tile(np.expand_dims(dihyd_std,axis=-1),(1,dihyd_dim)))
-        out_mean.append(np.tile(np.expand_dims(dihyd_mean,axis=-1),(1,dihyd_dim)))
-    
-    
-    out_scale = np.concatenate(out_scale,axis=-1)
-    out_mean = np.concatenate(out_mean,axis=-1)
-    return out_mean,out_scale
+        self._encountered_y_shape = np.array(y.shape)
+        # print(feat_mean,feat_std)
+
+    def transform(self,y=None):
+        if y is not None:
+            y_res = (y - self.feat_mean) / self.feat_std
+        return y_res
+
+    def inverse_transform(self,y=None):
+        y_res = y
+        if y is not None:
+            y_res = y * self.feat_std + self.feat_mean
+        return y_res
+
+    def save(self,filepath):
+        outdict = {'feat_mean': self.feat_mean.tolist(),
+                   'feat_std': self.feat_std.tolist(),
+                   }
+        with open(filepath, 'w') as f:
+            json.dump(outdict, f)
+
+    def load(self, filepath):
+        with open(filepath, 'r') as f:
+            indict = json.load(f)
+
+        self.feat_mean = np.array(indict['feat_mean'])
+        self.feat_std = np.array(indict['feat_std'])
+
+    def get_params(self):
+        outdict = {'feat_mean': self.feat_mean.tolist(),
+                   'feat_std': self.feat_std.tolist(),
+                   }
+        return outdict
+
+    def set_params(self, indict):
+        self.feat_mean = np.array(indict['feat_mean'])
+        self.feat_std = np.array(indict['feat_std'])
+
+    def print_params_info(self):
+        print("Info: Data feature shape", self._encountered_y_shape )
+        print("Info: Using feature-scale", self.feat_std.shape, ":", self.feat_std)
+        print("Info: Using feature-offset", self.feat_mean.shape, ":", self.feat_mean)

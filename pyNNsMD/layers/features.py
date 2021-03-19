@@ -2,39 +2,6 @@ import tensorflow as tf
 import tensorflow.keras as ks
 
 
-class InverseDistance(ks.layers.Layer):
-    def __init__(self, **kwargs):
-        super(InverseDistance, self).__init__(**kwargs)
-        # self.dinv_mean = dinv_mean
-        # self.dinv_std = dinv_std
-
-    def build(self, input_shape):
-        super(InverseDistance, self).build(input_shape)
-
-    def call(self, inputs, **kwargs):
-        coords = inputs  # (batch,N,3)
-        # Compute square dinstance matrix
-        ins_int = ks.backend.int_shape(coords)
-        ins = ks.backend.shape(coords)
-        a = ks.backend.expand_dims(coords, axis=1)
-        b = ks.backend.expand_dims(coords, axis=2)
-        c = b - a  # (batch,N,N,3)
-        d = ks.backend.sum(ks.backend.square(c), axis=-1)  # squared distance without sqrt for derivative
-        # Compute Mask for lower tri
-        ind1 = ks.backend.expand_dims(ks.backend.arange(0, ins_int[1]), axis=1)
-        ind2 = ks.backend.expand_dims(ks.backend.arange(0, ins_int[1]), axis=0)
-        mask = ks.backend.less(ind1, ind2)
-        mask = ks.backend.expand_dims(mask, axis=0)
-        mask = ks.backend.tile(mask, (ins[0], 1, 1))  # (batch,N,N)
-        # Apply Mask and reshape
-        d = d[mask]
-        d = ks.backend.reshape(d, (ins[0], ins_int[1] * (ins_int[1] - 1) // 2))  # Not pretty
-        d = ks.backend.sqrt(d)  # Now the sqrt is okay
-        out = 1 / d  # Now inverse should also be okay
-        # out = (out - self.dinv_mean )/self.dinv_std #standardize with fixed values.
-        return out
-
-
 class InverseDistanceIndexed(ks.layers.Layer):
     """
     Compute inverse distances from coordinates.
@@ -129,6 +96,7 @@ class Angles(ks.layers.Layer):
                                           initializer=tf.keras.initializers.Zeros(),
                                           dtype='int64',
                                           trainable=False)
+        self.angle_shape = angle_shape
 
     def build(self, input_shape):
         """
@@ -177,15 +145,15 @@ class Angles(ks.layers.Layer):
         return config
 
 
-class Dihydral(ks.layers.Layer):
+class Dihedral(ks.layers.Layer):
     """
-    Compute dihydral angles from coordinates.
+    Compute dihedral angles from coordinates.
     
     The index-list of atoms to compute angles from is added as a static non-trainable weight.
     This should be cleaner than always have to move the index within the model.
     """
 
-    def __init__(self, angle_shape, **kwargs):
+    def __init__(self, dihed_shape, **kwargs):
         """
         Init the layer. The angle list is initialized to zero.
 
@@ -194,14 +162,15 @@ class Dihydral(ks.layers.Layer):
             **kwargs
 
         """
-        super(Dihydral, self).__init__(**kwargs)
+        super(Dihedral, self).__init__(**kwargs)
         # self.angle_list = angle_list
         # self.angle_list_tf = tf.constant(np.array(angle_list))
-        self.angle_list = self.add_weight('angle_list',
-                                          shape=angle_shape,
+        self.dihed_list = self.add_weight('dihed_list',
+                                          shape=dihed_shape,
                                           initializer=tf.keras.initializers.Zeros(),
                                           dtype='int64',
                                           trainable=False)
+        self.dihed_shape = dihed_shape
 
     def build(self, input_shape):
         """
@@ -211,7 +180,7 @@ class Dihydral(ks.layers.Layer):
             input_shape (list): Input shape.
 
         """
-        super(Dihydral, self).build(input_shape)
+        super(Dihedral, self).build(input_shape)
 
     def call(self, inputs, **kwargs):
         """
@@ -227,7 +196,7 @@ class Dihydral(ks.layers.Layer):
         # implementation from
         # https://en.wikipedia.org/wiki/Dihedral_angle
         cordbatch = inputs
-        indexbatch = tf.repeat(ks.backend.expand_dims(self.angle_list, axis=0), ks.backend.shape(cordbatch)[0], axis=0)
+        indexbatch = tf.repeat(ks.backend.expand_dims(self.dihed_list, axis=0), ks.backend.shape(cordbatch)[0], axis=0)
         p1 = tf.gather(cordbatch, indexbatch[:, :, 0], axis=1, batch_dims=1)
         p2 = tf.gather(cordbatch, indexbatch[:, :, 1], axis=1, batch_dims=1)
         p3 = tf.gather(cordbatch, indexbatch[:, :, 2], axis=1, batch_dims=1)
@@ -249,14 +218,14 @@ class Dihydral(ks.layers.Layer):
             config (dict): Config from base class plus angle index shape.
 
         """
-        config = super(Dihydral, self).get_config()
-        config.update({"angle_shape": self.angle_shape})
+        config = super(Dihedral, self).get_config()
+        config.update({"dihed_shape": self.angle_shape})
         return config
 
 
 class FeatureGeometric(ks.layers.Layer):
     """
-    Feautre representation consisting of inverse distances, angles and dihydral angles.
+    Feautre representation consisting of inverse distances, angles and dihedral angles.
     
     Uses InverseDistance, Angle, Dihydral layer definition if input index is not empty.
     
@@ -265,7 +234,7 @@ class FeatureGeometric(ks.layers.Layer):
     def __init__(self,
                  invd_shape=None,
                  angle_shape=None,
-                 dihyd_shape=None,
+                 dihed_shape=None,
                  **kwargs):
         """
         Init of the layer.
@@ -273,7 +242,7 @@ class FeatureGeometric(ks.layers.Layer):
         Args:
             invd_shape (list, optional): Index-Shape of atoms to calculate inverse distances. Defaults to None.
             angle_shape (list, optional): Index-Shape of atoms to calculate angles between. Defaults to None.
-            dihyd_shape (list, optional): Index-Shape of atoms to calculate dihyd between. Defaults to None.
+            dihed_shape (list, optional): Index-Shape of atoms to calculate dihed between. Defaults to None.
             **kwargs
 
         """
@@ -283,18 +252,19 @@ class FeatureGeometric(ks.layers.Layer):
         self.invd_shape = invd_shape
         self.use_bond_angles = angle_shape is not None
         self.angle_shape = angle_shape
-        self.use_dihyd_angles = dihyd_shape is not None
-        self.dihyd_shape = dihyd_shape
+        self.use_dihed_angles = dihed_shape is not None
+        self.dihed_shape = dihed_shape
+
+        if not self.use_invdist and not self.use_bond_angles and not self.use_dihed_angles:
+            raise ValueError("Feature Layer: One geometric feature type must be defined or features = [].")
 
         if self.use_invdist:
             self.invd_layer = InverseDistanceIndexed(invd_shape)
-        else:
-            self.invd_layer = InverseDistance()  # default always
         if self.use_bond_angles:
             self.ang_layer = Angles(angle_shape=angle_shape)
             self.concat_ang = ks.layers.Concatenate(axis=-1)
-        if self.use_dihyd_angles:
-            self.dih_layer = Dihydral(angle_shape=dihyd_shape)
+        if self.use_dihed_angles:
+            self.dih_layer = Dihedral(dihed_shape=dihed_shape)
             self.concat_dih = ks.layers.Concatenate(axis=-1)
         self.flat_layer = ks.layers.Flatten(name='feat_flat')
 
@@ -321,32 +291,39 @@ class FeatureGeometric(ks.layers.Layer):
         """
         x = inputs
 
-        feat = self.invd_layer(x)
+        if self.use_invdist:
+            feat = self.invd_layer(x)
         if self.use_bond_angles:
-            angs = self.ang_layer(x)
-            feat = self.concat_ang([feat, angs])
-        if self.use_dihyd_angles:
-            dih = self.dih_layer(x)
-            feat = self.concat_dih([feat, dih])
+            if not self.use_invdist:
+                feat = self.ang_layer(x)
+            else:
+                angs = self.ang_layer(x)
+                feat = self.concat_ang([feat, angs])
+        if self.use_dihed_angles:
+            if not self.use_invdist and not self.use_bond_angles:
+                feat = self.dih_layer(x)
+            else:
+                dih = self.dih_layer(x)
+                feat = self.concat_dih([feat, dih])
 
         feat_flat = self.flat_layer(feat)
         out = feat_flat
         return out
 
-    def set_mol_index(self, invd_index, angle_index, dihyd_index):
+    def set_mol_index(self, invd_index, angle_index, dihed_index):
         """
         Set weights for atomic index for distance and angles.
 
         Args:
             invd_index (np.array): Index for inverse distances. Shape (N,2)
             angle_index (np.array): Index for angles. Shape (N,3).
-            dihyd_index (np.array):Index for dihed angles. Shape (N,4).
+            dihed_index (np.array):Index for dihed angles. Shape (N,4).
 
         """
         if self.use_invdist:
             self.invd_layer.set_weights([invd_index])
-        if self.use_dihyd_angles:
-            self.dih_layer.set_weights([dihyd_index])
+        if self.use_dihed_angles:
+            self.dih_layer.set_weights([dihed_index])
         if self.use_bond_angles:
             self.ang_layer.set_weights([angle_index])
 
@@ -361,6 +338,56 @@ class FeatureGeometric(ks.layers.Layer):
         config = super(FeatureGeometric, self).get_config()
         config.update({"invd_shape": self.invd_shape,
                        "angle_shape": self.angle_shape,
-                       "dihyd_shape": self.dihyd_shape
+                       "dihed_shape": self.dihed_shape
                        })
         return config
+
+    def get_feature_type_segmentation(self):
+        """
+        Get the feature output segmentation length [invd,angle,dihys]
+
+        Returns:
+             feat_segments (list): Segmentation length
+        """
+        feat_segments = []
+        if self.invd_shape is not None:
+            feat_segments.append(self.invd_shape[0])
+        if self.angle_shape is not None:
+            feat_segments.append(self.angle_shape[0])
+        if self.dihed_shape is not None:
+            feat_segments.append(self.dihed_shape[0])
+        return feat_segments
+
+
+
+class InverseDistance(ks.layers.Layer):
+    def __init__(self, **kwargs):
+        super(InverseDistance, self).__init__(**kwargs)
+        # self.dinv_mean = dinv_mean
+        # self.dinv_std = dinv_std
+
+    def build(self, input_shape):
+        super(InverseDistance, self).build(input_shape)
+
+    def call(self, inputs, **kwargs):
+        coords = inputs  # (batch,N,3)
+        # Compute square dinstance matrix
+        ins_int = ks.backend.int_shape(coords)
+        ins = ks.backend.shape(coords)
+        a = ks.backend.expand_dims(coords, axis=1)
+        b = ks.backend.expand_dims(coords, axis=2)
+        c = b - a  # (batch,N,N,3)
+        d = ks.backend.sum(ks.backend.square(c), axis=-1)  # squared distance without sqrt for derivative
+        # Compute Mask for lower tri
+        ind1 = ks.backend.expand_dims(ks.backend.arange(0, ins_int[1]), axis=1)
+        ind2 = ks.backend.expand_dims(ks.backend.arange(0, ins_int[1]), axis=0)
+        mask = ks.backend.less(ind1, ind2)
+        mask = ks.backend.expand_dims(mask, axis=0)
+        mask = ks.backend.tile(mask, (ins[0], 1, 1))  # (batch,N,N)
+        # Apply Mask and reshape
+        d = d[mask]
+        d = ks.backend.reshape(d, (ins[0], ins_int[1] * (ins_int[1] - 1) // 2))  # Not pretty
+        d = ks.backend.sqrt(d)  # Now the sqrt is okay
+        out = 1 / d  # Now inverse should also be okay
+        # out = (out - self.dinv_mean )/self.dinv_std #standardize with fixed values.
+        return out

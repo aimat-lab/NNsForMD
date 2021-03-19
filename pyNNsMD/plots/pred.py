@@ -1,30 +1,35 @@
 import matplotlib.pyplot as plt
+import numpy as np
+import os
 
+def plot_scatter_prediction(
+                            y_pred,
+                            y_val,
+                            save_plot_to_file=False,
+                            dir_save="",
+                            filename='fit',
+                            filetypeout='.png',
+                            unit_actual='#',
+                            unit_predicted = "#",
+                            plot_title="Prediction"
+                            ):
 
+    fig = plt.figure()
 
-def plot_scatter_prediction()
+    preds = y_pred.flatten()
+    engval = y_val.flatten()
+    engval_min = np.amin(engval)
+    engval_max = np.amax(engval)
+    plt.plot(np.arange(engval_min, engval_max, np.abs(engval_min - engval_max) / 100),
+             np.arange(engval_min, engval_max, np.abs(engval_min - engval_max) / 100), color='red')
+    plt.scatter(preds, engval, alpha=0.3)
+    plt.xlabel('Predicted ' + " [" + unit_predicted + "]")
+    plt.ylabel('Actual ' + " [" + unit_actual + "]")
+    plt.title(plot_title)
+    plt.text(engval_min, engval_max, "MAE: {0:0.3f} ".format(np.mean(np.abs(preds - engval))) + "[" +unit_predicted + "]")
 
-    filetypeout = '.pdf'
-    # timestamp = f"{round(time.time())}"
-
-    if (os.path.exists(dir_save) == False):
-        print("Error: Output directory does not exist")
-        return
-
-    try:
-        # Training curve
-        trainlossall_energy = hist.history['mean_absolute_error']
-        testlossall_energy = hist.history['val_mean_absolute_error']
-        outname = os.path.join(dir_save, "fit" + str(i) + "_loss" + filetypeout)
-        plt.figure()
-        plt.plot(np.arange(1, len(trainlossall_energy) + 1), trainlossall_energy, label='Training energy', color='c')
-        plt.plot(np.array(range(1, len(testlossall_energy) + 1)) * epostep, testlossall_energy, label='Test energy',
-                 color='b')
-        plt.xlabel('Epochs')
-        plt.ylabel('Mean absolute Error ' + "[" + unit_energy + "]")
-        plt.title("Mean absolute Error vs. epochs")
-        plt.legend(loc='upper right', fontsize='x-large')
+    if save_plot_to_file:
+        outname = os.path.join(dir_save, filename+ "_predict" + filetypeout)
         plt.savefig(outname)
-        plt.close()
-    except:
-        print("Error: Could not plot loss curve")
+
+    return fig

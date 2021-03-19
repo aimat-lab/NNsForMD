@@ -31,7 +31,7 @@ class NACModel2(ks.Model):
                 states,
                 invd_index = [],
                 angle_index = [],
-                dihyd_index = [],
+                dihed_index = [],
                 nn_size = 100,
                 depth = 3,
                 activ = "selu",
@@ -57,35 +57,39 @@ class NACModel2(ks.Model):
         indim = int(atoms)
 
         self.y_atoms = indim
-        
+
+        # Allow for all distances, backward compatible
+        if isinstance(invd_index,bool):
+            if invd_index:
+                invd_index = [[i,j] for i in range(0,int(atoms)) for j in range(0,i)]
+
         use_invd_index = len(invd_index)>0 if isinstance(invd_index,list) or isinstance(invd_index,np.ndarray) else False
         use_angle_index = len(angle_index)>0 if isinstance(angle_index,list) or isinstance(angle_index,np.ndarray) else False
-        use_dihyd_index = len(dihyd_index)>0 if isinstance(dihyd_index,list) or isinstance(dihyd_index,np.ndarray) else False
+        use_dihed_index = len(dihed_index)>0 if isinstance(dihed_index,list) or isinstance(dihed_index,np.ndarray) else False
         
         invd_index = np.array(invd_index,dtype = np.int64) if use_invd_index else None
         angle_index = np.array(angle_index ,dtype = np.int64) if use_angle_index else None
-        dihyd_index = np.array(dihyd_index,dtype = np.int64) if use_dihyd_index else None
+        dihed_index = np.array(dihed_index,dtype = np.int64) if use_dihed_index else None
         
         invd_shape = invd_index.shape if use_invd_index else None
         angle_shape = angle_index.shape if use_angle_index else None
-        dihyd_shape = dihyd_index.shape if use_dihyd_index else None
+        dihed_shape = dihed_index.shape if use_dihed_index else None
 
         in_model_dim = 0
         if(use_invd_index==True):
             in_model_dim += len(invd_index)
-        else:
-            in_model_dim += int(indim*(indim-1)/2) #default is all inverse distances
         if(use_angle_index == True):
             in_model_dim += len(angle_index) 
-        if(use_dihyd_index == True):
-            in_model_dim += len(dihyd_index) 
+        if(use_dihed_index == True):
+            in_model_dim += len(dihed_index)
 
     
         self.feat_layer = FeatureGeometric(invd_shape = invd_shape,
                                            angle_shape = angle_shape,
-                                           dihyd_shape = dihyd_shape,
+                                           dihed_shape = dihed_shape,
+                                           name="feat_geo"
                                            )
-        self.feat_layer.set_mol_index(invd_index, angle_index , dihyd_index)
+        self.feat_layer.set_mol_index(invd_index, angle_index , dihed_index)
         
         
         self.std_layer = ConstLayerNormalization(name='feat_std')
