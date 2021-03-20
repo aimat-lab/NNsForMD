@@ -193,7 +193,7 @@ def train_model_energy(i=0, outdir=None, mode='training'):
     # Compile model
     # This is only for metric to without std.
     scaled_metric = ScaledMeanAbsoluteError(scaling_shape=scaler.energy_std.shape)
-    ks.backend.set_value(scaled_metric.scale, scaler.energy_std)
+    scaled_metric.set_scale(scaler.energy_std)
     optimizer = tf.keras.optimizers.Adam(lr=learning_rate)
     lr_metric = get_lr_metric(optimizer)
     out_model.compile(optimizer=optimizer,

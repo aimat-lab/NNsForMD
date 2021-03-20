@@ -197,6 +197,7 @@ def train_model_energy_gradient(i=0, outdir=None, mode='training'):
     optimizer = tf.keras.optimizers.Adam(lr=learning_rate)
     lr_metric = get_lr_metric(optimizer)
     mae_force = ScaledMeanAbsoluteError(scaling_shape=scaler.gradient_std.shape)
+    mae_force.set_scale(scaler.gradient_std)
     out_model.compile(optimizer=optimizer,
                       loss='mean_squared_error',
                       metrics=[mae_force, lr_metric, r2_metric])

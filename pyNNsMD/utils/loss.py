@@ -17,6 +17,11 @@ class ScaledMeanAbsoluteError(tf.keras.metrics.MeanAbsoluteError):
                                      dtype=tf.keras.backend.floatx())
         self.scaling_shape = scaling_shape
 
+    def reset_states(self):
+            # Super variables
+            ks.backend.set_value(self.total, 0)
+            ks.backend.set_value(self.count, 0)
+
     def update_state(self, y_true, y_pred, sample_weight=None):
         y_true = self.scale * y_true
         y_pred = self.scale * y_pred

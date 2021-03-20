@@ -195,7 +195,7 @@ def train_model_nac(i=0, outdir=None, mode='training'):
 
     # Set Scaling
     scaled_metric = ScaledMeanAbsoluteError(scaling_shape=scaler.nac_std.shape)
-    tf.keras.backend.set_value(scaled_metric.scale, scaler.nac_std)
+    scaled_metric.set_scale( scaler.nac_std)
 
     scaler.print_params_info()
     print("Info: Using feature-scale", feat_x_std.shape, ":", feat_x_std)
