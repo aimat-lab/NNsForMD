@@ -20,7 +20,7 @@ This repo is currently under construction. The original version used as the PyRa
 <a name="installation"></a>
 # Installation
 
-Clone repository https://github.com/aimat-lab/ and install for example with editable mode:
+Clone repository https://github.com/aimat-lab/NNsForMD and install for example with editable mode:
 
 ```bash
 pip install -e ./pyNNsMD

@@ -6,6 +6,7 @@ eng = np.load("butene/butene_energy.npy")
 grads = np.load("butene/butene_force.npy")
 print(x.shape,eng.shape,grads.shape)
 
+from pyNNsMD.models.mlp_eg import EnergyGradientModel
 
 
 
