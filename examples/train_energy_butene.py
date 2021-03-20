@@ -24,13 +24,13 @@ scaler.print_params_info()
 model.precomputed_features = True
 feat_x, feat_grad = model.precompute_feature_in_chunks(x_scaled, batch_size=32)
 
-# Set the constant Standardization layer in the model
+# Set the constant Normalization layer in the model
 # Otherwise this defaults to std=1 and mean=0
 model.get_layer('feat_std').compute_const_normalization(feat_x)
 print("Feature norm: ",model.get_layer('feat_std').get_weights())
 
 # compile model with optimizer
-# And use scaled metric to revert the standardization of the output during fit (optional).
+# And use scaled metric to revert the standardization of the output for metric during fit (optional).
 optimizer = tf.keras.optimizers.Adam(lr=1e-3)
 mae_energy = ScaledMeanAbsoluteError(scaling_shape=scaler.energy_std.shape)
 mae_force = ScaledMeanAbsoluteError(scaling_shape=scaler.gradient_std.shape)
@@ -40,4 +40,9 @@ model.compile(optimizer=optimizer,
                   loss=['mean_squared_error','mean_squared_error'], loss_weights=[1,1],
                   metrics=[[mae_energy],[mae_force]])
 
+# fit with precomputed features and normalized energies
+model.fit(x=[feat_x[:2000],feat_grad[:2000]],y=[y_scaled[0][:2000],y_scaled[1][:2000]],batch_size=32,epochs=100,verbose =2)
 
+# Now set the model to coordinates and predict the test data
+model.precomputed_features = False
+test = model.predict(x_scaled[2000:])

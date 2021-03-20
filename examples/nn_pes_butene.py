@@ -99,14 +99,14 @@ hyper_nac2 = {  # Model
 
 nn.create({
     # 'e': hyper_energy,
-    # 'eg': hyper_grads,
-    'nac2': hyper_nac2
+    'eg': hyper_grads,
+    # 'nac2': hyper_nac2
 })
 
 y = {
     # 'e': eng,
-    # 'eg': [eng, grads],
-    'nac2' : nac,
+    'eg': [eng, grads],
+    # 'nac2' : nac,
 }
 
 fitres = nn.fit(x,
