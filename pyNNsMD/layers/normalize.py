@@ -1,6 +1,6 @@
 import tensorflow as tf
 import tensorflow.keras as ks
-
+import numpy as np
 
 class ConstLayerNormalization(ks.layers.Layer):
     """
@@ -45,13 +45,13 @@ class ConstLayerNormalization(ks.layers.Layer):
         else:
             raise TypeError("Invalid axis argument")
         self.wmean = self.add_weight(
-            'mean',
+            'const_norm_mean',
             shape=outshape,
             initializer=tf.keras.initializers.Zeros(),
             dtype=self.dtype,
             trainable=False)
         self.wstd = self.add_weight(
-            'std',
+            'const_norm_std',
             shape=outshape,
             initializer=tf.keras.initializers.Ones(),
             dtype=self.dtype,
@@ -83,3 +83,18 @@ class ConstLayerNormalization(ks.layers.Layer):
         config = super(ConstLayerNormalization, self).get_config()
         config.update({"axs": self.axis})
         return config
+
+    def compute_const_normalization(self,feat_x):
+        """
+        Calculate and set the constant normalization of this layer.
+
+        Args:
+            feat (np.array): features of shape (batch,N)
+
+        Returns:
+
+        """
+        feat_x_mean = np.mean(feat_x, axis=0, keepdims=True)
+        feat_x_std = np.std(feat_x, axis=0, keepdims=True)
+        self.set_weights([feat_x_mean, feat_x_std])
+        return feat_x_mean,feat_x_std

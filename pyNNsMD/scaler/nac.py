@@ -47,6 +47,10 @@ class NACStandardScaler:
         self._encountered_y_std = np.std(y, axis=(0, 3), keepdims=True)
         self._encountered_y_shape = np.array(y.shape)
 
+    def fit_transform(self, x=None, y=None, auto_scale=None):
+        self.fit(x=x,y=y,auto_scale=auto_scale)
+        return self.transform(x=x,y=y)
+
     def save(self, filepath):
         outdict = {'x_mean': self.x_mean.tolist(),
                    'x_std': self.x_std.tolist(),

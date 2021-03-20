@@ -52,6 +52,10 @@ class EnergyStandardScaler:
         self._encountered_y_shape = np.array(y.shape)
         self._encountered_y_std = np.std(y, axis=0)
 
+    def fit_transform(self, x=None, y=None, auto_scale=None):
+        self.fit(x=x,y=y,auto_scale=auto_scale)
+        return self.transform(x=x,y=y)
+
     def save(self, filepath):
         outdict = {'x_mean': self.x_mean.tolist(),
                    'x_std': self.x_std.tolist(),
@@ -151,6 +155,10 @@ class EnergyGradientStandardScaler:
         self._encountered_y_shape = [np.array(y[0].shape), np.array(y[1].shape)]
         self._encountered_y_std = [np.std(y[0], axis=0), np.std(y[1], axis=(0, 2, 3))]
 
+    def fit_transform(self, x=None, y=None, auto_scale=None):
+        self.fit(x=x,y=y,auto_scale=auto_scale)
+        return self.transform(x=x,y=y)
+
     def save(self, filepath):
         outdict = {'x_mean': self.x_mean.tolist(),
                    'x_std': self.x_std.tolist(),
@@ -245,6 +253,10 @@ class GradientStandardScaler:
 
         self._encountered_y_std = np.std(y, axis=(0, 3), keepdims=True)
         self._encountered_y_shape = np.array(y.shape)
+
+    def fit_transform(self, x=None, y=None, auto_scale=None):
+        self.fit(x=x,y=y,auto_scale=auto_scale)
+        return self.transform(x=x,y=y)
 
     def save(self, filepath):
         outdict = {'x_mean': self.x_mean.tolist(),

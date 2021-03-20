@@ -47,6 +47,10 @@ class SegmentStandardScaler:
             y_res = y * self.feat_std + self.feat_mean
         return y_res
 
+    def fit_transform(self, y=None, segments=None):
+        self.fit(y=y,segments=segments)
+        return self.transform(y=y)
+
     def save(self, filepath):
         outdict = {'feat_mean': self.feat_mean.tolist(),
                    'feat_std': self.feat_std.tolist(),

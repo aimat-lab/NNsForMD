@@ -206,6 +206,8 @@ def train_model_energy_gradient(i=0, outdir=None, mode='training'):
     lr_metric = get_lr_metric(optimizer)
     mae_energy = ScaledMeanAbsoluteError(scaling_shape=scaler.energy_std.shape)
     mae_force = ScaledMeanAbsoluteError(scaling_shape=scaler.gradient_std.shape)
+    tf.keras.backend.set_value(mae_energy.scale, scaler.energy_std)
+    tf.keras.backend.set_value(mae_force.scale, scaler.gradient_std)
     out_model.compile(optimizer=optimizer,
                       loss={'energy': 'mean_squared_error', 'force': 'mean_squared_error'}, loss_weights=loss_weights,
                       metrics={'energy': [mae_energy, lr_metric, r2_metric],
