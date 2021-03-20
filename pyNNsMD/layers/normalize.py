@@ -8,7 +8,6 @@ class ConstLayerNormalization(ks.layers.Layer):
 
     Note that this sould be replaced with keras normalization layer where trainable could be altered.
     The standardization is done via 'std' and 'mean' tf.variable and uses not very flexible broadcasting.
-
     """
 
     def __init__(self, axis=-1, **kwargs):

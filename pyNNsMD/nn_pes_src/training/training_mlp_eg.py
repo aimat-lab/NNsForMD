@@ -1,11 +1,11 @@
 """
 The main training script for energy gradient model. Called with ArgumentParse.
 """
-import numpy as np
-import tensorflow as tf
 # from sklearn.utils import shuffle
 # import time
 import matplotlib as mpl
+import numpy as np
+import tensorflow as tf
 
 mpl.use('Agg')
 import os
@@ -47,7 +47,8 @@ from pyNNsMD.scaler.general import SegmentStandardScaler
 from pyNNsMD.utils.loss import get_lr_metric, ScaledMeanAbsoluteError, r2_metric
 from pyNNsMD.plots.loss import plot_loss_curves, plot_learning_curve
 from pyNNsMD.plots.pred import plot_scatter_prediction
-from pyNNsMD.plots.error import plot_error_vec_mean,plot_error_vec_max
+from pyNNsMD.plots.error import plot_error_vec_mean, plot_error_vec_max
+
 
 def train_model_energy_gradient(i=0, outdir=None, mode='training'):
     """
@@ -172,7 +173,7 @@ def train_model_energy_gradient(i=0, outdir=None, mode='training'):
         print("Info: Making new initialized weights.")
 
     # Scale x,y
-    scaler.fit(x, y,auto_scale=auto_scale)
+    scaler.fit(x, y, auto_scale=auto_scale)
     x_rescale, y_rescale = scaler.transform(x, y)
     y1, y2 = y_rescale
 
@@ -206,8 +207,9 @@ def train_model_energy_gradient(i=0, outdir=None, mode='training'):
     mae_energy = ScaledMeanAbsoluteError(scaling_shape=scaler.energy_std.shape)
     mae_force = ScaledMeanAbsoluteError(scaling_shape=scaler.gradient_std.shape)
     out_model.compile(optimizer=optimizer,
-                      loss={'energy':'mean_squared_error', 'force':'mean_squared_error'}, loss_weights=loss_weights,
-                      metrics={'energy':[mae_energy,lr_metric,r2_metric],'force':[mae_force,lr_metric,r2_metric]})
+                      loss={'energy': 'mean_squared_error', 'force': 'mean_squared_error'}, loss_weights=loss_weights,
+                      metrics={'energy': [mae_energy, lr_metric, r2_metric],
+                               'force': [mae_force, lr_metric, r2_metric]})
 
     scaler.print_params_info()
     print("Info: Using feature-scale", feat_x_std.shape, ":", feat_x_std)
@@ -216,8 +218,9 @@ def train_model_energy_gradient(i=0, outdir=None, mode='training'):
     print("")
     print("Start fit.")
     out_model.summary()
-    hist = out_model.fit(x=xtrain, y={'energy':ytrain[0],'force':ytrain[1]}, epochs=epo, batch_size=batch_size, callbacks=cbks, validation_freq=epostep,
-                         validation_data=(xval, {'energy':yval[0],'force':yval[1]}), verbose=2)
+    hist = out_model.fit(x=xtrain, y={'energy': ytrain[0], 'force': ytrain[1]}, epochs=epo, batch_size=batch_size,
+                         callbacks=cbks, validation_freq=epostep,
+                         validation_data=(xval, {'energy': yval[0], 'force': yval[1]}), verbose=2)
     print("End fit.")
     print("")
 
@@ -256,31 +259,37 @@ def train_model_energy_gradient(i=0, outdir=None, mode='training'):
         print("Info: Plot fit stats...")
 
         # Plot
-        plot_loss_curves([hist.history['energy_mean_absolute_error'],hist.history['force_mean_absolute_error']],
-                         [hist.history['val_energy_mean_absolute_error'],hist.history['val_force_mean_absolute_error']],
-                         label_curves=["energy","force"],
-                     val_step=epostep, save_plot_to_file=True, dir_save=dir_save,
-                    filename='fit'+str(i), filetypeout='.png', unit_loss=unit_label_energy, loss_name="MAE", plot_title="Energy")
+        plot_loss_curves([hist.history['energy_mean_absolute_error'], hist.history['force_mean_absolute_error']],
+                         [hist.history['val_energy_mean_absolute_error'],
+                          hist.history['val_force_mean_absolute_error']],
+                         label_curves=["energy", "force"],
+                         val_step=epostep, save_plot_to_file=True, dir_save=dir_save,
+                         filename='fit' + str(i), filetypeout='.png', unit_loss=unit_label_energy, loss_name="MAE",
+                         plot_title="Energy")
 
-        plot_learning_curve(hist.history['energy_lr'],filename='fit'+str(i),dir_save=dir_save)
+        plot_learning_curve(hist.history['energy_lr'], filename='fit' + str(i), dir_save=dir_save)
 
-        plot_scatter_prediction(pval[0], yval_plot[0], save_plot_to_file=True, dir_save=dir_save, filename='fit' + str(i)+"_energy",
+        plot_scatter_prediction(pval[0], yval_plot[0], save_plot_to_file=True, dir_save=dir_save,
+                                filename='fit' + str(i) + "_energy",
                                 filetypeout='.png', unit_actual=unit_label_energy, unit_predicted=unit_label_energy,
                                 plot_title="Prediction Energy")
 
-        plot_scatter_prediction(pval[1], yval_plot[1], save_plot_to_file=True, dir_save=dir_save, filename='fit' + str(i)+"_grad",
+        plot_scatter_prediction(pval[1], yval_plot[1], save_plot_to_file=True, dir_save=dir_save,
+                                filename='fit' + str(i) + "_grad",
                                 filetypeout='.png', unit_actual=unit_label_grad, unit_predicted=unit_label_grad,
                                 plot_title="Prediction Gradient")
 
-        plot_error_vec_mean([pval[1],ptrain[1]], [yval_plot[1],ytrain_plot[1]], label_curves=["Validation gradients","Training Gradients"],  unit_predicted=unit_label_grad,
-                filename='fit'+str(i)+"_grad", dir_save=dir_save, save_plot_to_file=True, filetypeout='.png',  x_label='Gradients xyz * #atoms * #states ',
-                plot_title="Gradient mean error")
+        plot_error_vec_mean([pval[1], ptrain[1]], [yval_plot[1], ytrain_plot[1]],
+                            label_curves=["Validation gradients", "Training Gradients"], unit_predicted=unit_label_grad,
+                            filename='fit' + str(i) + "_grad", dir_save=dir_save, save_plot_to_file=True,
+                            filetypeout='.png', x_label='Gradients xyz * #atoms * #states ',
+                            plot_title="Gradient mean error")
 
-        plot_error_vec_max([pval[1],ptrain[1]], [yval_plot[1],ytrain_plot[1]],
-                           label_curves=["Validation","Training"],
-                           unit_predicted=unit_label_grad, filename='fit'+str(i)+"_grad",
-                           dir_save=dir_save,save_plot_to_file=True, filetypeout='.png',
-                           x_label='Gradients xyz * #atoms * #states ',  plot_title="Gradient max error")
+        plot_error_vec_max([pval[1], ptrain[1]], [yval_plot[1], ytrain_plot[1]],
+                           label_curves=["Validation", "Training"],
+                           unit_predicted=unit_label_grad, filename='fit' + str(i) + "_grad",
+                           dir_save=dir_save, save_plot_to_file=True, filetypeout='.png',
+                           x_label='Gradients xyz * #atoms * #states ', plot_title="Gradient max error")
 
     except:
         print("Error: Could not plot fitting stats")
@@ -290,8 +299,8 @@ def train_model_energy_gradient(i=0, outdir=None, mode='training'):
         # Safe fitting Error MAE
         pval = out_model.predict(xval)
         ptrain = out_model.predict(xtrain)
-        _, pval = scaler.inverse_transform(y=[pval['energy'] , pval['force']])
-        _, ptrain = scaler.inverse_transform(y=[ptrain['energy'],ptrain['force']])
+        _, pval = scaler.inverse_transform(y=[pval['energy'], pval['force']])
+        _, ptrain = scaler.inverse_transform(y=[ptrain['energy'], ptrain['force']])
         out_model.precomputed_features = False
         out_model.output_as_dict = False
         ptrain2 = out_model.predict(x_rescale[i_train])

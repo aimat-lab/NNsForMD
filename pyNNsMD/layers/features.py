@@ -291,6 +291,7 @@ class FeatureGeometric(ks.layers.Layer):
         """
         x = inputs
 
+        feat = None
         if self.use_invdist:
             feat = self.invd_layer(x)
         if self.use_bond_angles:
@@ -357,7 +358,6 @@ class FeatureGeometric(ks.layers.Layer):
         if self.dihed_shape is not None:
             feat_segments.append(self.dihed_shape[0])
         return feat_segments
-
 
 
 class InverseDistance(ks.layers.Layer):

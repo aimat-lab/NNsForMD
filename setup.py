@@ -13,7 +13,7 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="",
-    install_requires=['numpy',"scikit-learn"],
+    install_requires=['numpy', "scikit-learn", "matplotlib"],
     extras_require={
         "tf": ["tensorflow>=2.3.0"],
         "tf_gpu": ["tensorflow-gpu>=2.3.0"],

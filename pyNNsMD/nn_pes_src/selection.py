@@ -2,8 +2,8 @@
 Model selection
 """
 import os
+
 import numpy as np
-import tensorflow as tf
 
 from pyNNsMD.models.mlp_e import EnergyModel
 from pyNNsMD.models.mlp_eg import EnergyGradientModel
@@ -12,7 +12,7 @@ from pyNNsMD.models.mlp_nac2 import NACModel2
 from pyNNsMD.nn_pes_src.hypers.hyper_mlp_e import DEFAULT_HYPER_PARAM_ENERGY
 from pyNNsMD.nn_pes_src.hypers.hyper_mlp_eg import DEFAULT_HYPER_PARAM_ENERGY_GRADS
 from pyNNsMD.nn_pes_src.hypers.hyper_mlp_nac import DEFAULT_HYPER_PARAM_NAC
-from pyNNsMD.scaler.energy import EnergyGradientStandardScaler,EnergyStandardScaler
+from pyNNsMD.scaler.energy import EnergyGradientStandardScaler, EnergyStandardScaler
 from pyNNsMD.scaler.nac import NACStandardScaler
 
 
@@ -70,11 +70,11 @@ def get_default_scaler(model_type):
         Dict: Scaling dictionary.
 
     """
-    if (model_type == 'mlp_e'):
+    if model_type == 'mlp_e':
         return EnergyStandardScaler()
     elif model_type == 'mlp_eg':
         return EnergyGradientStandardScaler()
-    elif (model_type == 'mlp_nac' or 'mlp_nac2'):
+    elif model_type == 'mlp_nac' or 'mlp_nac2':
         return NACStandardScaler()
     else:
         print("Error: Unknown model type", model_type)
@@ -93,23 +93,21 @@ def get_model_by_type(model_type, hyper):
         tf.keras.model: Defult initialized tf.keras.model.
 
     """
-    if (model_type == 'mlp_nac'):
+    if model_type == 'mlp_nac':
         return NACModel(**hyper)
-    elif (model_type == 'mlp_nac2'):
+    elif model_type == 'mlp_nac2':
         return NACModel2(**hyper)
-    elif (model_type == 'mlp_eg'):
+    elif model_type == 'mlp_eg':
         return EnergyGradientModel(**hyper)
-    elif (model_type == 'mlp_e'):
+    elif model_type == 'mlp_e':
         return EnergyModel(**hyper)
     else:
         print("Error: Unknown model type", model_type)
         raise TypeError(f"Error: Unknown model type forn{model_type}")
 
 
-
-
 def predict_uncertainty(model_type, out, mult_nn):
-    if isinstance(out[0],list):
+    if isinstance(out[0], list):
         out_mean = []
         out_std = []
         for i in range(len(out[0])):
@@ -129,9 +127,8 @@ def predict_uncertainty(model_type, out, mult_nn):
         return out_mean, out_std
 
 
-
 def unpack_convert_y_to_numpy(model_type, temp):
-    if isinstance(temp,list):
+    if isinstance(temp, list):
         return [x.numpy() for x in temp]
     else:
         return temp.numpy()

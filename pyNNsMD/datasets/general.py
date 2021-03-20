@@ -2,9 +2,9 @@
 Shared and general data handling functionality.
 """
 
+import json
 import os
 import pickle
-import json
 
 import numpy as np
 from sklearn.utils import shuffle
@@ -206,6 +206,7 @@ def model_save_data_to_folder(x, y,
                               random_shuffle=False):
     """
     Save Data to model folder. Always dumps data_x and data_y as pickle.
+
     Args:
         x (np.array): Coordinates as x-data.
         y (list): A possible list of np.arrays for y-values. Energy, Gradients, NAC etc.
@@ -224,8 +225,8 @@ def save_hyp(hyperparameter, filepath):
     Save hyper-parameters as json dict.
 
     Args:
-        hyperparameter:
-        filepath:
+        hyperparameter: dict of hyperparameter
+        filepath: filepath to save data
 
     Returns:
         None
@@ -239,7 +240,7 @@ def load_hyp(filepath):
     Load hyper-parameters from filepath
 
     Args:
-        filepath:
+        filepath: filepath of .json file loaded into dict.
 
     Returns:
         dict: hyper-parameters

@@ -16,9 +16,9 @@ import tensorflow as tf
 from pyNNsMD.datasets.general import model_save_data_to_folder, model_make_random_shuffle, model_merge_data_in_chunks, \
     index_make_random_shuffle
 from pyNNsMD.nn_pes_src.fit import fit_model_by_modeltype
+from pyNNsMD.nn_pes_src.selection import get_default_scaler
 from pyNNsMD.nn_pes_src.selection import get_model_by_type, get_default_hyperparameters_by_modeltype
 from pyNNsMD.nn_pes_src.selection import predict_uncertainty, unpack_convert_y_to_numpy
-from pyNNsMD.nn_pes_src.selection import get_default_scaler
 
 
 class NeuralNetPes:
@@ -382,12 +382,12 @@ class NeuralNetPes:
             for i in range(self._addNN):
                 error_val = np.load(os.path.join(outdir, "fiterr_valid" + '_v%i' % i + ".npy"))
                 fit_error.append(error_val)
-        except:
+        except FileNotFoundError:
             print(f"Error: Can not find fit error output {target_model}. Fit may not have run correctly!")
 
         return fit_error
 
-    def fit(self, x, y, gpu_dist={}, proc_async=True, fitmode="training", random_shuffle=False):
+    def fit(self, x, y, gpu_dist=None, proc_async=True, fitmode="training", random_shuffle=False):
         """
         Fit NN to data. Model weights and hyper parameters are always saved to file before fit.
         
@@ -412,6 +412,8 @@ class NeuralNetPes:
             ferr (dict): Fitting Error.
 
         """
+        if gpu_dist is None:
+            gpu_dist = {}
         # List of models
         models_available = sorted(list(self._models.keys()))
         models_to_train = sorted(list(y.keys()))
@@ -471,7 +473,7 @@ class NeuralNetPes:
                                         [self._models_hyper[name][i]['predict']['batch_size_predict'] for i in
                                          range(self._addNN)])
         out = [self._models_scaler[name][i].inverse_transform(y=temp[i])[1] for i in range(self._addNN)]
-        return predict_uncertainty(model_type, out,self._addNN)
+        return predict_uncertainty(model_type, out, self._addNN)
 
     def predict(self, x):
         """
@@ -514,7 +516,7 @@ class NeuralNetPes:
         temp = self._call_model_list(x_res, self._models[name])
         temp = [unpack_convert_y_to_numpy(model_type, xout) for xout in temp]
         out = [self._models_scaler[name][i].inverse_transform(y=temp[i])[1] for i in range(self._addNN)]
-        return predict_uncertainty(model_type, out,self._addNN)
+        return predict_uncertainty(model_type, out, self._addNN)
 
     def call(self, x):
         """
@@ -526,8 +528,8 @@ class NeuralNetPes:
                             If models require different x please provide dict matching model name.
 
         Returns:
-            result (dict): All model predictions: {'energy_gradient' : [np.aray,np.array] , 'nac' : np.array , ..}.
-            error (dict): Error estimate for each value: {'energy_gradient' : [np.aray,np.array] ,
+            result (dict): All model predictions: {'energy_gradient' : [np.array,np.array] , 'nac' : np.array , ..}.
+            error (dict): Error estimate for each value: {'energy_gradient' : [np.array,np.array] ,
                           'nac' : np.array , ..}.
 
         """
