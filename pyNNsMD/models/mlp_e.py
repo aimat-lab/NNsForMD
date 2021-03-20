@@ -9,12 +9,9 @@ import numpy as np
 import tensorflow as tf
 import tensorflow.keras as ks
 
-
-from pyNNsMD.nn_pes_src.hypers.hyper_mlp_e import DEFAULT_HYPER_PARAM_ENERGY as hyper_model_energy
 from pyNNsMD.layers.features import FeatureGeometric
 from pyNNsMD.layers.mlp import MLP
 from pyNNsMD.layers.normalize import ConstLayerNormalization
-from pyNNsMD.utils.loss import get_lr_metric,r2_metric,ScaledMeanAbsoluteError
 
 
 class EnergyModel(ks.Model):
@@ -23,7 +20,7 @@ class EnergyModel(ks.Model):
     
     It can also
     """
-    
+
     def __init__(self,
                  states=1,
                  atoms=2,
@@ -38,7 +35,7 @@ class EnergyModel(ks.Model):
                  use_reg_bias=None,
                  use_dropout=False,
                  dropout=0.01,
-                **kwargs):
+                 **kwargs):
         """
         Initialize an EnergyModel with hyperparameters.
 
@@ -60,45 +57,48 @@ class EnergyModel(ks.Model):
             if invd_index:
                 invd_index = [[i, j] for i in range(0, int(atoms)) for j in range(0, i)]
 
-        use_invd_index = len(invd_index)>0 if isinstance(invd_index,list) or isinstance(invd_index,np.ndarray) else False
-        use_angle_index = len(angle_index)>0 if isinstance(angle_index,list) or isinstance(angle_index,np.ndarray) else False
-        use_dihed_index = len(dihed_index)>0 if isinstance(dihed_index,list) or isinstance(dihed_index,np.ndarray) else False
-        
-        invd_index = np.array(invd_index,dtype = np.int64) if use_invd_index else None
-        angle_index = np.array(angle_index ,dtype = np.int64) if use_angle_index else None
-        dihed_index = np.array(dihed_index,dtype = np.int64) if use_dihed_index else None
-        
+        use_invd_index = len(invd_index) > 0 if isinstance(invd_index, list) or isinstance(invd_index,
+                                                                                           np.ndarray) else False
+        use_angle_index = len(angle_index) > 0 if isinstance(angle_index, list) or isinstance(angle_index,
+                                                                                              np.ndarray) else False
+        use_dihed_index = len(dihed_index) > 0 if isinstance(dihed_index, list) or isinstance(dihed_index,
+                                                                                              np.ndarray) else False
+
+        invd_index = np.array(invd_index, dtype=np.int64) if use_invd_index else None
+        angle_index = np.array(angle_index, dtype=np.int64) if use_angle_index else None
+        dihed_index = np.array(dihed_index, dtype=np.int64) if use_dihed_index else None
+
         invd_shape = invd_index.shape if use_invd_index else None
         angle_shape = angle_index.shape if use_angle_index else None
         dihed_shape = dihed_index.shape if use_dihed_index else None
 
-        self.feat_layer = FeatureGeometric(invd_shape = invd_shape,
-                                           angle_shape = angle_shape,
-                                           dihed_shape = dihed_shape,
+        self.feat_layer = FeatureGeometric(invd_shape=invd_shape,
+                                           angle_shape=angle_shape,
+                                           dihed_shape=dihed_shape,
                                            name="feat_geo"
                                            )
-        self.feat_layer.set_mol_index(invd_index, angle_index , dihed_index)
-        
-        self.std_layer = ConstLayerNormalization(axis=-1,name='feat_std')
-        self.mlp_layer = MLP( nn_size,
-                 dense_depth = depth,
-                 dense_bias = True,
-                 dense_bias_last = True,
-                 dense_activ = activ,
-                 dense_activ_last = activ,
-                 dense_activity_regularizer = use_reg_activ,
-                 dense_kernel_regularizer = use_reg_weight,
-                 dense_bias_regularizer = use_reg_bias,
-                 dropout_use = use_dropout,
-                 dropout_dropout = dropout,
-                 name = 'mlp'
-                 )
-        self.energy_layer =  ks.layers.Dense(out_dim,name='energy',use_bias=True,activation='linear')
+        self.feat_layer.set_mol_index(invd_index, angle_index, dihed_index)
+
+        self.std_layer = ConstLayerNormalization(axis=-1, name='feat_std')
+        self.mlp_layer = MLP(nn_size,
+                             dense_depth=depth,
+                             dense_bias=True,
+                             dense_bias_last=True,
+                             dense_activ=activ,
+                             dense_activ_last=activ,
+                             dense_activity_regularizer=use_reg_activ,
+                             dense_kernel_regularizer=use_reg_weight,
+                             dense_bias_regularizer=use_reg_bias,
+                             dropout_use=use_dropout,
+                             dropout_dropout=dropout,
+                             name='mlp'
+                             )
+        self.energy_layer = ks.layers.Dense(out_dim, name='energy', use_bias=True, activation='linear')
         self.precomputed_features = False
         self.energy_only = True
 
-        self.build((None,indim,3))
-        
+        self.build((None, indim, 3))
+
     def call(self, data, training=False, **kwargs):
         """
         Call the model output, forward pass.
@@ -113,6 +113,7 @@ class EnergyModel(ks.Model):
         """
         # Unpack the data
         x = data
+        y_pred = None
         # Compute predictions
         if self.energy_only and not self.precomputed_features:
             feat_flat = self.feat_layer(x)
@@ -138,7 +139,7 @@ class EnergyModel(ks.Model):
         return y_pred
 
     @tf.function
-    def predict_chunk_feature(self,tf_x):
+    def predict_chunk_feature(self, tf_x):
         with tf.GradientTape() as tape2:
             tape2.watch(tf_x)
             feat_pred = self.feat_layer(tf_x, training=False)  # Forward pass

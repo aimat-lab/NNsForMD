@@ -49,7 +49,7 @@ class NeuralNetPes:
         Returns:
             NueralNetPes instance.
         """
-        self._models_implemented = ['mlp_eg', 'mlp_nac', 'mlp_nac2', 'mlp_e']
+        self._models_implemented = ['mlp_eg', 'mlp_nac', 'mlp_nac2', 'mlp_e','mlp_g2']
 
         # self.logger = logging.getLogger(type(self).__name__)
         print("Info: Operating System: ", sys.platform)

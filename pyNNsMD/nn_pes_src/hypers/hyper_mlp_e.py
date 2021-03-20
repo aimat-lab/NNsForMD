@@ -10,7 +10,7 @@ DEFAULT_HYPER_PARAM_ENERGY = {
             'main_dir': '',  # not used atm
             'model_dir': '',  # not used atm
             'info': '',  # not used atm
-            'pyNN_version': "0.6"  # not used atm
+            'pyNN_version': "1.0.2"  # not used atm
         },
     'model':  # Model Parameters   # fixes model, cannot be changed after init
         {

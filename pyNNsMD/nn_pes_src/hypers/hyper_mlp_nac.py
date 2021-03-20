@@ -9,7 +9,7 @@ DEFAULT_HYPER_PARAM_NAC = {
             'main_dir': '',
             'model_dir': '',
             'info': '',
-            'pyNN_version': "0.6",
+            'pyNN_version': "1.0.2"  # not used atm
         },
     'model':  # Model Parameters # fixed model, cannot be changed after init
         {

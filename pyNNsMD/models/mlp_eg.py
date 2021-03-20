@@ -9,13 +9,10 @@ import numpy as np
 import tensorflow as tf
 import tensorflow.keras as ks
 
-
-from pyNNsMD.nn_pes_src.hypers.hyper_mlp_eg import DEFAULT_HYPER_PARAM_ENERGY_GRADS as hyper_model_energy_gradient
 from pyNNsMD.layers.features import FeatureGeometric
+from pyNNsMD.layers.gradients import EmptyGradient
 from pyNNsMD.layers.mlp import MLP
 from pyNNsMD.layers.normalize import ConstLayerNormalization
-from pyNNsMD.layers.gradients import EmptyGradient
-from pyNNsMD.utils.loss import get_lr_metric,r2_metric
 
 
 class EnergyGradientModel(ks.Model):
@@ -27,20 +24,20 @@ class EnergyGradientModel(ks.Model):
     """
 
     def __init__(self,
-                states = 1,
-                atoms =  2 ,
-                invd_index = None,
-                angle_index = None,
-                dihed_index = None,
-                nn_size = 100,
-                depth = 3,
-                activ = 'selu',
-                use_reg_activ = None,
-                use_reg_weight = None,
-                use_reg_bias = None,
-                use_dropout = False,
-                dropout = 0.01,
-                **kwargs):
+                 states=1,
+                 atoms=2,
+                 invd_index=None,
+                 angle_index=None,
+                 dihed_index=None,
+                 nn_size=100,
+                 depth=3,
+                 activ='selu',
+                 use_reg_activ=None,
+                 use_reg_weight=None,
+                 use_reg_bias=None,
+                 use_dropout=False,
+                 dropout=0.01,
+                 **kwargs):
         """
         Initialize Layer
 
@@ -71,40 +68,43 @@ class EnergyGradientModel(ks.Model):
             if invd_index:
                 invd_index = [[i, j] for i in range(0, int(atoms)) for j in range(0, i)]
 
-        use_invd_index = len(invd_index)>0 if isinstance(invd_index,list) or isinstance(invd_index,np.ndarray) else False
-        use_angle_index = len(angle_index)>0 if isinstance(angle_index,list) or isinstance(angle_index,np.ndarray) else False
-        use_dihed_index = len(dihed_index)>0 if isinstance(dihed_index,list) or isinstance(dihed_index,np.ndarray) else False
-        
-        invd_index = np.array(invd_index,dtype = np.int64) if use_invd_index else None
-        angle_index = np.array(angle_index ,dtype = np.int64) if use_angle_index else None
-        dihed_index = np.array(dihed_index,dtype = np.int64) if use_dihed_index else None
-        
+        use_invd_index = len(invd_index) > 0 if isinstance(invd_index, list) or isinstance(invd_index,
+                                                                                           np.ndarray) else False
+        use_angle_index = len(angle_index) > 0 if isinstance(angle_index, list) or isinstance(angle_index,
+                                                                                              np.ndarray) else False
+        use_dihed_index = len(dihed_index) > 0 if isinstance(dihed_index, list) or isinstance(dihed_index,
+                                                                                              np.ndarray) else False
+
+        invd_index = np.array(invd_index, dtype=np.int64) if use_invd_index else None
+        angle_index = np.array(angle_index, dtype=np.int64) if use_angle_index else None
+        dihed_index = np.array(dihed_index, dtype=np.int64) if use_dihed_index else None
+
         invd_shape = invd_index.shape if use_invd_index else None
         angle_shape = angle_index.shape if use_angle_index else None
         dihed_shape = dihed_index.shape if use_dihed_index else None
-    
-        self.feat_layer = FeatureGeometric(invd_shape = invd_shape,
-                                           angle_shape = angle_shape,
-                                           dihed_shape = dihed_shape,
+
+        self.feat_layer = FeatureGeometric(invd_shape=invd_shape,
+                                           angle_shape=angle_shape,
+                                           dihed_shape=dihed_shape,
                                            name="feat_geo"
                                            )
-        self.feat_layer.set_mol_index(invd_index, angle_index , dihed_index)
-        
-        self.std_layer = ConstLayerNormalization(axis=-1,name='feat_std')
-        self.mlp_layer = MLP( nn_size,
-                 dense_depth = depth,
-                 dense_bias = True,
-                 dense_bias_last = True,
-                 dense_activ = activ,
-                 dense_activ_last = activ,
-                 dense_activity_regularizer = use_reg_activ,
-                 dense_kernel_regularizer = use_reg_weight,
-                 dense_bias_regularizer = use_reg_bias,
-                 dropout_use = use_dropout,
-                 dropout_dropout = dropout,
-                 name = 'mlp'
-                 )
-        self.energy_layer =  ks.layers.Dense(out_dim,name='energy',use_bias=True,activation='linear')
+        self.feat_layer.set_mol_index(invd_index, angle_index, dihed_index)
+
+        self.std_layer = ConstLayerNormalization(axis=-1, name='feat_std')
+        self.mlp_layer = MLP(nn_size,
+                             dense_depth=depth,
+                             dense_bias=True,
+                             dense_bias_last=True,
+                             dense_activ=activ,
+                             dense_activ_last=activ,
+                             dense_activity_regularizer=use_reg_activ,
+                             dense_kernel_regularizer=use_reg_weight,
+                             dense_bias_regularizer=use_reg_bias,
+                             dropout_use=use_dropout,
+                             dropout_dropout=dropout,
+                             name='mlp'
+                             )
+        self.energy_layer = ks.layers.Dense(out_dim, name='energy', use_bias=True, activation='linear')
         self.force = EmptyGradient(name='force')  # Will be differentiated in fit/predict/evaluate
 
         # Control the properties
@@ -115,8 +115,8 @@ class EnergyGradientModel(ks.Model):
         # Will remove later
         self.eg_atoms = atoms
         self.eg_states = states
-        self.build((None,indim,3))
-        
+        self.build((None, indim, 3))
+
     def call(self, data, training=False, **kwargs):
         """
         Call the model output, forward pass.
@@ -131,7 +131,7 @@ class EnergyGradientModel(ks.Model):
         """
         # Unpack the data
         x = data
-
+        y_pred = None
         if self.energy_only and not self.precomputed_features:
             feat_flat = self.feat_layer(x)
             feat_flat_std = self.std_layer(feat_flat)
@@ -144,11 +144,11 @@ class EnergyGradientModel(ks.Model):
                 tape2.watch(x)
                 feat_flat = self.feat_layer(x)
                 feat_flat_std = self.std_layer(feat_flat)
-                temp_hidden = self.mlp_layer(feat_flat_std,training=training)
+                temp_hidden = self.mlp_layer(feat_flat_std, training=training)
                 temp_e = self.energy_layer(temp_hidden)
             temp_g = tape2.batch_jacobian(temp_e, x)
             _ = self.force(x)
-            y_pred = [temp_e,temp_g]
+            y_pred = [temp_e, temp_g]
         elif self.precomputed_features:
             x1 = x[0]
             x2 = x[1]
@@ -162,11 +162,10 @@ class EnergyGradientModel(ks.Model):
             y_pred = [atpot, grad]
 
         if self.output_as_dict:
-            out = {'energy': y_pred[0], 'force' : y_pred[1]}
+            out = {'energy': y_pred[0], 'force': y_pred[1]}
         else:
             out = y_pred
         return out
-
 
     @tf.function
     def predict_chunk_feature(self, tf_x):

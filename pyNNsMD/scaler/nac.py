@@ -26,7 +26,7 @@ class NACStandardScaler:
         x_res = x
         out_nac = y
         if x is not None:
-            x_res = x * self.x_std + self.nac_mean
+            x_res = x * self.x_std + self.x_mean
         if y is not None:
             out_nac = y * self.nac_std + self.nac_mean
         return x_res, out_nac
