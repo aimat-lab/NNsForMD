@@ -7,7 +7,13 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
+   pyNNsMD.datasets
+   pyNNsMD.layers
+   pyNNsMD.models
    pyNNsMD.nn_pes_src
+   pyNNsMD.plots
+   pyNNsMD.scaler
+   pyNNsMD.utils
 
 Submodules
 ----------

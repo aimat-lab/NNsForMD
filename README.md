@@ -13,7 +13,7 @@ Neural network class for molecular dynamics to predict potential energy, gradien
 
 <a name="general"></a>
 # General
-This repo is currently under construction. The original version used as the PyRaMID interface is v1.0.0.
+This repo is currently under construction. The original version used as the PyRAI2MD interface is v1.0.0.
 
 
 
@@ -47,8 +47,19 @@ A set of examples can be found in [examples](examples), that demonstrate usage a
 <a name="citing"></a>
 # Citing
 
-If you want to cite this repo or the PyRaMID code, please refer to our publication at:
-
+If you want to cite this repo or the PyRAI2MD code, please refer to our publication at:
+```
+@Article{JingbaiLi2021,
+    author ="Li, Jingbai and Reiser, Patrick and Boswell, Benjamin R. and Eberhard, André and Burns, Noah Z. and Friederich, Pascal and Lopez, Steven A.",
+    title  ="Automatic discovery of photoisomerization mechanisms with nanosecond machine learning photodynamics simulations",
+    journal  ="Chem. Sci.",
+    year  ="2021",
+    pages  ="-",
+    publisher  ="The Royal Society of Chemistry",
+    doi  ="10.1039/D0SC05610C",
+    url  ="http://dx.doi.org/10.1039/D0SC05610C"
+}
+```
 
 <a name="references"></a>
 # References
