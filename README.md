@@ -11,6 +11,7 @@ Neural network class for molecular dynamics to predict potential energy, gradien
 * [General](#general)
 * [Installation](#installation)
 * [Documentation](#documentation)
+* [Implementation details](#implementation-details)
 * [Examples](#examples)
 * [Usage](#usage)
 * [Citing](#citing)
@@ -40,6 +41,10 @@ pip install pyNNsMD
 # Documentation
 
 Auto-documentation generated at https://pynnsmd.readthedocs.io/en/latest/index.html
+
+<a name="implementation-details"></a>
+# Implementation details
+TBA
 
 <a name="examples"></a>
 # Examples
