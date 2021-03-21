@@ -1,3 +1,5 @@
+[![Documentation Status](https://readthedocs.org/projects/pynnsmd/badge/?version=latest)](https://pynnsmd.readthedocs.io/en/latest/?badge=latest)
+
 # NNsForMD
 
 Neural network class for molecular dynamics to predict potential energy, gradients and non-adiabatic couplings (NACs).
