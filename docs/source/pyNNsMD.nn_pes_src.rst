@@ -8,7 +8,6 @@ Subpackages
    :maxdepth: 4
 
    pyNNsMD.nn_pes_src.hypers
-   pyNNsMD.nn_pes_src.training
 
 Submodules
 ----------
