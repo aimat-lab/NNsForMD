@@ -166,23 +166,10 @@ def train_model_energy(i=0, outdir=None, mode='training'):
     x_rescale, y1 = scaler.transform(x, y)
 
     # Model + Model precompute layer +feat
-    feat_x, _ = out_model.precompute_feature_in_chunks(x_rescale, batch_size=batch_size)
+    feat_x, _ = out_model.precompute_feature_in_chunks(x_rescale, batch_size=batch_size,normalization_mode=normalize_feat)
 
     # Finding Normalization
     feat_x_mean, feat_x_std = out_model.get_layer('feat_std').get_weights()
-    print(feat_x.shape)
-    if (normalize_feat == 1):
-        print("Info: Making new feature normalization for last dimension.")
-        feat_x_mean = np.mean(feat_x[i_train], axis=0, keepdims=True)
-        feat_x_std = np.std(feat_x[i_train], axis=0, keepdims=True)
-    elif (normalize_feat == 2):
-        seg_scaler = SegmentStandardScaler(out_model.get_layer('feat_geo').get_feature_type_segmentation())
-        seg_scaler.fit(y=feat_x[i_train])
-        feat_x_mean, feat_x_std = np.array(seg_scaler.get_params()["feat_mean"]), np.array(
-            seg_scaler.get_params()["feat_std"])
-    else:
-        print("Info: Keeping old normalization (default/unity or loaded from file).")
-    out_model.get_layer('feat_std').set_weights([feat_x_mean, feat_x_std])
 
     # Train Test split
     xtrain = feat_x[i_train]

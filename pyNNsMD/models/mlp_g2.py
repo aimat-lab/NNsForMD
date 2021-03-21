@@ -6,7 +6,7 @@ from pyNNsMD.layers.features import FeatureGeometric
 from pyNNsMD.layers.gradients import PropagateNACGradient2
 from pyNNsMD.layers.mlp import MLP
 from pyNNsMD.layers.normalize import ConstLayerNormalization
-
+from pyNNsMD.scaler.general import SegmentStandardScaler
 
 class GradientModel2(ks.Model):
     """
@@ -152,7 +152,7 @@ class GradientModel2(ks.Model):
         grad = tape2.batch_jacobian(feat_pred, tf_x)
         return feat_pred, grad
 
-    def precompute_feature_in_chunks(self, x, batch_size):
+    def precompute_feature_in_chunks(self, x, batch_size,normalization_mode=1):
         np_x = []
         np_grad = []
         for j in range(int(np.ceil(len(x) / batch_size))):
@@ -165,4 +165,20 @@ class GradientModel2(ks.Model):
 
         np_x = np.concatenate(np_x, axis=0)
         np_grad = np.concatenate(np_grad, axis=0)
+
+        self.set_const_normalization_from_features(np_x, normalization_mode=normalization_mode)
         return np_x, np_grad
+
+    def set_const_normalization_from_features(self, feat_x, normalization_mode=1):
+
+        feat_x_mean, feat_x_std = self.get_layer('feat_std').get_weights()
+        if normalization_mode == 1:
+            feat_x_mean = np.mean(feat_x, axis=0, keepdims=True)
+            feat_x_std = np.std(feat_x, axis=0, keepdims=True)
+        elif normalization_mode == 2:
+            seg_scaler = SegmentStandardScaler(self.get_layer('feat_geo').get_feature_type_segmentation())
+            seg_scaler.fit(y=feat_x)
+            feat_x_mean, feat_x_std = np.array(seg_scaler.get_params()["feat_mean"]), np.array(
+                seg_scaler.get_params()["feat_std"])
+
+        self.get_layer('feat_std').set_weights([feat_x_mean, feat_x_std])

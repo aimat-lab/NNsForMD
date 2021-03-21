@@ -170,22 +170,10 @@ def train_model_nac(i=0, outdir=None, mode='training'):
     x_rescale, y = scaler.transform(x=x, y=y_in)
 
     # Calculate features
-    feat_x, feat_grad = out_model.precompute_feature_in_chunks(x_rescale, batch_size=batch_size)
+    feat_x, feat_grad = out_model.precompute_feature_in_chunks(x_rescale, batch_size=batch_size,normalization_mode=normalize_feat)
 
     # Finding Normalization
     feat_x_mean, feat_x_std = out_model.get_layer('feat_std').get_weights()
-    if (normalize_feat == 1):
-        print("Info: Making new feature normalization for last dimension.")
-        feat_x_mean = np.mean(feat_x[i_train], axis=0, keepdims=True)
-        feat_x_std = np.std(feat_x[i_train], axis=0, keepdims=True)
-    elif (normalize_feat == 2):
-        seg_scaler = SegmentStandardScaler(out_model.get_layer('feat_geo').get_feature_type_segmentation())
-        seg_scaler.fit(y=feat_x[i_train])
-        feat_x_mean, feat_x_std = np.array(seg_scaler.get_params()["feat_mean"]), np.array(
-            seg_scaler.get_params()["feat_std"])
-    else:
-        print("Info: Keeping old normalization (default/unity or loaded from file).")
-    out_model.get_layer('feat_std').set_weights([feat_x_mean, feat_x_std])
 
     xtrain = [feat_x[i_train], feat_grad[i_train]]
     ytrain = y[i_train]
