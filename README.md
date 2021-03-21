@@ -43,11 +43,12 @@ A set of examples can be found in [examples](examples), that demonstrate usage a
 
 <a name="usage"></a>
 # Usage
+TBA
 
 <a name="citing"></a>
 # Citing
 
-If you want to cite this repo or the PyRAI2MD code, please refer to our publication at:
+If you want to cite this repository or the PyRAI2MD code, please refer to our publication at:
 ```
 @Article{JingbaiLi2021,
     author ="Li, Jingbai and Reiser, Patrick and Boswell, Benjamin R. and Eberhard, André and Burns, Noah Z. and Friederich, Pascal and Lopez, Steven A.",
@@ -64,3 +65,5 @@ If you want to cite this repo or the PyRAI2MD code, please refer to our publicat
 <a name="references"></a>
 # References
 
+* https://onlinelibrary.wiley.com/doi/full/10.1002/qua.24890
+* https://pubs.acs.org/doi/abs/10.1021/acs.chemrev.0c00749
