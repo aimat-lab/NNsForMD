@@ -6,12 +6,23 @@
 General Information
 ===================================
 
+Neural network class for molecular dynamics to predict potential energy, gradients and non-adiabatic couplings (NACs).
+
+.. toctree::
+   :maxdepth: 3
+   :caption: General:
+
+   intro
+   installation
+   implementation
+   usage
+
 Package Content
 ===================================
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   :maxdepth: 3
+   :caption: Reference:
 
    modules
 
