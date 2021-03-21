@@ -34,7 +34,7 @@ pip install pyNNsMD
 <a name="documentation"></a>
 # Documentation
 
-Auto-documentation generated at
+Auto-documentation generated at https://pynnsmd.readthedocs.io/en/latest/index.html
 
 <a name="examples"></a>
 # Examples
