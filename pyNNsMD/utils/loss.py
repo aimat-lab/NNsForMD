@@ -36,6 +36,20 @@ class ScaledMeanAbsoluteError(tf.keras.metrics.MeanAbsoluteError):
     def set_scale(self,scale):
         ks.backend.set_value(self.scale, scale)
 
+class ZeroEmptyLoss(tf.keras.losses.Loss):
+    """
+    Empty constant zero loss.
+    """
+    def __init__(self,**kwargs):
+        self.zero_empty = tf.constant(0)
+        super(ZeroEmptyLoss,self).__init__(**kwargs)
+
+    def call(self, y_true, y_pred):
+        """
+        Returns:
+            tf.constant(0)
+        """
+        return self.zero_empty
 
 
 def get_lr_metric(optimizer):

@@ -44,7 +44,7 @@ from pyNNsMD.datasets.general import split_validation_training_index
 # from pyNNsMD.nn_pes_src.scaler import save_std_scaler_dict
 from pyNNsMD.scaler.energy import EnergyGradientStandardScaler
 from pyNNsMD.scaler.general import SegmentStandardScaler
-from pyNNsMD.utils.loss import get_lr_metric, ScaledMeanAbsoluteError, r2_metric
+from pyNNsMD.utils.loss import get_lr_metric, ScaledMeanAbsoluteError, r2_metric, ZeroEmptyLoss
 from pyNNsMD.plots.loss import plot_loss_curves, plot_learning_curve
 from pyNNsMD.plots.pred import plot_scatter_prediction
 from pyNNsMD.plots.error import plot_error_vec_mean, plot_error_vec_max
@@ -95,6 +95,7 @@ def train_model_energy_gradient(i=0, outdir=None, mode='training'):
     unit_label_grad = hyperall['plots']['unit_gradient']
     # Fit
     hyper = hyperall[mode]
+    energies_only = hyper['energy_only']
     epo = hyper['epo']
     batch_size = hyper['batch_size']
     epostep = hyper['epostep']
@@ -159,6 +160,7 @@ def train_model_energy_gradient(i=0, outdir=None, mode='training'):
     out_model = EnergyGradientModel(**hypermodel)
     out_model.precomputed_features = True
     out_model.output_as_dict = True
+    out_model.energy_only = energies_only
 
     # Look for loading weights
     npeps = np.finfo(float).eps
@@ -196,8 +198,12 @@ def train_model_energy_gradient(i=0, outdir=None, mode='training'):
     mae_force = ScaledMeanAbsoluteError(scaling_shape=scaler.gradient_std.shape)
     mae_energy.set_scale(scaler.energy_std)
     mae_force.set_scale(scaler.gradient_std)
+    if energies_only:
+        train_loss = {'energy': 'mean_squared_error', 'force' : ZeroEmptyLoss()}
+    else:
+        train_loss = {'energy': 'mean_squared_error', 'force': 'mean_squared_error'}
     out_model.compile(optimizer=optimizer,
-                      loss={'energy': 'mean_squared_error', 'force': 'mean_squared_error'}, loss_weights=loss_weights,
+                      loss=train_loss, loss_weights=loss_weights,
                       metrics={'energy': [mae_energy, lr_metric, r2_metric],
                                'force': [mae_force, lr_metric, r2_metric]})
 
@@ -213,6 +219,7 @@ def train_model_energy_gradient(i=0, outdir=None, mode='training'):
                          validation_data=(xval, {'energy': yval[0], 'force': yval[1]}), verbose=2)
     print("End fit.")
     print("")
+    out_model.energy_only = False
 
     try:
         outname = os.path.join(dir_save, "history_" + ".json")

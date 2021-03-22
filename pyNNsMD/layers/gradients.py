@@ -19,6 +19,7 @@ class EmptyGradient(ks.layers.Layer):
         super(EmptyGradient, self).__init__(**kwargs)
         self.mult_states = mult_states
         self.atoms = atoms
+        self.out_shape = tf.constant([self.mult_states,self.atoms,3],dtype=tf.int32)
 
     def build(self, input_shape):
         """Build layer."""
@@ -36,7 +37,9 @@ class EmptyGradient(ks.layers.Layer):
 
         """
         pot = inputs
-        out = tf.zeros((ks.backend.shape(pot)[0], self.mult_states, self.atoms, 3))
+        batch_shape = tf.expand_dims(tf.shape(pot)[0],axis=0)
+        out_shape = tf.concat((batch_shape, tf.cast(self.out_shape,dtype=batch_shape.dtype)),axis=0)
+        out = tf.zeros(out_shape)
         return out
 
     def get_config(self):

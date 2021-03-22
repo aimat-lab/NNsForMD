@@ -32,6 +32,7 @@ DEFAULT_HYPER_PARAM_ENERGY_GRADS = {
         },
     'training':
         {
+            'energy_only' : False,
             # can be changed after model created
             'auto_scaling': {'x_mean': True, 'x_std': True, 'energy_std': True, 'energy_mean': True},
             # Scale energy und coordinates, can be also done in data preparation
@@ -57,6 +58,7 @@ DEFAULT_HYPER_PARAM_ENERGY_GRADS = {
         },
     'retraining':
         {
+            'energy_only' : False,
             # can be changed after model created
             'auto_scaling': {'x_mean': True, 'x_std': True, 'energy_std': True, 'energy_mean': True},
             # Scale energy und coordinates, can be also done in data preparation

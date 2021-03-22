@@ -106,7 +106,7 @@ class EnergyGradientModel(ks.Model):
                              name='mlp'
                              )
         self.energy_layer = ks.layers.Dense(out_dim, name='energy', use_bias=True, activation='linear')
-        self.force = EmptyGradient(name='force')  # Will be differentiated in fit/predict/evaluate
+        self.force = EmptyGradient( mult_states=out_dim, atoms=indim,name='force')  # Will be differentiated in fit/predict/evaluate
 
         # Control the properties
         self.energy_only = False
@@ -150,7 +150,7 @@ class EnergyGradientModel(ks.Model):
             temp_g = tape2.batch_jacobian(temp_e, x)
             _ = self.force(x)
             y_pred = [temp_e, temp_g]
-        elif self.precomputed_features:
+        elif self.precomputed_features and not self.energy_only:
             x1 = x[0]
             x2 = x[1]
             with tf.GradientTape() as tape2:
@@ -161,6 +161,14 @@ class EnergyGradientModel(ks.Model):
             grad = tape2.batch_jacobian(atpot, x1)
             grad = ks.backend.batch_dot(grad, x2, axes=(2, 1))
             y_pred = [atpot, grad]
+        elif self.precomputed_features and self.energy_only:
+            x1 = x[0]
+            x2 = x[1]
+            feat_flat_std = self.std_layer(x1)
+            temp_hidden = self.mlp_layer(feat_flat_std, training=training)
+            temp_e = self.energy_layer(temp_hidden)
+            temp_g = self.force(x1)
+            y_pred = [temp_e, temp_g]
 
         if self.output_as_dict:
             out = {'energy': y_pred[0], 'force': y_pred[1]}
