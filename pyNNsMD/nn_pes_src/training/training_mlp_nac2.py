@@ -171,10 +171,10 @@ def train_model_nac(i=0, outdir=None, mode='training'):
     x_rescale, y = scaler.transform(x=x, y=y_in)
 
     # Calculate features
-    feat_x, feat_grad = out_model.precompute_feature_in_chunks(x_rescale, batch_size=batch_size,normalization_mode=normalize_feat)
+    feat_x, feat_grad = out_model.precompute_feature_in_chunks(x_rescale, batch_size=batch_size)
 
     # Finding Normalization
-    feat_x_mean, feat_x_std = out_model.get_layer('feat_std').get_weights()
+    feat_x_mean, feat_x_std = out_model.set_const_normalization_from_features(feat_x,normalization_mode=normalize_feat)
 
     xtrain = [feat_x[i_train], feat_grad[i_train]]
     ytrain = y[i_train]

@@ -24,6 +24,7 @@ scaler.print_params_info()
 # Features are normalized automatically
 model.precomputed_features = True
 feat_x, feat_grad = model.precompute_feature_in_chunks(x_scaled, batch_size=32)
+model.set_const_normalization_from_features(feat_x)
 print("Feature norm: ",model.get_layer('feat_std').get_weights())
 
 # compile model with optimizer

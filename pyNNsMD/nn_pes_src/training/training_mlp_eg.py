@@ -180,10 +180,9 @@ def train_model_energy_gradient(i=0, outdir=None, mode='training'):
     y1, y2 = y_rescale
 
     # Model + Model precompute layer +feat
-    feat_x, feat_grad = out_model.precompute_feature_in_chunks(x_rescale, batch_size=batch_size,normalization_mode=normalize_feat)
-
+    feat_x, feat_grad = out_model.precompute_feature_in_chunks(x_rescale, batch_size=batch_size)
     # Finding Normalization
-    feat_x_mean, feat_x_std = out_model.get_layer('feat_std').get_weights()
+    feat_x_mean, feat_x_std = out_model.set_const_normalization_from_features(feat_x,normalization_mode=normalize_feat)
 
     # Train Test split
     xtrain = [feat_x[i_train], feat_grad[i_train]]
@@ -314,6 +313,7 @@ def train_model_energy_gradient(i=0, outdir=None, mode='training'):
     except:
         print("Error: Can not save fiterror")
 
+    # print("Feature norm: ", out_model.get_layer('feat_std').get_weights())
     return error_val
 
 

@@ -14,6 +14,7 @@ from pyNNsMD.layers.mlp import MLP
 from pyNNsMD.layers.normalize import ConstLayerNormalization
 from pyNNsMD.scaler.general import SegmentStandardScaler
 
+
 class NACModel(ks.Model):
     """
     Subclassed tf.keras.model for NACs which outputs NACs from coordinates.
@@ -36,6 +37,7 @@ class NACModel(ks.Model):
                  use_reg_bias=None,
                  use_dropout=False,
                  dropout=0.01,
+                 normalization_mode=1,
                  **kwargs):
         """
         Initialize a NACModel with hyperparameters.
@@ -49,10 +51,24 @@ class NACModel(ks.Model):
             
         """
         super(NACModel, self).__init__(**kwargs)
+
+        self.in_invd_index = invd_index
+        self.in_angle_index = angle_index
+        self.in_dihed_index = dihed_index
+        self.nn_size = nn_size
+        self.depth = depth
+        self.activ = activ
+        self.use_reg_activ = use_reg_activ
+        self.use_reg_weight = use_reg_weight
+        self.use_reg_bias = use_reg_bias
+        self.use_dropout = use_dropout
+        self.dropout = dropout
+
         out_dim = int(states * (states - 1) / 2)
         indim = int(atoms)
-
+        self.normalization_mode = normalization_mode
         self.nac_atoms = indim
+        self.in_states = int(states)
 
         # Allow for all distances, backward compatible
         if isinstance(invd_index, bool):
@@ -153,7 +169,7 @@ class NACModel(ks.Model):
         grad = tape2.batch_jacobian(feat_pred, tf_x)
         return feat_pred, grad
 
-    def precompute_feature_in_chunks(self, x, batch_size,normalization_mode=1):
+    def precompute_feature_in_chunks(self, x, batch_size):
         np_x = []
         np_grad = []
         for j in range(int(np.ceil(len(x) / batch_size))):
@@ -167,11 +183,15 @@ class NACModel(ks.Model):
         np_x = np.concatenate(np_x, axis=0)
         np_grad = np.concatenate(np_grad, axis=0)
 
-        self.set_const_normalization_from_features(np_x, normalization_mode=normalization_mode)
+        # self.set_const_normalization_from_features(np_x, normalization_mode=normalization_mode)
 
         return np_x, np_grad
 
-    def set_const_normalization_from_features(self, feat_x, normalization_mode=1):
+    def set_const_normalization_from_features(self, feat_x, normalization_mode=None):
+        if normalization_mode is None:
+            normalization_mode = self.normalization_mode
+        else:
+            self.normalization_mode = normalization_mode
 
         feat_x_mean, feat_x_std = self.get_layer('feat_std').get_weights()
         if normalization_mode == 1:
@@ -184,3 +204,31 @@ class NACModel(ks.Model):
                 seg_scaler.get_params()["feat_std"])
 
         self.get_layer('feat_std').set_weights([feat_x_mean, feat_x_std])
+        return [feat_x_mean, feat_x_std]
+
+    def fit(self, **kwargs):
+
+        if self.precomputed_features:
+            self.set_const_normalization_from_features(kwargs['x'][0])
+
+        return super(NACModel, self).fit(**kwargs)
+
+    def get_config(self):
+        conf = super(NACModel, self).get_config()
+        conf.update({
+            'atoms': self.nac_atoms,
+            'states': self.in_states,
+            'invd_index': self.in_invd_index,
+            'angle_index': self.in_angle_index,
+            'dihed_index': self.in_dihed_index,
+            'nn_size': self.nn_size,
+            'depth': self.depth,
+            'activ': self.activ,
+            'use_reg_activ': self.use_reg_activ,
+            'use_reg_weight': self.use_reg_weight,
+            'use_reg_bias': self.use_reg_bias,
+            'use_dropout': self.use_dropout,
+            'dropout': self.dropout,
+            'normalization_mode': self.normalization_mode
+        })
+        return conf

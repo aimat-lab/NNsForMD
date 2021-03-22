@@ -166,10 +166,9 @@ def train_model_energy(i=0, outdir=None, mode='training'):
     x_rescale, y1 = scaler.transform(x, y)
 
     # Model + Model precompute layer +feat
-    feat_x, _ = out_model.precompute_feature_in_chunks(x_rescale, batch_size=batch_size,normalization_mode=normalize_feat)
+    feat_x, _ = out_model.precompute_feature_in_chunks(x_rescale, batch_size=batch_size)
+    feat_x_mean, feat_x_std = out_model.set_const_normalization_from_features(feat_x,normalization_mode=normalize_feat)
 
-    # Finding Normalization
-    feat_x_mean, feat_x_std = out_model.get_layer('feat_std').get_weights()
 
     # Train Test split
     xtrain = feat_x[i_train]

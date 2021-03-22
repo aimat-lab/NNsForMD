@@ -38,6 +38,7 @@ class EnergyGradientModel(ks.Model):
                  use_reg_bias=None,
                  use_dropout=False,
                  dropout=0.01,
+                 normalization_mode=1,
                  **kwargs):
         """
         Initialize Layer
@@ -60,6 +61,17 @@ class EnergyGradientModel(ks.Model):
         """
 
         super(EnergyGradientModel, self).__init__(**kwargs)
+        self.in_invd_index = invd_index
+        self.in_angle_index = angle_index
+        self.in_dihed_index = dihed_index
+        self.nn_size = nn_size
+        self.depth = depth
+        self.activ = activ
+        self.use_reg_activ = use_reg_activ
+        self.use_reg_weight = use_reg_weight
+        self.use_reg_bias = use_reg_bias
+        self.use_dropout = use_dropout
+        self.dropout = dropout
 
         out_dim = int(states)
         indim = int(atoms)
@@ -106,7 +118,8 @@ class EnergyGradientModel(ks.Model):
                              name='mlp'
                              )
         self.energy_layer = ks.layers.Dense(out_dim, name='energy', use_bias=True, activation='linear')
-        self.force = EmptyGradient( mult_states=out_dim, atoms=indim,name='force')  # Will be differentiated in fit/predict/evaluate
+        self.force = EmptyGradient(mult_states=out_dim, atoms=indim,
+                                   name='force')  # Will be differentiated in fit/predict/evaluate
 
         # Control the properties
         self.energy_only = False
@@ -116,6 +129,8 @@ class EnergyGradientModel(ks.Model):
         # Will remove later
         self.eg_atoms = atoms
         self.eg_states = states
+        self.normalization_mode = normalization_mode
+
         self.build((None, indim, 3))
 
     def call(self, data, training=False, **kwargs):
@@ -163,7 +178,7 @@ class EnergyGradientModel(ks.Model):
             y_pred = [atpot, grad]
         elif self.precomputed_features and self.energy_only:
             x1 = x[0]
-            x2 = x[1]
+            # x2 = x[1]
             feat_flat_std = self.std_layer(x1)
             temp_hidden = self.mlp_layer(feat_flat_std, training=training)
             temp_e = self.energy_layer(temp_hidden)
@@ -184,7 +199,7 @@ class EnergyGradientModel(ks.Model):
         grad = tape2.batch_jacobian(feat_pred, tf_x)
         return feat_pred, grad
 
-    def precompute_feature_in_chunks(self, x, batch_size, normalization_mode=1):
+    def precompute_feature_in_chunks(self, x, batch_size):
         np_x = []
         np_grad = []
         for j in range(int(np.ceil(len(x) / batch_size))):
@@ -198,11 +213,13 @@ class EnergyGradientModel(ks.Model):
         np_x = np.concatenate(np_x, axis=0)
         np_grad = np.concatenate(np_grad, axis=0)
 
-        self.set_const_normalization_from_features(np_x, normalization_mode=normalization_mode)
-
         return np_x, np_grad
 
-    def set_const_normalization_from_features(self, feat_x, normalization_mode=1):
+    def set_const_normalization_from_features(self, feat_x, normalization_mode=None):
+        if normalization_mode is None:
+            normalization_mode = self.normalization_mode
+        else:
+            self.normalization_mode = normalization_mode
 
         feat_x_mean, feat_x_std = self.get_layer('feat_std').get_weights()
         if normalization_mode == 1:
@@ -215,3 +232,32 @@ class EnergyGradientModel(ks.Model):
                 seg_scaler.get_params()["feat_std"])
 
         self.get_layer('feat_std').set_weights([feat_x_mean, feat_x_std])
+
+        return [feat_x_mean, feat_x_std]
+
+    def fit(self, **kwargs):
+
+        if self.precomputed_features:
+            self.set_const_normalization_from_features(kwargs['x'][0])
+
+        return super(EnergyGradientModel, self).fit(**kwargs)
+
+    def get_config(self):
+        conf = super(EnergyGradientModel, self).get_config()
+        conf.update({
+            'atoms': self.eg_atoms,
+            'states': self.eg_states,
+            'invd_index': self.in_invd_index,
+            'angle_index': self.in_angle_index,
+            'dihed_index': self.in_dihed_index,
+            'nn_size': self.nn_size,
+            'depth': self.depth,
+            'activ': self.activ,
+            'use_reg_activ': self.use_reg_activ,
+            'use_reg_weight': self.use_reg_weight,
+            'use_reg_bias': self.use_reg_bias,
+            'use_dropout': self.use_dropout,
+            'dropout': self.dropout,
+            'normalization_mode': self.normalization_mode
+        })
+        return conf
