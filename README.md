@@ -1,5 +1,5 @@
 [![Documentation Status](https://readthedocs.org/projects/pynnsmd/badge/?version=latest)](https://pynnsmd.readthedocs.io/en/latest/?badge=latest)
-[![PyPI version](https://badge.fury.io/py/pyNNsMD.svg)](https://badge.fury.io/py/pyNNsMD)
+![PyPI](https://img.shields.io/pypi/v/pyNNsMD)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/pyNNsMD)
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/aimat-lab/NNsForMD)
 
