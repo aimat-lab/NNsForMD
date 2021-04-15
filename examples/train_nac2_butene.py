@@ -51,3 +51,6 @@ x_pred, y_pred = scaler.inverse_transform(x=x_scaled[2000:],y=y_pred)
 # Plot Prediction
 fig = plot_scatter_prediction(nacs[2000:],y_pred)
 plt.show()
+
+# Save Model
+model.save("butene_nac2")

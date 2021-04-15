@@ -39,6 +39,9 @@ class EnergyGradientModel(ks.Model):
                  use_dropout=False,
                  dropout=0.01,
                  normalization_mode=1,
+                 energy_only = False,
+                 precomputed_features = False,
+                 output_as_dict = False,
                  **kwargs):
         """
         Initialize Layer
@@ -72,6 +75,12 @@ class EnergyGradientModel(ks.Model):
         self.use_reg_bias = use_reg_bias
         self.use_dropout = use_dropout
         self.dropout = dropout
+        # Control the properties
+        self.energy_only = energy_only
+        self.output_as_dict = output_as_dict
+        self.eg_atoms = int(atoms)
+        self.eg_states = int(states)
+        self.normalization_mode = normalization_mode
 
         out_dim = int(states)
         indim = int(atoms)
@@ -121,17 +130,11 @@ class EnergyGradientModel(ks.Model):
         self.force = EmptyGradient(mult_states=out_dim, atoms=indim,
                                    name='force')  # Will be differentiated in fit/predict/evaluate
 
-        # Control the properties
-        self.energy_only = False
+        # Need to build model already to set std layer
         self.precomputed_features = False
-        self.output_as_dict = False
-
-        # Will remove later
-        self.eg_atoms = atoms
-        self.eg_states = states
-        self.normalization_mode = normalization_mode
-
         self.build((None, indim, 3))
+
+        self.precomputed_features = precomputed_features
 
     def call(self, data, training=False, **kwargs):
         """
@@ -243,7 +246,8 @@ class EnergyGradientModel(ks.Model):
         return super(EnergyGradientModel, self).fit(**kwargs)
 
     def get_config(self):
-        conf = super(EnergyGradientModel, self).get_config()
+        # conf = super(EnergyGradientModel, self).get_config()
+        conf = {}
         conf.update({
             'atoms': self.eg_atoms,
             'states': self.eg_states,
@@ -258,6 +262,19 @@ class EnergyGradientModel(ks.Model):
             'use_reg_bias': self.use_reg_bias,
             'use_dropout': self.use_dropout,
             'dropout': self.dropout,
-            'normalization_mode': self.normalization_mode
+            'normalization_mode': self.normalization_mode,
+            'energy_only': self.energy_only,
+            'precomputed_features': self.precomputed_features,
+            'output_as_dict': self.output_as_dict
         })
         return conf
+
+    def save(self,filepath,**kwargs):
+        # copy to new model
+        self_conf = self.get_config()
+        self_conf['precomputed_features'] = False
+        copy_model = EnergyGradientModel(**self_conf)
+        copy_model.set_weights(self.get_weights())
+        # Make graph and test with training data
+        copy_model.predict(np.ones((1,self.eg_atoms,3)))
+        tf.keras.models.save_model(copy_model,filepath,**kwargs)

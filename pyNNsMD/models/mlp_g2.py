@@ -32,6 +32,7 @@ class GradientModel2(ks.Model):
                  use_dropout=False,
                  dropout=0.01,
                  normalization_mode=1,
+                 precomputed_features = False,
                  **kwargs):
         """
         Initialize a NACModel with hyperparameters.
@@ -57,14 +58,12 @@ class GradientModel2(ks.Model):
         self.use_reg_bias = use_reg_bias
         self.use_dropout = use_dropout
         self.dropout = dropout
+        self.out_dim = int(states)
+        self.normalization_mode = normalization_mode
+        self.y_atoms = int(atoms)
 
         out_dim = int(states)
         indim = int(atoms)
-
-        self.out_dim = out_dim
-        self.normalization_mode = normalization_mode
-        self.y_atoms = indim
-
         # Allow for all distances, backward compatible
         if isinstance(invd_index, bool):
             if invd_index:
@@ -118,9 +117,10 @@ class GradientModel2(ks.Model):
         self.resh_layer = tf.keras.layers.Reshape((out_dim, in_model_dim))
         self.prop_grad_layer = PropagateNACGradient2(axis=(2, 1))
 
+        # Build all layers
         self.precomputed_features = False
-
         self.build((None, indim, 3))
+        self.precomputed_features = precomputed_features
 
     def call(self, data, training=False, **kwargs):
         """
@@ -213,7 +213,8 @@ class GradientModel2(ks.Model):
         return super(GradientModel2, self).fit(**kwargs)
 
     def get_config(self):
-        conf = super(GradientModel2, self).get_config()
+        # conf = super(GradientModel2, self).get_config()
+        conf = {}
         conf.update({
             'atoms': self.y_atoms,
             'states': self.out_dim,
@@ -228,6 +229,17 @@ class GradientModel2(ks.Model):
             'use_reg_bias': self.use_reg_bias,
             'use_dropout': self.use_dropout,
             'dropout': self.dropout,
-            'normalization_mode': self.normalization_mode
+            'normalization_mode': self.normalization_mode,
+            'precomputed_features': self.precomputed_features,
         })
         return conf
+
+    def save(self,filepath,**kwargs):
+        # copy to new model
+        self_conf = self.get_config()
+        self_conf['precomputed_features'] = False
+        copy_model = GradientModel2(**self_conf)
+        copy_model.set_weights(self.get_weights())
+        # Make graph and test with training data
+        copy_model.predict(np.ones((1,self.y_atoms,3)))
+        tf.keras.models.save_model(copy_model,filepath,**kwargs)
