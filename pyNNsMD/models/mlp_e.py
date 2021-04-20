@@ -152,7 +152,8 @@ class EnergyModel(ks.Model):
             temp_g = tape2.batch_jacobian(temp_e, x)
             y_pred = [temp_e, temp_g]
         elif self.precomputed_features:
-            feat_flat_std = self.std_layer(x)
+            x1 = x[0]
+            feat_flat_std = self.std_layer(x1)
             temp_hidden = self.mlp_layer(feat_flat_std, training=training)
             temp_e = self.energy_layer(temp_hidden)
             y_pred = temp_e

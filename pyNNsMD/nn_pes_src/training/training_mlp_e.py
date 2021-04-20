@@ -166,14 +166,14 @@ def train_model_energy(i=0, outdir=None, mode='training'):
     x_rescale, y1 = scaler.transform(x, y)
 
     # Model + Model precompute layer +feat
-    feat_x, _ = out_model.precompute_feature_in_chunks(x_rescale, batch_size=batch_size)
+    feat_x, feat_grad = out_model.precompute_feature_in_chunks(x_rescale, batch_size=batch_size)
     feat_x_mean, feat_x_std = out_model.set_const_normalization_from_features(feat_x,normalization_mode=normalize_feat)
 
 
     # Train Test split
-    xtrain = feat_x[i_train]
+    xtrain = [feat_x[i_train], feat_grad[i_train]]
     ytrain = y1[i_train]
-    xval = feat_x[i_val]
+    xval = [feat_x[i_val], feat_grad[i_val]]
     yval = y1[i_val]
 
     # Compile model

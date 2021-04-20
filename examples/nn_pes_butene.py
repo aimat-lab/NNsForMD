@@ -98,14 +98,14 @@ hyper_nac2 = {  # Model
 }
 
 nn.create({
-    # 'e': hyper_energy,
-    'eg': hyper_grads,
+    'e': hyper_energy,
+    # 'eg': hyper_grads,
     # 'nac2': hyper_nac2
 })
 
 y = {
-    # 'e': eng,
-    'eg': [eng, grads],
+    'e': eng,
+    # 'eg': [eng, grads],
     # 'nac2' : nac,
 }
 
