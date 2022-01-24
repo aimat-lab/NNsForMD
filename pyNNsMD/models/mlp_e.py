@@ -39,9 +39,9 @@ class EnergyModel(ks.Model):
                  normalization_mode=1,
                  energy_only = True,
                  precomputed_features = False,
+                 model_module="mlp_e",
                  **kwargs):
-        """
-        Initialize an EnergyModel with hyperparameters.
+        """Initialize an EnergyModel with hyperparameters.
 
         Args:
             hyper (dict): Hyperparamters.

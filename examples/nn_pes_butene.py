@@ -5,7 +5,7 @@ from pyNNsMD.nn_pes_src.device import set_gpu
 # No GPU for prediciton or the main class
 set_gpu([-1])
 
-from pyNNsMD.nn_pes import NeuralNetPes
+from pyNNsMD.NNsMD import NeuralNetPes
 
 # list of angles
 anglist = [[1, 0, 2], [1, 0, 4], [2, 0, 4], [0, 1, 3], [0, 1, 8], [3, 1, 8], [0, 4, 5], [0, 4, 6], [0, 4, 7], [6, 4, 7],
