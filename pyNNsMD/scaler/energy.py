@@ -57,22 +57,10 @@ class EnergyStandardScaler(SaclerBase):
         return self.transform(x=x, y=y)
 
     def save(self, filepath):
-        outdict = {'x_mean': self.x_mean.tolist(),
-                   'x_std': self.x_std.tolist(),
-                   'energy_mean': self.energy_mean.tolist(),
-                   'energy_std': self.energy_std.tolist()
-                   }
-        with open(filepath, 'w') as f:
-            json.dump(outdict, f)
+        pass
 
     def load(self, filepath):
-        with open(filepath, 'r') as f:
-            indict = json.load(f)
-
-        self.x_mean = np.array(indict['x_mean'])
-        self.x_std = np.array(indict['x_std'])
-        self.energy_mean = np.array(indict['energy_mean'])
-        self.energy_std = np.array(indict['energy_std'])
+        pass
 
     def get_config(self):
         outdict = {"scaler_module": self.scaler_module}

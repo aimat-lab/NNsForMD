@@ -1,12 +1,14 @@
 import os
 import sys
+import numpy as np
 import logging
 import importlib
 import tensorflow as tf
 
-from pyNNsMD.utils.data import save_json_file, load_json_file
+from pyNNsMD.utils.data import save_json_file, load_json_file, write_list_to_xyz_file
 from pyNNsMD.src.fit import fit_model_by_script
 from pyNNsMD.scaler.base import SaclerBase
+from sklearn.model_selection import KFold
 
 logging.basicConfig()
 module_logger = logging.getLogger(__name__)
@@ -160,7 +162,10 @@ class NeuralNetEnsemble:
 
     @staticmethod
     def _get_name_of_class(class_object):
-        return  str(type(class_object)).replace("'>", "").split(".")[-1]
+        return str(type(class_object)).replace("'>", "").split(".")[-1]
+
+    def _get_model_path(self, i):
+        return os.path.join(self._directory, "model_v%s" % i)
 
     def _save_single_scaler(self, scaler, i, model_path, save_scaler, save_weights):
 
@@ -182,14 +187,14 @@ class NeuralNetEnsemble:
                 raise AttributeError("Scaler must implement `save()` which is not defined for %s" % i)
             scaler.save(os.path.join(model_path, "scaler_class"))
 
-    def save(self, save_model: bool = True, save_weights: bool = True, save_scaler: bool  = True):
+    def save(self, save_model: bool = True, save_weights: bool = True, save_scaler: bool = True):
         """Save models, scaler and hyper-parameter into class folder."""
 
         directory = os.path.realpath(self._directory)
         os.makedirs(directory, exist_ok=True)
 
         for i in range(self._number_models):
-            model_path = os.path.join(directory, "model_v%s" % i)
+            model_path = self._get_model_path(i)
             os.makedirs(model_path, exist_ok=True)
 
             self._save_single_model(self._models[i], i, model_path, save_weights=save_weights, save_model=save_model)
@@ -231,7 +236,7 @@ class NeuralNetEnsemble:
             return None
 
         if load_scaler:
-            self.logger.warning("Recreating scaler directly from file is not implemented yet.")
+            self.logger.warning("Loading scaler directly from file is not implemented yet.")
 
         self.logger.info("Recreating scaler with weights.")
         _scaler = self._create_single_scaler(_scaler_config, i)
@@ -258,15 +263,41 @@ class NeuralNetEnsemble:
         _models_hyper = [None]*self._number_models
         _scaler_hyper = [None]*self._number_models
         for i in range(self._number_models):
-            model_path = os.path.join(directory, "model_v%s" % i)
+            model_path = self._get_model_path(i)
 
             self._models[i] = self._load_single_model(model_path=model_path, i=i, load_model=load_model)
             self._scalers[i] = self._load_single_scaler(model_path=model_path, i=i, load_scaler=load_scaler)
 
         return self
 
-    def data(self, geometries=None, forces=None, energies=None, couplings=None):
-        pass
+    def data(self, atoms: list = None, geometries: list = None, forces: list = None, energies: list = None,
+             couplings: list = None):
+        kwargs = dict(locals())
+        kwargs.pop("self")
+        dir_path = self._directory
+        data_length = [len(values) for key, values in kwargs.items() if values is not None]
+        if len(data_length) == 0:
+            self.logger.warning("Received no data to safe.")
+            return
+        if len(set(data_length)) > 1:
+            raise ValueError("Received different data length for %s" % data_length)
+
+        if atoms is not None and geometries is not None:
+            write_list_to_xyz_file(os.path.join(dir_path, "geometry.xyz"), [x for x in zip(atoms, geometries)])
+        if energies is not None:
+            np.save("energies.npy", energies)
+
+    def train_test_split(self, dataset_size, n_splits: int = 5, shuffle: bool = True, random_state: int = None):
+        if n_splits < self._number_models:
+            raise ValueError("Number of splits must be at least number of model but got %s" % n_splits)
+        kf = KFold(n_splits=n_splits, shuffle=shuffle, random_state=random_state)
+        i = 0
+        for train_index, test_index in kf.split(np.expand_dims(np.arange(dataset_size), axis=-1)):
+            if i >= self._number_models:
+                break
+            np.save(os.path.join(self._get_model_path(i), "train_index.npy"), train_index)
+            np.save(os.path.join(self._get_model_path(i), "test_index.npy"), test_index)
+            i = i + 1
 
     def _fit_single_model(self, i, training_script, gpu, proc_async, fit_mode):
 
@@ -283,7 +314,7 @@ class NeuralNetEnsemble:
         The type of execution is found in src.fit with the training src.training_ scripts.
 
         Args:
-            training_scripts (list): List of training scripts
+            training_scripts (list): List of training scripts for each model.
             gpu_dist (list, optional): List of GPUs for each NN. Default is [].
             proc_async (bool, optional): Try to run parallel. Default is True.
             fit_mode (str, optional):  Whether to do 'training' or 'retraining' the existing model in
@@ -301,108 +332,23 @@ class NeuralNetEnsemble:
             raise ValueError("Training scripts must be the same number of models.")
 
         # Fitting
-        proclist = []
+        proc_list = []
         for i, fit_script in enumerate(training_scripts):
-            proclist.append(self._fit_single_model(i, fit_script, gpu_dist[i], proc_async, fit_mode))
+            proc_list.append(self._fit_single_model(i, fit_script, gpu_dist[i], proc_async, fit_mode))
 
         # Wait for fits
         if proc_async:
             self.logger.info("Fits submitted, waiting...")
             # Wait for models to finish
-            for proc in proclist:
+            for proc in proc_list:
                 if proc is None:
                     self.logger.warning("No valid process to wait for.")
                 else:
                     proc.wait()
 
-        # Look for fiterror in folder
+        # Look for fit-error in folder
         self.logger.info("Searching Folder for fit results...")
         self.load()
 
         return None
 
-    # @staticmethod
-    # def _predict_model_list(x_list, model_list, batch_size_list):
-    #     out = [model_list[i].predict(x_list[i], batch_size=batch_size_list[i]) for i in range(len(model_list))]
-    #     return out
-    #
-    # def _predict_models(self, name, x):
-    #     # Check type with first hyper
-    #     model_type = self._models_hyper[name][0]['general']['model_type']
-    #     x_scaled = [self._models_scaler[name][i].transform(x=x)[0] for i in range(self._addNN)]
-    #     temp = self._predict_model_list(x_scaled, self._models[name],
-    #                                     [self._models_hyper[name][i]['predict']['batch_size_predict'] for i in
-    #                                      range(self._addNN)])
-    #     out = [self._models_scaler[name][i].inverse_transform(y=temp[i])[1] for i in range(self._addNN)]
-    #     return predict_uncertainty(model_type, out, self._addNN)
-    #
-    # def predict(self, x):
-    #     """
-    #     Prediction for all models available. Prediction is slower but works on large data.
-    #
-    #     Args:
-    #         x (np.array,list, dict):    Coordinates in Angstroem of shape (batch,Atoms,3)
-    #                                     Or a suitable list of geometric input.
-    #                                     If models require different x please provide dict matching model name.
-    #
-    #     Returns:
-    #         result (dict): All model predictions: {'energy_gradient' : [np.aray,np.array] , 'nac' : np.array , ..}.
-    #         error (dict): Error estimate for each value: {'energy_gradient' : [np.aray,np.array] ,
-    #                       'nac' : np.array , ..}.
-    #
-    #     """
-    #     result = {}
-    #     error = {}
-    #     for name in self._models.keys():
-    #         if isinstance(x, dict):
-    #             x_model = x[name]
-    #         else:
-    #             x_model = x
-    #         temp = self._predict_models(name, x_model)
-    #         result[name] = temp[0]
-    #         error[name] = temp[1]
-    #
-    #     return result, error
-    #
-    # @tf.function
-    # def _call_model_list(self, x_list, model_list):
-    #     out = [model_list[i](x_list[i], training=False) for i in range(len(model_list))]
-    #     return out
-    #
-    # def _call_models(self, name, x):
-    #     # Check type with first hyper
-    #     model_type = self._models_hyper[name][0]['general']['model_type']
-    #     x_scaled = [self._models_scaler[name][i].transform(x=x)[0] for i in range(self._addNN)]
-    #     x_res = [tf.convert_to_tensor(xs, dtype=tf.float32) for xs in x_scaled]
-    #     temp = self._call_model_list(x_res, self._models[name])
-    #     temp = [unpack_convert_y_to_numpy(model_type, xout) for xout in temp]
-    #     out = [self._models_scaler[name][i].inverse_transform(y=temp[i])[1] for i in range(self._addNN)]
-    #     return predict_uncertainty(model_type, out, self._addNN)
-    #
-    # def call(self, x):
-    #     """
-    #     Faster prediction without looping batches. Requires single small batch (batch, Atoms,3) that fit into memory.
-    #
-    #     Args:
-    #         x (np.array):   Coordinates in Angstroem of shape (batch,Atoms,3)
-    #                         Or a suitable list of geometric input.
-    #                         If models require different x please provide dict matching model name.
-    #
-    #     Returns:
-    #         result (dict): All model predictions: {'energy_gradient' : [np.array,np.array] , 'nac' : np.array , ..}.
-    #         error (dict): Error estimate for each value: {'energy_gradient' : [np.array,np.array] ,
-    #                       'nac' : np.array , ..}.
-    #
-    #     """
-    #     result = {}
-    #     error = {}
-    #     for name in self._models.keys():
-    #         if isinstance(x, dict):
-    #             x_model = x[name]
-    #         else:
-    #             x_model = x
-    #         temp = self._call_models(name, x_model)
-    #         result[name] = temp[0]
-    #         error[name] = temp[1]
-    #
-    #     return result, error

@@ -53,6 +53,9 @@ def fit_model_by_script(i, fit_script, g, filepath, m, proc_async):
         module_logger.error("Empty training script. Not starting training.")
         return
 
+    if os.path.splitext(py_script)[-1] == "":
+        py_script = os.path.realpath(os.path.splitext(py_script)[0] + ".py")
+
     if not os.path.exists(py_script):
         module_logger.error("Wrong training script %s, please check path", py_script)
         raise FileNotFoundError("Can not find training script %s, please check path" % py_script)

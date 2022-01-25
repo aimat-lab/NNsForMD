@@ -71,3 +71,40 @@ def load_hyper_file(file_name):
     else:
         print("Unsupported file type %s" % type_ending)
     return {}
+
+
+def parse_list_to_xyz_str(mol: list, comment: str = ""):
+    """Convert list of atom and coordinates list into xyz-string.
+    Args:
+        mol (list): Tuple or list of `[['C', 'H', ...], [[0.0, 0.0, 0.0], [1.0, 1.0, 1.0], ... ]]`.
+        comment (str): Comment for comment line in xyz string. Default is "".
+    Returns:
+        str: Information in xyz-string format.
+    """
+    atoms = mol[0]
+    coordinates = mol[1]
+    if len(atoms) != len(coordinates):
+        raise ValueError("Number of atoms does not match number of coordinates for xyz string.")
+    xyz_str = str(int(len(atoms))) + "\n"
+    if "\n" in comment:
+        raise ValueError("Line break must not be in the comment line for xyz string.")
+    xyz_str = xyz_str + comment + "\n"
+    for a_iter, c_iter in zip(atoms, coordinates):
+        _at_str = str(a_iter)
+        _c_format_str = " {:.10f}" * len(c_iter) + "\n"
+        xyz_str = xyz_str + _at_str + _c_format_str.format(*c_iter)
+    return xyz_str
+
+
+def write_list_to_xyz_file(filepath: str, mol_list: list):
+    """Write a list of nested list of atom and coordinates into xyz-string. Uses :obj:`parse_list_to_xyz_str`.
+    Args:
+        filepath (str): Full path to file including name.
+        mol_list (list): List of molecules, which is a list of pairs of atoms and coordinates of
+            `[[['C', 'H', ... ], [[0.0, 0.0, 0.0], [1.0, 1.0, 1.0], ... ]], ... ]`.
+    """
+    with open(filepath, "w+") as file:
+        for x in mol_list:
+            xyz_str = parse_list_to_xyz_str(x)
+            file.write(xyz_str)
+
