@@ -1,14 +1,13 @@
-"""
-Scaling of in and output
-"""
-
 import json
 
 import numpy as np
+from pyNNsMD.scaler.base import SaclerBase
 
 
-class EnergyStandardScaler:
-    def __init__(self):
+class EnergyStandardScaler(SaclerBase):
+
+    def __init__(self, scaler_module="energy"):
+        super(EnergyStandardScaler, self).__init__()
         self.x_mean = np.zeros((1, 1, 1))
         self.x_std = np.ones((1, 1, 1))
         self.energy_mean = np.zeros((1, 1))
@@ -16,6 +15,7 @@ class EnergyStandardScaler:
 
         self._encountered_y_shape = None
         self._encountered_y_std = None
+        self.scaler_module = scaler_module
 
     def transform(self, x=None, y=None):
         x_res = x
@@ -53,8 +53,8 @@ class EnergyStandardScaler:
         self._encountered_y_std = np.std(y, axis=0)
 
     def fit_transform(self, x=None, y=None, auto_scale=None):
-        self.fit(x=x,y=y,auto_scale=auto_scale)
-        return self.transform(x=x,y=y)
+        self.fit(x=x, y=y, auto_scale=auto_scale)
+        return self.transform(x=x, y=y)
 
     def save(self, filepath):
         outdict = {'x_mean': self.x_mean.tolist(),
@@ -74,19 +74,9 @@ class EnergyStandardScaler:
         self.energy_mean = np.array(indict['energy_mean'])
         self.energy_std = np.array(indict['energy_std'])
 
-    def get_params(self):
-        outdict = {'x_mean': self.x_mean.tolist(),
-                   'x_std': self.x_std.tolist(),
-                   'energy_mean': self.energy_mean.tolist(),
-                   'energy_std': self.energy_std.tolist(),
-                   }
+    def get_config(self):
+        outdict = {"scaler_module": self.scaler_module}
         return outdict
-
-    def set_params(self, indict):
-        self.x_mean = np.array(indict['x_mean'])
-        self.x_std = np.array(indict['x_std'])
-        self.energy_mean = np.array(indict['energy_mean'])
-        self.energy_std = np.array(indict['energy_std'])
 
     def print_params_info(self):
         print("Info: Total-Data energy std", self._encountered_y_shape, ":", self._encountered_y_std)
@@ -94,6 +84,20 @@ class EnergyStandardScaler:
         print("Info: Using energy-mean", self.energy_mean.shape, ":", self.energy_mean)
         print("Info: Using x-scale", self.x_std.shape, ":", self.x_std)
         print("Info: Using x-offset", self.x_mean.shape, ":", self.x_mean)
+
+    def load_weights(self, file_path):
+        weights = np.load(file_path, allow_pickle=True).item()
+        self.x_mean = np.array(weights['x_mean'])
+        self.x_std = np.array(weights['x_std'])
+        self.energy_mean = np.array(weights['energy_mean'])
+        self.energy_std = np.array(weights['energy_std'])
+
+    def save_weights(self, file_path):
+        outdict = {'x_mean': np.array(self.x_mean),
+                   'x_std': np.array(self.x_std),
+                   'energy_mean': np.array(self.energy_mean),
+                   'energy_std': np.array(self.energy_std)}
+        np.save(file_path, outdict)
 
 
 class EnergyGradientStandardScaler:
@@ -156,8 +160,8 @@ class EnergyGradientStandardScaler:
         self._encountered_y_std = [np.std(y[0], axis=0), np.std(y[1], axis=(0, 2, 3))]
 
     def fit_transform(self, x=None, y=None, auto_scale=None):
-        self.fit(x=x,y=y,auto_scale=auto_scale)
-        return self.transform(x=x,y=y)
+        self.fit(x=x, y=y, auto_scale=auto_scale)
+        return self.transform(x=x, y=y)
 
     def save(self, filepath):
         outdict = {'x_mean': self.x_mean.tolist(),
@@ -255,8 +259,8 @@ class GradientStandardScaler:
         self._encountered_y_shape = np.array(y.shape)
 
     def fit_transform(self, x=None, y=None, auto_scale=None):
-        self.fit(x=x,y=y,auto_scale=auto_scale)
-        return self.transform(x=x,y=y)
+        self.fit(x=x, y=y, auto_scale=auto_scale)
+        return self.transform(x=x, y=y)
 
     def save(self, filepath):
         outdict = {'x_mean': self.x_mean.tolist(),

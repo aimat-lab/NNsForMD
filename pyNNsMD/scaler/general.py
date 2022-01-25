@@ -1,10 +1,13 @@
 import json
 
 import numpy as np
+from pyNNsMD.scaler.base import SaclerBase
 
 
-class SegmentStandardScaler:
+class SegmentStandardScaler(SaclerBase):
+
     def __init__(self, segments=None):
+        super(SegmentStandardScaler, self).__init__()
         self.feat_mean = np.zeros((1, 1))
         self.feat_std = np.ones((1, 1))
 
@@ -51,29 +54,30 @@ class SegmentStandardScaler:
         self.fit(y=y,segments=segments)
         return self.transform(y=y)
 
-    def save(self, filepath):
+    def save(self, file_path):
         outdict = {'feat_mean': self.feat_mean.tolist(),
                    'feat_std': self.feat_std.tolist(),
                    }
-        with open(filepath, 'w') as f:
+        with open(file_path, 'w') as f:
             json.dump(outdict, f)
 
-    def load(self, filepath):
-        with open(filepath, 'r') as f:
+    def load(self, file_path):
+        with open(file_path, 'r') as f:
             indict = json.load(f)
 
         self.feat_mean = np.array(indict['feat_mean'])
         self.feat_std = np.array(indict['feat_std'])
 
-    def get_params(self):
+    def get_config(self):
         outdict = {'feat_mean': self.feat_mean.tolist(),
                    'feat_std': self.feat_std.tolist(),
+                   "scaler_module": self.scaler_module
                    }
         return outdict
 
-    def set_params(self, indict):
-        self.feat_mean = np.array(indict['feat_mean'])
-        self.feat_std = np.array(indict['feat_std'])
+    def from_config(self, config):
+        self.feat_mean = np.array(config['feat_mean'])
+        self.feat_std = np.array(config['feat_std'])
 
     def print_params_info(self):
         print("Info: Data feature shape", self._encountered_y_shape)

@@ -1,13 +1,12 @@
-import json
 import os
 import sys
 import logging
-import numpy as np
 import importlib
 import tensorflow as tf
 
 from pyNNsMD.utils.data import save_json_file, load_json_file
 from pyNNsMD.src.fit import fit_model_by_script
+from pyNNsMD.scaler.base import SaclerBase
 
 logging.basicConfig()
 module_logger = logging.getLogger(__name__)
@@ -51,62 +50,139 @@ class NeuralNetEnsemble:
 
         # Private members.
         self._models = []
-        self._models_hyper = []
-        self._scaler_hyper = []
-        self._scaler = []
+        self._scalers = []
 
     def _create_single_model(self, kw, i):
         # The module location could be inferred from keras path or module system using '>'
         # For now keep at extra argument that models must store in their config.
         if kw is None:
-            raise ValueError("Expected model kwargs, got None instead.")
+            # Must have model.
+            raise ValueError("Expected model kwargs, got `None` instead.")
 
-        if "model_module" not in kw["config"]:
-            raise ValueError("Requires information about the module for model %s" % i)
+        if isinstance(kw, tf.keras.Model):
+            self.logger.info("Got `keras.Model` for model index i" % i)
+            return kw
 
-        if "class_name" not in kw:
-            raise ValueError("Requires information about the class for model %s" % i)
-        if not isinstance(kw["class_name"], str):
-            raise ValueError("Requires class name to be string but got %s" % kw["class_name"])
-        class_name = kw["class_name"].split(">")[-1]
+        if not isinstance(kw, dict):
+            raise ValueError("Please supply a model or a dictionary for `create`.")
 
-        try:
-            make_class = getattr(importlib.import_module("pyNNsMD.models.%s" % kw["config"]["model_module"]),
-                                 class_name)
-        except ModuleNotFoundError:
-            raise NotImplementedError(
-                "Unknown model identifier %s for a model in pyNNsMD.models" % kw["model_class"])
+        if "model_module" in kw["config"]:
+            if "class_name" not in kw:
+                raise ValueError("Requires information about the class for model %s" % i)
+            if not isinstance(kw["class_name"], str):
+                raise ValueError("Requires class name to be string but got %s" % kw["class_name"])
 
-        return make_class(**kw["config"])
+            class_name = kw["class_name"].split(">")[-1]
+            try:
+                make_class = getattr(importlib.import_module("pyNNsMD.models.%s" % kw["config"]["model_module"]),
+                                     class_name)
+            except ModuleNotFoundError:
+                raise NotImplementedError(
+                    "Unknown model identifier %s for a model in pyNNsMD.models" % kw["model_class"])
 
-    def create(self, model_kwargs: list, scaler_kwargs: list):
+            return make_class(**kw["config"])
+
+        if "class_name" in kw:
+            return tf.keras.utils.deserialize_keras_object(kw["class_name"])(**kw["config"])
+
+        raise ValueError("Could not make model from %s" % kw)
+
+    def _create_single_scaler(self, kw, i):
+        if kw is None:
+            self.logger.warning("Expected scaler kwargs, got `None` instead. Not using scaler.")
+            return None
+
+        if isinstance(kw, SaclerBase):
+            self.logger.info("Got scaler for model index i" % i)
+            return kw
+
+        if not isinstance(kw, dict):
+            raise ValueError("Please supply a scaler or a dictionary for `create`.")
+
+        if "scaler_module" in kw["config"]:
+            if "class_name" not in kw:
+                raise ValueError("Requires information about the class for scaler %s" % i)
+            if not isinstance(kw["class_name"], str):
+                raise ValueError("Requires class name to be string but got %s" % kw["class_name"])
+
+            class_name = kw["class_name"].split(">")[-1]
+            try:
+                make_class = getattr(importlib.import_module("pyNNsMD.scaler.%s" % kw["config"]["scaler_module"]),
+                                     class_name)
+            except ModuleNotFoundError:
+                raise NotImplementedError(
+                    "Unknown scaler identifier %s for a scaler in pyNNsMD.scaler" % kw["model_class"])
+
+            return make_class(**kw["config"])
+
+        raise ValueError("Could not make model from %s" % kw)
+
+    def create(self, models: list, scalers: list):
         """Initialize and build a list of keras models. Missing hyper-parameter are filled from default.
 
         Args:
-            model_kwargs (dict): Dictionary with model hyper-parameter.
+            models (list): Dictionary with model hyper-parameter.
                 In each dictionary, information of module and model class must be provided.
+            scalers (list):
 
         Returns:
             self
         """
-        if len(model_kwargs) != self._number_models:
+        if len(models) != self._number_models:
             raise ValueError("Wrong number of model kwargs in create, expected %s" % self._number_models)
 
         self._models = [None]*self._number_models
-        self._models_hyper = [None]*self._number_models
-        for i, kw in enumerate(model_kwargs):
+        for i, kw in enumerate(models):
             self._models[i] = self._create_single_model(kw, i)
-            self._models_hyper[i] = kw
 
-        self._scaler = [None]*self._number_models
-        self._scaler_hyper = [None]*self._number_models
-        for i, kw in enumerate(scaler_kwargs):
-            pass
+        self._scalers = [None]*self._number_models
+        for i, kw in enumerate(scalers):
+            self._scalers[i] = self._create_single_scaler(kw, i)
 
         self.logger.info("Models and Scaler created. Must be save before calling fit.")
         return self
 
-    def save(self, save_model: bool = True, save_weights: bool = True):
+    def _save_single_model(self, model, i, model_path, save_weights, save_model):
+
+        model_serialization = {"class_name": self._get_name_of_class(model),
+                               "config": model.get_config()}
+        save_json_file(model_serialization, os.path.join(model_path, "model_config.json"))
+
+        if save_weights:
+            if not hasattr(model, "save_weights") or model is None:
+                raise AttributeError("Model is not a keras model with `save_weights()` defined for %s" % i)
+            model.save_weights(os.path.join(model_path, "model_weights.h5"))
+
+        if save_model:
+            if not hasattr(model, "save") or model is None:
+                raise AttributeError("Model is not a keras model with `save()` defined for %s" % i)
+            model.save(os.path.join(model_path, "model_tf"))
+
+    @staticmethod
+    def _get_name_of_class(class_object):
+        return  str(type(class_object)).replace("'>", "").split(".")[-1]
+
+    def _save_single_scaler(self, scaler, i, model_path, save_scaler, save_weights):
+
+        if scaler is None:
+            self.logger.warning("No scaler for model %i saved to file" % i)
+            return None
+
+        scaler_serialization = {"class_name": self._get_name_of_class(scaler),
+                                "config": scaler.get_config()}
+        save_json_file(scaler_serialization, os.path.join(model_path, "scaler_config.json"))
+
+        if save_weights:
+            if not hasattr(scaler, "save_weights"):
+                raise AttributeError("Scaler must implement `save_weights()` which is not defined for model %s" % i)
+            scaler.save_weights(os.path.join(model_path, "scaler_weights.npy"))
+
+        if save_scaler:
+            if not hasattr(scaler, "save"):
+                raise AttributeError("Scaler must implement `save()` which is not defined for %s" % i)
+            scaler.save(os.path.join(model_path, "scaler_class"))
+
+    def save(self, save_model: bool = True, save_weights: bool = True, save_scaler: bool  = True):
         """Save models, scaler and hyper-parameter into class folder."""
 
         directory = os.path.realpath(self._directory)
@@ -116,25 +192,54 @@ class NeuralNetEnsemble:
             model_path = os.path.join(directory, "model_v%s" % i)
             os.makedirs(model_path, exist_ok=True)
 
-            # Save separate model config explicitly.
-            save_json_file(self._models_hyper[i], os.path.join(model_path, "model_config.json"))
-
-            # Save separate scaler config explicitly.
-            save_json_file(self._scaler_hyper[i], os.path.join(model_path, "scaler_config.json"))
-
-            if save_weights:
-                if not hasattr(self._models[i], "save_weights") or self._models[i] is None:
-                    raise AttributeError("Model is not a keras model with save_weights defined for %s" % i)
-                self._models[i].save_weights(os.path.join(model_path, "model_weights.h5"))
-
-            if save_model:
-                if not hasattr(self._models[i], "save_weights") or self._models[i] is None:
-                    raise AttributeError("Model is not a keras model with save_weights defined for %s" % i)
-                self._models[i].save(os.path.join(model_path, "model_tf"))
+            self._save_single_model(self._models[i], i, model_path, save_weights=save_weights, save_model=save_model)
+            self._save_single_scaler(self._scalers[i], i, model_path,
+                                     save_weights=save_weights, save_scaler=save_scaler)
 
         return self
 
-    def load(self, load_model: bool = True):
+    def _load_single_model(self, model_path, i, load_model: bool = True):
+
+        _models = None
+        # Load the separate model kwargs.
+        _models_hyper = load_json_file(os.path.join(model_path, "model_config.json"))
+        if _models_hyper is None:
+            self.logger.error("Loaded empty model config for model %s" % i)
+
+        # Load model
+        if load_model:
+            _models = tf.keras.models.load_model(os.path.join(model_path, "model_tf"))
+
+        if not load_model:
+            self.logger.warning("Recreating model from config and loading weights...")
+            _models = self._create_single_model(_models_hyper, i)
+            _models.load_weights(os.path.join(model_path, "model_weights.h5"))
+
+        return _models
+
+    def _load_single_scaler(self, model_path, i, load_scaler):
+        _scaler = None
+
+        if not os.path.exists(os.path.join(model_path, "scaler_config.json")):
+            self.logger.error("Scaler for model %i was not defined" % i)
+            return None
+        # Load the separate scaler kwargs.
+        _scaler_config = load_json_file(os.path.join(model_path, "scaler_config.json"))
+
+        if _scaler_config is None:
+            self.logger.error("Can not load scaler for model %s" % i)
+            return None
+
+        if load_scaler:
+            self.logger.warning("Recreating scaler directly from file is not implemented yet.")
+
+        self.logger.info("Recreating scaler with weights.")
+        _scaler = self._create_single_scaler(_scaler_config, i)
+        _scaler.load_weights(os.path.join(model_path, "scaler_weights.npy"))
+
+        return _scaler
+
+    def load(self, load_model: bool = True, load_scaler: bool = True):
         """Load model from file that are stored in class folder.
         
         The tensorflow.keras.model is not loaded itself but created new from hyperparameters.
@@ -150,30 +255,13 @@ class NeuralNetEnsemble:
         if not os.path.exists(directory):
             raise FileNotFoundError("Can not find file directory %s for this class" % directory)
 
+        _models_hyper = [None]*self._number_models
+        _scaler_hyper = [None]*self._number_models
         for i in range(self._number_models):
             model_path = os.path.join(directory, "model_v%s" % i)
 
-            # Load the separate model kwargs.
-            self._models_hyper[i] = load_json_file(os.path.join(model_path, "model_config.json"))
-            if self._models_hyper[i] is None:
-                self.logger.error("Loaded empty model config for model %s" % i)
-
-            # Load the separate scaler kwargs.
-            self._scaler_hyper[i] = load_json_file(os.path.join(model_path, "scaler_config.json"))
-            if self._scaler_hyper[i] is None:
-                self.logger.error("Loaded empty scaler config for model %s" % i)
-
-            # Load model
-            model_load_success = True
-            if load_model:
-                tf.keras.models.load_model(os.path.join(model_path, "model_tf"))
-            else:
-                model_load_success = False
-
-            if not model_load_success:
-                self.logger.warning("Recreating model from config and loading weights...")
-                self._models[i] = self._create_single_model(self._models_hyper[i], i)
-                self._models[i].load_weights(os.path.join(model_path, "model_weights.h5"))
+            self._models[i] = self._load_single_model(model_path=model_path, i=i, load_model=load_model)
+            self._scalers[i] = self._load_single_scaler(model_path=model_path, i=i, load_scaler=load_scaler)
 
         return self
 
@@ -198,9 +286,9 @@ class NeuralNetEnsemble:
             training_scripts (list): List of training scripts
             gpu_dist (list, optional): List of GPUs for each NN. Default is [].
             proc_async (bool, optional): Try to run parallel. Default is True.
-            fit_mode (str, optional):  Whether to do 'training' or 'retraining' the existing model in hyperparameter category.
-                            Default is 'training'.
-                            In principle every reasonable category can be created in hyperparameters.
+            fit_mode (str, optional):  Whether to do 'training' or 'retraining' the existing model in
+                hyperparameter category. Default is 'training'.
+                In principle every reasonable category can be created in hyperparameters.
 
         Returns:
             list: Fitting Error.
