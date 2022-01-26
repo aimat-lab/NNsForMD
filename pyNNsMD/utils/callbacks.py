@@ -5,33 +5,48 @@ import numpy as np
 import tensorflow as tf
 
 
-def lr_step_reduction(learning_rate_step=[1e-3, 1e-4, 1e-5], epoch_step_reduction=[500, 1000, 5000],use=None):
+@tf.keras.utils.register_keras_serializable(package='pyNNsMD', name='StepWiseLearningScheduler')
+class StepWiseLearningScheduler(tf.keras.callbacks.LearningRateScheduler):
+    """Callback for step-wise change of the learning rate.
+
+    This class inherits from tf.keras.callbacks.LearningRateScheduler.
     """
-    Make learning rate schedule function for step reduction.
 
-    Args:
-        learnrate_steps (list, optional): List of learning rates for each step. The default is [1e-3,1e-4,1e-5].
-        learnrate_epochs (list, optional): The length of each step to keep learning rate.
-                                            The default is [500,1000,5000].
+    def __init__(self,
+                 learning_rate_step: list = None,
+                 epoch_step_reduction: list = None,
+                 verbose: int = 0, use: bool = None):
+        """Set the parameters for the learning rate scheduler.
 
-    Returns:
-        func: Function that can be used with LearningRateScheduler.
-        
-    Example:
-        lr_schedule_steps = tf.keras.callbacks.LearningRateScheduler(lr_step_reduction)
+        Args:
+            learning_rate_step (list, optional): List of learning rates for each step.
+                The default is [1e-3,1e-4,1e-5].
+            epoch_step_reduction (list, optional): The length of each step to keep learning rate.
+                The default is [500,1000,5000].
+        """
+        super(StepWiseLearningScheduler, self).__init__(schedule=self.schedule_epoch_lr, verbose=verbose)
+        if learning_rate_step is None:
+            learning_rate_step = [1e-3, 1e-4, 1e-5]
+        if epoch_step_reduction is None:
+            epoch_step_reduction = [500, 1000, 5000]
+        self.learning_rate_step = learning_rate_step
+        self.epoch_step_reduction = epoch_step_reduction
+        self.use = use
+        # Numpy arrays
+        self.np_le = np.cumsum(np.array(epoch_step_reduction))
+        self.np_lr = np.array(self.learning_rate_step)
+        self._default_lr = float(self.learning_rate_step[-1])
 
-    """
-    learning_rate_abs = np.cumsum(np.array(epoch_step_reduction))
-
-    def lr_out_step(epoch):
-        # epo = int(learning_rate_abs[-1])
-        learning_rate = float(learning_rate_step[-1])
-        le = np.array(learning_rate_abs)
-        lr = np.array(learning_rate_step)
-        out = np.select(epoch <= le, lr, default=learning_rate)
+    def schedule_epoch_lr(self, epoch, lr):
+        out = np.select(epoch <= self.np_le, self.np_lr, default=self._default_lr)
         return float(out)
 
-    return lr_out_step
+    def get_config(self):
+        config = super(StepWiseLearningScheduler, self).get_config()
+        config.update({"learning_rate_step": self.learning_rate_step,
+                       "epoch_step_reduction": self.epoch_step_reduction,
+                       "use": self.use})
+        return config
 
 
 @tf.keras.utils.register_keras_serializable(package='pyNNsMD', name='LinearLearningRateScheduler')
@@ -69,7 +84,8 @@ class LinearLearningRateScheduler(tf.keras.callbacks.LearningRateScheduler):
     def get_config(self):
         config = super(LinearLearningRateScheduler, self).get_config()
         config.update({"learning_rate_start": self.learning_rate_start,
-                       "learning_rate_stop": self.learning_rate_stop, "epo": self.epo, "epo_min": self.epo_min})
+                       "learning_rate_stop": self.learning_rate_stop, "epo": self.epo, "epo_min": self.epo_min,
+                       })
         return config
 
 

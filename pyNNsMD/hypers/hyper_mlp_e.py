@@ -39,10 +39,10 @@ DEFAULT_HYPER_PARAM_ENERGY = {
         'loss_weights': [1, 10],  # weights between energy and gradients
         'learning_rate': 1e-3,  # learning rate, can be modified by callbacks
         "callbacks": [],
-        # {"class_name": 'step_callback', "config": {'epoch_step_reduction': [500, 1500, 500, 500], 'learning_rate_step': [1e-3, 1e-4, 1e-5, 1e-6]}}
+        # {"class_name": 'StepWiseLearningScheduler', "config": {'epoch_step_reduction': [500, 1500, 500, 500], 'learning_rate_step': [1e-3, 1e-4, 1e-5, 1e-6]}}
         # {"class_name": 'LinearLearningRateScheduler', "config": {'learning_rate_start': 1e-3, 'learning_rate_stop': 1e-6, 'epo_min': 100, 'epo': 1000}}
-        # {"class_name": 'early_callback', "config": {'use': False, 'epomin': 5000, 'patience': 600, 'max_time': 600, 'delta_loss': 1e-5, 'loss_monitor': 'val_loss', 'factor_lr': 0.1, 'learning_rate_start': 1e-3, 'learning_rate_stop': 1e-6, 'epostep': 1}}
-        # {"class_name": 'exp_callback', "config": {'use': False, 'factor_lr': 0.1, 'epomin': 100, 'learning_rate_start': 1e-3}}
+        # {"class_name": 'EarlyStopping', "config": {'use': False, 'epomin': 5000, 'patience': 600, 'max_time': 600, 'min_delta': 1e-5, 'loss_monitor': 'val_loss', 'factor_lr': 0.1, 'learning_rate_start': 1e-3, 'learning_rate_stop': 1e-6, 'epostep': 1}}
+        # {"class_name": 'LinearWarmupExponentialLearningRateScheduler', "config": {'epo_warmup': 10, 'decay_gamma': 0.1, 'lr_start': 1e-3, 'lr_min': 0.0}}
         'unit_energy': "eV",
         'unit_gradient': "eV/A"
     },

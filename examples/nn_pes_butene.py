@@ -26,7 +26,8 @@ print(geos.shape, energy.shape, grads.shape, nac.shape)
 
 datapath = "TestModel/"
 nn = NeuralNetEnsemble(datapath, 2)
-nn.create(models=[hyper["model"]]*2, scalers=[hyper["scaler"]]*2)
+nn.create(models=[hyper["model"]]*2,
+          scalers=[hyper["scaler"]]*2)
 nn.save()
 
 nn.data(atoms=atoms, geometries=geos, energies=energy)
