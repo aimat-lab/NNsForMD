@@ -47,7 +47,7 @@ class NeuralNetEnsemble:
         self.logger.info("Models implemented:")
 
         # General.
-        self._directory = directory
+        self._directory = os.path.realpath(directory)
         self._number_models = number_models
 
         # Private members.
@@ -262,6 +262,7 @@ class NeuralNetEnsemble:
 
         _models_hyper = [None]*self._number_models
         _scaler_hyper = [None]*self._number_models
+
         for i in range(self._number_models):
             model_path = self._get_model_path(i)
 
@@ -283,9 +284,9 @@ class NeuralNetEnsemble:
             raise ValueError("Received different data length for %s" % data_length)
 
         if atoms is not None and geometries is not None:
-            write_list_to_xyz_file(os.path.join(dir_path, "geometry.xyz"), [x for x in zip(atoms, geometries)])
+            write_list_to_xyz_file(os.path.join(dir_path, "geometries.xyz"), [x for x in zip(atoms, geometries)])
         if energies is not None:
-            np.save("energies.npy", energies)
+            np.save(os.path.join(dir_path, "energies.npy"), energies)
 
     def train_test_split(self, dataset_size, n_splits: int = 5, shuffle: bool = True, random_state: int = None):
         if n_splits < self._number_models:
@@ -298,6 +299,14 @@ class NeuralNetEnsemble:
             np.save(os.path.join(self._get_model_path(i), "train_index.npy"), train_index)
             np.save(os.path.join(self._get_model_path(i), "test_index.npy"), test_index)
             i = i + 1
+
+    def training(self, training_hyper: list, fit_mode: str = "training"):
+        if len(training_hyper) != self._number_models:
+            raise ValueError("Training configs must match number of models but got %s" % len(training_hyper))
+        if fit_mode in ["scaler", "model"]:
+            raise ValueError("Training config can not be scaler or model, please rename.")
+        for i, x in enumerate(training_hyper):
+            save_json_file(x, os.path.join(self._get_model_path(i), fit_mode + "_config.json"))
 
     def _fit_single_model(self, i, training_script, gpu, proc_async, fit_mode):
 
@@ -352,3 +361,18 @@ class NeuralNetEnsemble:
 
         return None
 
+    def predict(self, x, **kwargs):
+        y_list = []
+        for i, (model, scaler) in enumerate(zip(self._models, self._scalers)):
+            if scaler is not None:
+                x, _ = scaler.inverse_transform(x=x, y=None)
+            if hasattr(model, "to_tensor_input"):
+                x = model.to_tensor_input(x)
+            y = model.predict(x, **kwargs)
+            if scaler is not None:
+                _, y = scaler.inverse_transform(x=x, y=y)
+            y_list.append(y)
+        return y_list
+
+    def __getitem__(self, item):
+        return self._models[item]

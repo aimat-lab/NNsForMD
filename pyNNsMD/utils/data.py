@@ -1,7 +1,5 @@
 import pickle
-import tensorflow as tf
-import numpy as np
-import pandas as pd
+import logging
 import yaml
 import json
 import os
@@ -108,3 +106,58 @@ def write_list_to_xyz_file(filepath: str, mol_list: list):
             xyz_str = parse_list_to_xyz_str(x)
             file.write(xyz_str)
 
+
+def read_xyz_file(file_path, delimiter: str = None, line_by_line=False):
+    """Simple python script to read xyz-file and parse into a nested python list. Always returns a list with
+    the geometries in xyz file.
+
+    Args:
+        file_path (str): Full path to xyz-file.
+        delimiter (str): Delimiter for xyz separation. Default is ' '.
+        line_by_line (bool): Whether to read XYZ file line by line.
+    Returns:
+        list: Nested coordinates from xyz-file.
+    """
+    mol_list = []
+    comment_list = []
+    # open file
+    infile = open(file_path, "r")
+    if line_by_line:
+        lines = infile  # File object
+    else:
+        lines = infile.readlines()  # list of lines
+
+    num = 0
+    comment = 0
+    atoms = []
+    coordinates = []
+    for line in lines:
+        line_list = line.strip().split(delimiter)
+        line_list = [x.strip() for x in line_list if x != ""]  # Remove multiple delimiter
+        if len(line_list) == 1 and num == 0 and comment == 0:
+            # Start new conformer and set line counts to read.
+            num = int(line_list[0])
+            comment = 1
+        elif comment > 0:
+            # Comment comes before atom block and must always be read.
+            comment_list.append(str(line))
+            comment = 0
+        elif num > 0:
+            if len(line_list) <= 1:
+                logging.error("Expected to read atom-coordinate block but got comment or line count instead.")
+            atoms.append(str(line_list[0]).lower().capitalize())
+            coordinates.append([float(x) for x in line_list[1:]])
+            if num == 1:
+                # This was last line for this conformer. Append result and reset current list.
+                mol_list.append([atoms, coordinates])
+                num = 0
+                atoms = []
+                coordinates = []
+            else:
+                # Finished reading a atom line.
+                num = num - 1
+        else:
+            logging.warning("Empty line in xyz file for mismatch in atom count found.")
+    # close file
+    infile.close()
+    return mol_list

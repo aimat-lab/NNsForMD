@@ -11,8 +11,7 @@ import tensorflow.keras as ks
 
 from pyNNsMD.layers.features import FeatureGeometric
 from pyNNsMD.layers.mlp import MLP
-from pyNNsMD.layers.normalize import ConstLayerNormalization
-from pyNNsMD.scaler.general import SegmentStandardScaler
+from pyNNsMD.layers.normalize import ConstLayerNormalization, DummyLayer
 
 
 class EnergyModel(ks.Model):
@@ -40,7 +39,6 @@ class EnergyModel(ks.Model):
                  precomputed_features=False,
                  model_module="mlp_e",
                  **kwargs):
-
         super(EnergyModel, self).__init__(**kwargs)
         self.invd_index = invd_index
         self.angle_index = angle_index
@@ -90,7 +88,13 @@ class EnergyModel(ks.Model):
         )
         self.feat_layer.set_mol_index(invd_index, angle_index, dihed_index)
 
-        self.std_layer = tf.keras.layers.BatchNormalization(axis=-1, name='feat_std')
+        if normalization_mode == 1:
+            self.std_layer = tf.keras.layers.BatchNormalization(name='feat_std')
+        elif normalization_mode == 2:
+            self.std_layer = tf.keras.layers.LayerNormalization(name='feat_std')
+        else:
+            self.std_layer = DummyLayer()
+
         self.mlp_layer = MLP(nn_size,
                              dense_depth=depth,
                              dense_bias=True,

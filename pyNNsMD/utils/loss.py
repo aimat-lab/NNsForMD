@@ -1,9 +1,3 @@
-"""
-Functions and classes for loss.
-
-Also includes Metrics and tools around loss.
-"""
-
 import numpy as np
 import tensorflow as tf
 import tensorflow.keras as ks
@@ -35,6 +29,7 @@ class ScaledMeanAbsoluteError(tf.keras.metrics.MeanAbsoluteError):
 
     def set_scale(self,scale):
         ks.backend.set_value(self.scale, scale)
+
 
 class ZeroEmptyLoss(tf.keras.losses.Loss):
     """

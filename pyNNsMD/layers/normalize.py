@@ -98,3 +98,20 @@ class ConstLayerNormalization(ks.layers.Layer):
         feat_x_std = np.std(feat_x, axis=0, keepdims=True)
         self.set_weights([feat_x_mean, feat_x_std])
         return feat_x_mean,feat_x_std
+
+
+class DummyLayer(ks.layers.Layer):
+    """Empty layer that does nothing."""
+
+    def __init__(self, **kwargs):
+        super(DummyLayer, self).__init__(**kwargs)
+
+    def build(self, input_shape):
+        super(DummyLayer, self).build(input_shape)
+
+    def call(self, inputs, **kwargs):
+        return inputs
+
+    def get_config(self):
+        config = super(DummyLayer, self).get_config()
+        return config

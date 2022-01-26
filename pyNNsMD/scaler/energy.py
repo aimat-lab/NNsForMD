@@ -6,8 +6,19 @@ from pyNNsMD.scaler.base import SaclerBase
 
 class EnergyStandardScaler(SaclerBase):
 
-    def __init__(self, scaler_module="energy"):
+    def __init__(self,
+                 scaler_module="energy",
+                 use_energy_mean=True,
+                 use_energy_std=True,
+                 use_x_std=False,
+                 use_x_mean=False,
+                 ):
         super(EnergyStandardScaler, self).__init__()
+        self.use_energy_std = use_energy_std
+        self.use_energy_mean = use_energy_mean
+        self.use_x_std = use_x_std
+        self.use_x_mean = use_x_mean
+
         self.x_mean = np.zeros((1, 1, 1))
         self.x_std = np.ones((1, 1, 1))
         self.energy_mean = np.zeros((1, 1))
@@ -27,33 +38,30 @@ class EnergyStandardScaler(SaclerBase):
         return x_res, y_res
 
     def inverse_transform(self, x=None, y=None):
-        energy = y
+        y_res = y
         x_res = x
         if y is not None:
-            energy = y * self.energy_std + self.energy_mean
+            y_res = y * self.energy_std + self.energy_mean
         if x is not None:
             x_res = x * self.x_std + self.x_mean
-        return x_res, energy
+        return x_res, y_res
 
-    def fit(self, x=None, y=None, auto_scale=None):
-        if auto_scale is None:
-            auto_scale = {'x_mean': True, 'x_std': True, 'energy_std': True, 'energy_mean': True}
-
+    def fit(self, x=None, y=None):
         npeps = np.finfo(float).eps
-        if auto_scale['x_mean']:
+        if self.use_x_mean:
             self.x_mean = np.mean(x)
-        if auto_scale['x_std']:
+        if self.use_x_std:
             self.x_std = np.std(x) + npeps
-        if auto_scale['energy_mean']:
+        if self.use_energy_mean:
             self.energy_mean = np.mean(y, axis=0, keepdims=True)
-        if auto_scale['energy_std']:
+        if self.use_energy_std:
             self.energy_std = np.std(y, axis=0, keepdims=True) + npeps
 
         self._encountered_y_shape = np.array(y.shape)
         self._encountered_y_std = np.std(y, axis=0)
 
-    def fit_transform(self, x=None, y=None, auto_scale=None):
-        self.fit(x=x, y=y, auto_scale=auto_scale)
+    def fit_transform(self, x=None, y=None):
+        self.fit(x=x, y=y)
         return self.transform(x=x, y=y)
 
     def save(self, filepath):
@@ -63,7 +71,9 @@ class EnergyStandardScaler(SaclerBase):
         pass
 
     def get_config(self):
-        outdict = {"scaler_module": self.scaler_module}
+        outdict = {
+            "scaler_module": self.scaler_module
+        }
         return outdict
 
     def print_params_info(self):

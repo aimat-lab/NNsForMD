@@ -29,6 +29,7 @@ DEFAULT_HYPER_PARAM_ENERGY_GRADS = {
             'invd_index': True,  # not used yet
             'angle_index': [],  # list-only of shape (N,3) angle: 0-1-2  or alpha(1->0,1->2)
             'dihed_index': [],  # list of dihedral angles with index ijkl angle is between ijk and jkl
+            'normalization_mode': 1,  # Normalization False/0 for no normalization/unity mulitplication
         },
     'training':
         {
@@ -36,7 +37,6 @@ DEFAULT_HYPER_PARAM_ENERGY_GRADS = {
             # can be changed after model created
             'auto_scaling': {'x_mean': True, 'x_std': True, 'energy_std': True, 'energy_mean': True},
             # Scale energy und coordinates, can be also done in data preparation
-            'normalization_mode': 1,  # Normalization False/0 for no normalization/unity mulitplication
             'loss_weights': [1, 10],  # weights between energy and gradients
             'learning_rate': 1e-3,  # learning rate, can be modified by callbacks
             'initialize_weights': True,

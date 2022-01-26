@@ -1,0 +1,10 @@
+.idea
+*.mat
+*.txt
+*.zip
+*.npz
+/develop/
+build
+dist
+/examples/TestModel/*
+/examples/TestModel*
