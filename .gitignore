@@ -10,3 +10,4 @@ dist
 /examples/TestModel*
 /examples/butene_energy_force/*
 /examples/butene_energy_force
+/examples/kt_test/
