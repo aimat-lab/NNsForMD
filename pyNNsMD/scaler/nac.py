@@ -4,7 +4,18 @@ import numpy as np
 
 
 class NACStandardScaler:
-    def __init__(self):
+    def __init__(self,
+                 use_x_std=False,
+                 use_x_mean=False,
+                 use_nac_std=True,
+                 use_nac_mean=True
+                 ):
+        self.use_x_std = use_x_std
+        self.use_x_mean = use_x_mean
+        self.use_nac_std = use_nac_std
+        self.use_nac_mean = use_nac_mean
+
+        # Weights
         self.x_mean = np.zeros((1, 1, 1))
         self.x_std = np.ones((1, 1, 1))
         self.nac_mean = np.zeros((1, 1, 1, 1))
@@ -31,10 +42,7 @@ class NACStandardScaler:
             out_nac = y * self.nac_std + self.nac_mean
         return x_res, out_nac
 
-    def fit(self, x, y, auto_scale=None):
-        if auto_scale is None:
-            auto_scale = {'x_mean': False, 'x_std': False, 'nac_std': True, 'nac_mean': False}
-
+    def fit(self, x, y):
         npeps = np.finfo(float).eps
         if auto_scale['x_mean']:
             self.x_mean = np.mean(x)
@@ -47,16 +55,17 @@ class NACStandardScaler:
         self._encountered_y_std = np.std(y, axis=(0, 3), keepdims=True)
         self._encountered_y_shape = np.array(y.shape)
 
-    def fit_transform(self, x=None, y=None, auto_scale=None):
-        self.fit(x=x,y=y,auto_scale=auto_scale)
+    def fit_transform(self, x=None, y=None):
+        self.fit(x=x, y=y)
         return self.transform(x=x,y=y)
 
     def save(self, filepath):
-        outdict = {'x_mean': self.x_mean.tolist(),
-                   'x_std': self.x_std.tolist(),
-                   'nac_mean': self.nac_mean.tolist(),
-                   'nac_std': self.nac_std.tolist()
-                   }
+        outdict = {
+            'x_mean': self.x_mean.tolist(),
+            'x_std': self.x_std.tolist(),
+            'nac_mean': self.nac_mean.tolist(),
+            'nac_std': self.nac_std.tolist()
+        }
         with open(filepath, 'w') as f:
             json.dump(outdict, f)
 
@@ -77,14 +86,7 @@ class NACStandardScaler:
                    }
         return outdict
 
-    def set_params(self, indict):
-        self.x_mean = np.array(indict['x_mean'])
-        self.x_std = np.array(indict['x_std'])
-        self.nac_mean = np.array(indict['nac_mean'])
-        self.nac_std = np.array(indict['nac_std'])
-
     def print_params_info(self):
-
         print("Info: All-data NAC std", self._encountered_y_shape, ":", self._encountered_y_std[0, :, :, 0])
         print("Info: Using nac-std", self.nac_std.shape, ":", self.nac_std[0, :, :, 0])
         print("Info: Using nac-mean", self.nac_mean.shape, ":", self.nac_mean[0, :, :, 0])

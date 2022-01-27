@@ -1,6 +1,5 @@
-import json
-
 import numpy as np
+
 from pyNNsMD.scaler.base import SaclerBase
 
 
@@ -64,12 +63,6 @@ class EnergyStandardScaler(SaclerBase):
         self.fit(x=x, y=y)
         return self.transform(x=x, y=y)
 
-    def save(self, filepath):
-        pass
-
-    def load(self, filepath):
-        pass
-
     def get_config(self):
         outdict = {
             "scaler_module": self.scaler_module,
@@ -102,7 +95,7 @@ class EnergyStandardScaler(SaclerBase):
         np.save(file_path, outdict)
 
 
-class EnergyGradientStandardScaler:
+class EnergyGradientStandardScaler(SaclerBase):
     def __init__(self,
                  scaler_module="energy",
                  use_energy_mean=True,
@@ -110,6 +103,7 @@ class EnergyGradientStandardScaler:
                  use_x_std=False,
                  use_x_mean=False,
                  ):
+        super(EnergyGradientStandardScaler, self).__init__()
         self.use_energy_std = use_energy_std
         self.use_energy_mean = use_energy_mean
         self.use_x_std = use_x_std
@@ -193,22 +187,16 @@ class EnergyGradientStandardScaler:
         self.fit(x=x, y=y)
         return self.transform(x=x, y=y)
 
-    def save(self, file_path):
-        pass
-
-    def load(self, file_path):
-        pass
-
     def save_weights(self, file_path):
-        outdict = {
-            'x_mean': self.x_mean.tolist(),
-            'x_std': self.x_std.tolist(),
-            'energy_mean': self.energy_mean.tolist(),
-            'energy_std': self.energy_std.tolist(),
-            'gradient_mean': self.gradient_mean.tolist(),
-            'gradient_std': self.gradient_std.tolist()
+        out_dict = {
+            'x_mean': self.x_mean,
+            'x_std': self.x_std,
+            'energy_mean': self.energy_mean,
+            'energy_std': self.energy_std,
+            'gradient_mean': self.gradient_mean,
+            'gradient_std': self.gradient_std
         }
-        np.save(file_path, outdict)
+        np.save(file_path, out_dict)
 
     def load_weights(self, file_path):
         indict = np.load(file_path, allow_pickle=True).item()
@@ -240,8 +228,22 @@ class EnergyGradientStandardScaler:
         return outdict
 
 
-class GradientStandardScaler:
-    def __init__(self):
+class GradientStandardScaler(SaclerBase):
+
+    def __init__(self,
+                 scaler_module="energy",
+                 use_x_std=False,
+                 use_x_mean=False,
+                 use_gradient_std=True,
+                 use_gradient_mean=True
+                 ):
+        super(GradientStandardScaler, self).__init__()
+        self.use_x_std = use_x_std
+        self.use_x_mean = use_x_mean
+        self.scaler_module = scaler_module
+        self.use_gradient_mean = use_gradient_mean
+        self.use_gradient_std = use_gradient_std
+
         self.x_mean = np.zeros((1, 1, 1))
         self.x_std = np.ones((1, 1, 1))
         self.gradient_mean = np.zeros((1, 1, 1, 1))
@@ -268,60 +270,50 @@ class GradientStandardScaler:
             out_gradient = y * self.gradient_std + self.gradient_mean
         return x_res, out_gradient
 
-    def fit(self, x, y, auto_scale=None):
-        if auto_scale is None:
-            auto_scale = {'x_mean': False, 'x_std': False, 'gradient_std': True, 'gradient_mean': False}
-
+    def fit(self, x, y):
         npeps = np.finfo(float).eps
-        if auto_scale['x_mean']:
+        if self.use_x_mean:
             self.x_mean = np.mean(x)
-        if auto_scale['x_std']:
+        if self.use_x_std:
             self.x_std = np.std(x) + npeps
-        if auto_scale['gradient_std']:
+        if self.use_gradient_std:
             self.gradient_std = np.std(y, axis=(0, 3), keepdims=True) + npeps
             self.gradient_mean = np.zeros_like(self.gradient_std)
 
         self._encountered_y_std = np.std(y, axis=(0, 3), keepdims=True)
         self._encountered_y_shape = np.array(y.shape)
 
-    def fit_transform(self, x=None, y=None, auto_scale=None):
-        self.fit(x=x, y=y, auto_scale=auto_scale)
+    def fit_transform(self, x=None, y=None):
+        self.fit(x=x, y=y)
         return self.transform(x=x, y=y)
 
-    def save(self, filepath):
-        outdict = {'x_mean': self.x_mean.tolist(),
-                   'x_std': self.x_std.tolist(),
-                   'gradient_mean': self.gradient_mean.tolist(),
-                   'gradient_std': self.gradient_std.tolist()
-                   }
-        with open(filepath, 'w') as f:
-            json.dump(outdict, f)
+    def save_weights(self, file_path):
+        out_dict = {
+            'x_mean': self.x_mean,
+            'x_std': self.x_std,
+            'gradient_mean': self.gradient_mean,
+            'gradient_std': self.gradient_std
+        }
+        np.save(file_path, out_dict)
 
-    def load(self, filepath):
-        with open(filepath, 'r') as f:
-            indict = json.load(f)
-
+    def load_weights(self, file_path):
+        indict = np.load(file_path, allow_pickle=True).item()
         self.x_mean = np.array(indict['x_mean'])
         self.x_std = np.array(indict['x_std'])
         self.gradient_mean = np.array(indict['gradient_mean'])
         self.gradient_std = np.array(indict['gradient_std'])
 
-    def get_params(self):
-        outdict = {'x_mean': self.x_mean.tolist(),
-                   'x_std': self.x_std.tolist(),
-                   'gradient_mean': self.gradient_mean.tolist(),
-                   'gradient_std': self.gradient_std.tolist(),
-                   }
-        return outdict
-
-    def set_params(self, indict):
-        self.x_mean = np.array(indict['x_mean'])
-        self.x_std = np.array(indict['x_std'])
-        self.gradient_mean = np.array(indict['gradient_mean'])
-        self.gradient_std = np.array(indict['gradient_std'])
+    def get_config(self):
+        conf = {
+            'scaler_module': self.scaler_module,
+            'use_x_std': self.use_x_std,
+            'use_x_mean': self.use_x_mean,
+            'use_gradient_mean': self.use_gradient_mean,
+            'use_gradient_std': self.use_gradient_std,
+        }
+        return conf
 
     def print_params_info(self):
-
         print("Info: All-data gradient std", self._encountered_y_shape, ":", self._encountered_y_std[0, :, :, 0])
         print("Info: Using gradient-std", self.gradient_std.shape, ":", self.gradient_std[0, :, :, 0])
         print("Info: Using gradient-mean", self.gradient_mean.shape, ":", self.gradient_mean[0, :, :, 0])

@@ -18,10 +18,10 @@ class SaclerBase:
         raise NotImplementedError("Must be implemented in sub-class.")
 
     def save(self, file_path):
-        raise NotImplementedError("Must be implemented in sub-class.")
+        pass
 
     def load(self, file_path):
-        raise NotImplementedError("Must be implemented in sub-class.")
+        pass
 
     def get_config(self):
         raise NotImplementedError("Must be implemented in sub-class.")

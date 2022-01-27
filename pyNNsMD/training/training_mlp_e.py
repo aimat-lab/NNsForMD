@@ -66,6 +66,7 @@ def train_model_energy(i=0, out_dir=None, mode='training'):
     scaler_config = load_json_file(os.path.join(out_dir, "scaler_config.json"))
 
     # training parameters
+    num_atoms = int(model_config["config"]["atoms"])
     unit_label_energy = training_config['unit_energy']
     epo = training_config['epo']
     batch_size = training_config['batch_size']
@@ -78,6 +79,8 @@ def train_model_energy(i=0, out_dir=None, mode='training'):
     data_dir = os.path.dirname(out_dir)
     xyz = read_xyz_file(os.path.join(data_dir, "geometries.xyz"))
     x = np.array([x[1] for x in xyz])
+    if x.shape[1] != num_atoms:
+        raise ValueError(f"Mismatch Shape between {x.shape} model and data {num_atoms}")
     y = np.load(os.path.join(data_dir, "energies.npy"))
 
     # Fit stats dir
@@ -143,9 +146,6 @@ def train_model_energy(i=0, out_dir=None, mode='training'):
     with open(outname, 'w') as f:
         json.dump(outhist, f)
 
-    out_model.save_weights(os.path.join(out_dir, "model_weights.h5"))
-    out_model.save(os.path.join(out_dir, "model_tf"))
-
     print("Info: Saving auto-scaler to file...")
     scaler.save_weights(os.path.join(out_dir, "scaler_weights.npy"))
 
@@ -195,6 +195,10 @@ def train_model_energy(i=0, out_dir=None, mode='training'):
     print("error_val:", error_val)
     print("error_train:", error_train)
 
+    print("Info: Saving model to file...")
+    out_model.precomputed_features = False
+    out_model.save_weights(os.path.join(out_dir, "model_weights.h5"))
+    out_model.save(os.path.join(out_dir, "model_tf"))
     return error_val
 
 
