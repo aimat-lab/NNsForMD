@@ -287,6 +287,8 @@ class NeuralNetEnsemble:
             write_list_to_xyz_file(os.path.join(dir_path, "geometries.xyz"), [x for x in zip(atoms, geometries)])
         if energies is not None:
             np.save(os.path.join(dir_path, "energies.npy"), energies)
+        if forces is not None:
+            np.save(os.path.join(dir_path, "forces.npy"), forces)
 
     def train_test_split(self, dataset_size, n_splits: int = 5, shuffle: bool = True, random_state: int = None):
         if n_splits < self._number_models:

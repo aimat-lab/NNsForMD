@@ -72,7 +72,11 @@ class EnergyStandardScaler(SaclerBase):
 
     def get_config(self):
         outdict = {
-            "scaler_module": self.scaler_module
+            "scaler_module": self.scaler_module,
+            "use_energy_mean": self.use_energy_mean,
+            "use_energy_std": self.use_energy_std,
+            "use_x_std": self.use_x_std,
+            "use_x_mean": self.use_x_mean,
         }
         return outdict
 
@@ -99,7 +103,18 @@ class EnergyStandardScaler(SaclerBase):
 
 
 class EnergyGradientStandardScaler:
-    def __init__(self):
+    def __init__(self,
+                 scaler_module="energy",
+                 use_energy_mean=True,
+                 use_energy_std=True,
+                 use_x_std=False,
+                 use_x_mean=False,
+                 ):
+        self.use_energy_std = use_energy_std
+        self.use_energy_mean = use_energy_mean
+        self.use_x_std = use_x_std
+        self.use_x_mean = use_x_mean
+
         self.x_mean = np.zeros((1, 1, 1))
         self.x_std = np.ones((1, 1, 1))
         self.energy_mean = np.zeros((1, 1))
@@ -109,6 +124,7 @@ class EnergyGradientStandardScaler:
 
         self._encountered_y_shape = [None, None]
         self._encountered_y_std = [None, None]
+        self.scaler_module = scaler_module
 
     def transform(self, x=None, y=None):
         x_res = x
@@ -116,8 +132,14 @@ class EnergyGradientStandardScaler:
         if x is not None:
             x_res = (x - self.x_mean) / self.x_std
         if y is not None:
-            energy = y[0]
-            gradient = y[1]
+            if isinstance(y, list):
+                energy = y[0]
+                gradient = y[1]
+            elif isinstance(y, dict):
+                energy = y["energy"]
+                gradient = y["force"]
+            else:
+                raise ValueError("Transform for expected [energy, force] but got %s" % y)
             out_e = (energy - self.energy_mean) / self.energy_std
             out_g = gradient / self.gradient_std
             y_res = [out_e, out_g]
@@ -129,71 +151,67 @@ class EnergyGradientStandardScaler:
         if x is not None:
             x_res = x * self.x_std + self.x_mean
         if y is not None:
-            energy = y[0]
-            gradient = y[1]
+            if isinstance(y, list):
+                energy = y[0]
+                gradient = y[1]
+            elif isinstance(y, dict):
+                energy = y["energy"]
+                gradient = y["force"]
+            else:
+                raise ValueError("Transform for expected [energy, force] but got %s" % y)
             out_e = energy * self.energy_std + self.energy_mean
             out_g = gradient * self.gradient_std
             y_res = [out_e, out_g]
         return x_res, y_res
 
-    def fit(self, x=None, y=None, auto_scale=None):
-        if auto_scale is None:
-            auto_scale = {'x_mean': True, 'x_std': True, 'energy_std': True, 'energy_mean': True}
-
+    def fit(self, x=None, y=None):
         npeps = np.finfo(float).eps
-        if auto_scale['x_mean']:
+        if isinstance(y, list):
+            y0 = y[0]
+            y1 = y[1]
+        elif isinstance(y, dict):
+            y0 = y["energy"]
+            y1 = y["force"]
+        else:
+            raise ValueError("Transform for expected [energy, force] but got %s" % y)
+        if self.use_x_mean:
             self.x_mean = np.mean(x)
-        if auto_scale['x_std']:
+        if self.use_x_std:
             self.x_std = np.std(x) + npeps
-        if auto_scale['energy_mean']:
-            y1 = y[0]
-            self.energy_mean = np.mean(y1, axis=0, keepdims=True)
-        if auto_scale['energy_std']:
-            y1 = y[0]
-            self.energy_std = np.std(y1, axis=0, keepdims=True) + npeps
+        if self.use_energy_mean:
+            self.energy_mean = np.mean(y0, axis=0, keepdims=True)
+        if self.use_energy_std:
+            self.energy_std = np.std(y0, axis=0, keepdims=True) + npeps
+
         self.gradient_std = np.expand_dims(np.expand_dims(self.energy_std, axis=-1), axis=-1) / self.x_std + npeps
         self.gradient_mean = np.zeros_like(self.gradient_std, dtype=np.float32)  # no mean shift expected
 
-        self._encountered_y_shape = [np.array(y[0].shape), np.array(y[1].shape)]
-        self._encountered_y_std = [np.std(y[0], axis=0), np.std(y[1], axis=(0, 2, 3))]
+        self._encountered_y_shape = [np.array(y0.shape), np.array(y1.shape)]
+        self._encountered_y_std = [np.std(y0, axis=0), np.std(y1, axis=(0, 2, 3))]
 
-    def fit_transform(self, x=None, y=None, auto_scale=None):
-        self.fit(x=x, y=y, auto_scale=auto_scale)
+    def fit_transform(self, x=None, y=None):
+        self.fit(x=x, y=y)
         return self.transform(x=x, y=y)
 
-    def save(self, filepath):
-        outdict = {'x_mean': self.x_mean.tolist(),
-                   'x_std': self.x_std.tolist(),
-                   'energy_mean': self.energy_mean.tolist(),
-                   'energy_std': self.energy_std.tolist(),
-                   'gradient_mean': self.gradient_mean.tolist(),
-                   'gradient_std': self.gradient_std.tolist()
-                   }
-        with open(filepath, 'w') as f:
-            json.dump(outdict, f)
+    def save(self, file_path):
+        pass
 
-    def load(self, filepath):
-        with open(filepath, 'r') as f:
-            indict = json.load(f)
+    def load(self, file_path):
+        pass
 
-        self.x_mean = np.array(indict['x_mean'])
-        self.x_std = np.array(indict['x_std'])
-        self.energy_mean = np.array(indict['energy_mean'])
-        self.energy_std = np.array(indict['energy_std'])
-        self.gradient_mean = np.array(indict['gradient_mean'])
-        self.gradient_std = np.array(indict['gradient_std'])
+    def save_weights(self, file_path):
+        outdict = {
+            'x_mean': self.x_mean.tolist(),
+            'x_std': self.x_std.tolist(),
+            'energy_mean': self.energy_mean.tolist(),
+            'energy_std': self.energy_std.tolist(),
+            'gradient_mean': self.gradient_mean.tolist(),
+            'gradient_std': self.gradient_std.tolist()
+        }
+        np.save(file_path, outdict)
 
-    def get_params(self):
-        outdict = {'x_mean': self.x_mean.tolist(),
-                   'x_std': self.x_std.tolist(),
-                   'energy_mean': self.energy_mean.tolist(),
-                   'energy_std': self.energy_std.tolist(),
-                   'gradient_mean': self.gradient_mean.tolist(),
-                   'gradient_std': self.gradient_std.tolist()
-                   }
-        return outdict
-
-    def set_params(self, indict):
+    def load_weights(self, file_path):
+        indict = np.load(file_path, allow_pickle=True).item()
         self.x_mean = np.array(indict['x_mean'])
         self.x_std = np.array(indict['x_std'])
         self.energy_mean = np.array(indict['energy_mean'])
@@ -210,6 +228,16 @@ class EnergyGradientStandardScaler:
         print("Info: Using gradient-mean", self.gradient_mean.shape, ":", self.gradient_mean[0, :, 0, 0])
         print("Info: Using x-scale", self.x_std.shape, ":", self.x_std)
         print("Info: Using x-offset", self.x_mean.shape, ":", self.x_mean)
+
+    def get_config(self):
+        outdict = {
+            "scaler_module": self.scaler_module,
+            "use_energy_mean": self.use_energy_mean,
+            "use_energy_std": self.use_energy_std,
+            "use_x_std": self.use_x_std,
+            "use_x_mean": self.use_x_mean,
+        }
+        return outdict
 
 
 class GradientStandardScaler:

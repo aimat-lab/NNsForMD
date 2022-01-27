@@ -25,7 +25,9 @@ nac = np.load("butene/butene_nac.npy")
 print(geos.shape, energy.shape, grads.shape, nac.shape)
 
 datapath = "TestModel/"
+
 nn = NeuralNetEnsemble(datapath, 2)
+
 nn.create(models=[hyper["model"]]*2,
           scalers=[hyper["scaler"]]*2)
 nn.save()
@@ -34,8 +36,8 @@ nn.data(atoms=atoms, geometries=geos, energies=energy)
 
 nn.train_test_split(dataset_size=len(energy), n_splits=5)
 nn.training([hyper["training"]]*2, fit_mode="training")
-
 nn.fit(["training_mlp_e"]*2, fit_mode="training")
+
 nn.load()
 
 test = nn.predict(geos)

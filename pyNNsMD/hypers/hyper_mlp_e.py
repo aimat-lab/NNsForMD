@@ -1,6 +1,3 @@
-"""
-Default hyperparameters for MLP model for energy+gradient
-"""
 
 DEFAULT_HYPER_PARAM_ENERGY = {
     'model': {

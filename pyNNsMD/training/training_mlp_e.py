@@ -138,7 +138,7 @@ def train_model_energy(i=0, out_dir=None, mode='training'):
     print("End fit.")
     print("")
 
-    outname = os.path.join(dir_save, "history_" + ".json")
+    outname = os.path.join(dir_save, "history.json")
     outhist = {a: np.array(b, dtype=np.float64).tolist() for a, b in hist.history.items()}
     with open(outname, 'w') as f:
         json.dump(outhist, f)

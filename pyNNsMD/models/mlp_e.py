@@ -116,8 +116,7 @@ class EnergyModel(ks.Model):
         self.precomputed_features = precomputed_features
 
     def call(self, data, training=False, **kwargs):
-        """
-        Call the model output, forward pass.
+        """Call the model output, forward pass.
 
         Args:
             data (tf.tensor): Coordinates.
@@ -133,7 +132,7 @@ class EnergyModel(ks.Model):
         # Compute predictions
         if self.energy_only and not self.precomputed_features:
             feat_flat = self.feat_layer(x)
-            feat_flat_std = self.std_layer(feat_flat)
+            feat_flat_std = self.std_layer(feat_flat, training=training)
             temp_hidden = self.mlp_layer(feat_flat_std, training=training)
             temp_e = self.energy_layer(temp_hidden)
             y_pred = temp_e
@@ -141,14 +140,14 @@ class EnergyModel(ks.Model):
             with tf.GradientTape() as tape2:
                 tape2.watch(x)
                 feat_flat = self.feat_layer(x)
-                feat_flat_std = self.std_layer(feat_flat)
+                feat_flat_std = self.std_layer(feat_flat, training=training)
                 temp_hidden = self.mlp_layer(feat_flat_std, training=training)
                 temp_e = self.energy_layer(temp_hidden)
             temp_g = tape2.batch_jacobian(temp_e, x)
             y_pred = [temp_e, temp_g]
         elif self.precomputed_features:
             x1 = x[0]
-            feat_flat_std = self.std_layer(x1)
+            feat_flat_std = self.std_layer(x1, training=training)
             temp_hidden = self.mlp_layer(feat_flat_std, training=training)
             temp_e = self.energy_layer(temp_hidden)
             y_pred = temp_e
@@ -156,21 +155,21 @@ class EnergyModel(ks.Model):
         return y_pred
 
     @tf.function
-    def predict_chunk_feature(self, tf_x):
+    def predict_chunk_feature(self, tf_x, training=False):
         with tf.GradientTape() as tape2:
             tape2.watch(tf_x)
-            feat_pred = self.feat_layer(tf_x, training=False)  # Forward pass
+            feat_pred = self.feat_layer(tf_x, training=training)  # Forward pass
         grad = tape2.batch_jacobian(feat_pred, tf_x)
         return feat_pred, grad
 
-    def precompute_feature_in_chunks(self, x, batch_size):
+    def precompute_feature_in_chunks(self, x, batch_size, training=False):
         np_x = []
         np_grad = []
         for j in range(int(np.ceil(len(x) / batch_size))):
             a = int(batch_size * j)
             b = int(batch_size * j + batch_size)
             tf_x = tf.convert_to_tensor(x[a:b], dtype=tf.float32)
-            feat_pred, grad = self.predict_chunk_feature(tf_x)
+            feat_pred, grad = self.predict_chunk_feature(tf_x, training=training)
             np_x.append(np.array(feat_pred.numpy()))
             np_grad.append(np.array(grad.numpy()))
 

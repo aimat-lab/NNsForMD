@@ -12,15 +12,12 @@ import tensorflow.keras as ks
 from pyNNsMD.layers.features import FeatureGeometric
 from pyNNsMD.layers.gradients import EmptyGradient
 from pyNNsMD.layers.mlp import MLP
-from pyNNsMD.layers.normalize import ConstLayerNormalization
-from pyNNsMD.scaler.general import SegmentStandardScaler
+from pyNNsMD.layers.normalize import DummyLayer
 
 
 class EnergyGradientModel(ks.Model):
-    """
-    Subclassed tf.keras.model for energy/gradient which outputs both energy and gradient from coordinates.
-    
-    This is not used for fitting, only for prediction as for fitting a feature-precomputed model is used instead.
+    """Subclassed tf.keras.model for energy/gradient which outputs both energy and gradient from coordinates.
+
     The model is supposed to be saved and exported for MD code.
     """
 
@@ -39,12 +36,12 @@ class EnergyGradientModel(ks.Model):
                  use_dropout=False,
                  dropout=0.01,
                  normalization_mode=1,
-                 energy_only = False,
-                 precomputed_features = False,
-                 output_as_dict = False,
+                 energy_only=False,
+                 precomputed_features=False,
+                 output_as_dict=False,
+                 model_module="mlp_e",
                  **kwargs):
-        """
-        Initialize Layer
+        """Initialize Layer.
 
         Args:
             states:
@@ -75,12 +72,12 @@ class EnergyGradientModel(ks.Model):
         self.use_reg_bias = use_reg_bias
         self.use_dropout = use_dropout
         self.dropout = dropout
-        # Control the properties
         self.energy_only = energy_only
         self.output_as_dict = output_as_dict
         self.eg_atoms = int(atoms)
         self.eg_states = int(states)
         self.normalization_mode = normalization_mode
+        self.model_module = model_module
 
         out_dim = int(states)
         indim = int(atoms)
@@ -112,7 +109,13 @@ class EnergyGradientModel(ks.Model):
                                            )
         self.feat_layer.set_mol_index(invd_index, angle_index, dihed_index)
 
-        self.std_layer = ConstLayerNormalization(axis=-1, name='feat_std')
+        if normalization_mode == 1:
+            self.std_layer = tf.keras.layers.BatchNormalization(name='feat_std')
+        elif normalization_mode == 2:
+            self.std_layer = tf.keras.layers.LayerNormalization(name='feat_std')
+        else:
+            self.std_layer = DummyLayer()
+
         self.mlp_layer = MLP(nn_size,
                              dense_depth=depth,
                              dense_bias=True,
@@ -137,8 +140,7 @@ class EnergyGradientModel(ks.Model):
         self.precomputed_features = precomputed_features
 
     def call(self, data, training=False, **kwargs):
-        """
-        Call the model output, forward pass.
+        """Call the model output, forward pass.
 
         Args:
             data (tf.tensor): Coordinates.
@@ -153,7 +155,7 @@ class EnergyGradientModel(ks.Model):
         y_pred = None
         if self.energy_only and not self.precomputed_features:
             feat_flat = self.feat_layer(x)
-            feat_flat_std = self.std_layer(feat_flat)
+            feat_flat_std = self.std_layer(feat_flat, training=training)
             temp_hidden = self.mlp_layer(feat_flat_std, training=training)
             temp_e = self.energy_layer(temp_hidden)
             temp_g = self.force(x)
@@ -162,7 +164,7 @@ class EnergyGradientModel(ks.Model):
             with tf.GradientTape() as tape2:
                 tape2.watch(x)
                 feat_flat = self.feat_layer(x)
-                feat_flat_std = self.std_layer(feat_flat)
+                feat_flat_std = self.std_layer(feat_flat, training=training)
                 temp_hidden = self.mlp_layer(feat_flat_std, training=training)
                 temp_e = self.energy_layer(temp_hidden)
             temp_g = tape2.batch_jacobian(temp_e, x)
@@ -173,7 +175,7 @@ class EnergyGradientModel(ks.Model):
             x2 = x[1]
             with tf.GradientTape() as tape2:
                 tape2.watch(x1)
-                feat_flat_std = self.std_layer(x1)
+                feat_flat_std = self.std_layer(x1, training=training)
                 temp_hidden = self.mlp_layer(feat_flat_std, training=training)
                 atpot = self.energy_layer(temp_hidden)
             grad = tape2.batch_jacobian(atpot, x1)
@@ -182,7 +184,7 @@ class EnergyGradientModel(ks.Model):
         elif self.precomputed_features and self.energy_only:
             x1 = x[0]
             # x2 = x[1]
-            feat_flat_std = self.std_layer(x1)
+            feat_flat_std = self.std_layer(x1, training=training)
             temp_hidden = self.mlp_layer(feat_flat_std, training=training)
             temp_e = self.energy_layer(temp_hidden)
             temp_g = self.force(x1)
@@ -195,21 +197,21 @@ class EnergyGradientModel(ks.Model):
         return out
 
     @tf.function
-    def predict_chunk_feature(self, tf_x):
+    def predict_chunk_feature(self, tf_x, training=False):
         with tf.GradientTape() as tape2:
             tape2.watch(tf_x)
-            feat_pred = self.feat_layer(tf_x, training=False)  # Forward pass
+            feat_pred = self.feat_layer(tf_x, training=training)  # Forward pass
         grad = tape2.batch_jacobian(feat_pred, tf_x)
         return feat_pred, grad
 
-    def precompute_feature_in_chunks(self, x, batch_size):
+    def precompute_feature_in_chunks(self, x, batch_size, training=False):
         np_x = []
         np_grad = []
         for j in range(int(np.ceil(len(x) / batch_size))):
             a = int(batch_size * j)
             b = int(batch_size * j + batch_size)
             tf_x = tf.convert_to_tensor(x[a:b], dtype=tf.float32)
-            feat_pred, grad = self.predict_chunk_feature(tf_x)
+            feat_pred, grad = self.predict_chunk_feature(tf_x, training=training)
             np_x.append(np.array(feat_pred.numpy()))
             np_grad.append(np.array(grad.numpy()))
 
@@ -218,31 +220,7 @@ class EnergyGradientModel(ks.Model):
 
         return np_x, np_grad
 
-    def set_const_normalization_from_features(self, feat_x, normalization_mode=None):
-        if normalization_mode is None:
-            normalization_mode = self.normalization_mode
-        else:
-            self.normalization_mode = normalization_mode
-
-        feat_x_mean, feat_x_std = self.get_layer('feat_std').get_weights()
-        if normalization_mode == 1:
-            feat_x_mean = np.mean(feat_x, axis=0, keepdims=True)
-            feat_x_std = np.std(feat_x, axis=0, keepdims=True)
-        elif normalization_mode == 2:
-            seg_scaler = SegmentStandardScaler(self.get_layer('feat_geo').get_feature_type_segmentation())
-            seg_scaler.fit(y=feat_x)
-            feat_x_mean, feat_x_std = np.array(seg_scaler.get_params()["feat_mean"]), np.array(
-                seg_scaler.get_params()["feat_std"])
-
-        self.get_layer('feat_std').set_weights([feat_x_mean, feat_x_std])
-
-        return [feat_x_mean, feat_x_std]
-
     def fit(self, **kwargs):
-
-        if self.precomputed_features:
-            self.set_const_normalization_from_features(kwargs['x'][0])
-
         return super(EnergyGradientModel, self).fit(**kwargs)
 
     def get_config(self):
@@ -265,7 +243,8 @@ class EnergyGradientModel(ks.Model):
             'normalization_mode': self.normalization_mode,
             'energy_only': self.energy_only,
             'precomputed_features': self.precomputed_features,
-            'output_as_dict': self.output_as_dict
+            'output_as_dict': self.output_as_dict,
+            "model_module": self.model_module
         })
         return conf
 
