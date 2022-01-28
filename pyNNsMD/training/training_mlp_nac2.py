@@ -97,6 +97,7 @@ def train_model_nac(i=0, out_dir=None, mode='training'):
             cbks.append(cb(**x["config"]))
 
     # Make all Models
+    assert model_config["class_name"] == "NACModel2", "Training script only for NACModel2"
     out_model = NACModel2(**model_config["config"])
     out_model.precomputed_features = True
 
@@ -124,6 +125,7 @@ def train_model_nac(i=0, out_dir=None, mode='training'):
     scaled_metric = ScaledMeanAbsoluteError(scaling_shape=scaler.nac_std.shape)
     scaled_metric.set_scale(scaler.nac_std)
     scaler.print_params_info()
+    print("")
 
     # Compile model
     optimizer = tf.keras.optimizers.Adam(lr=learning_rate)
@@ -166,8 +168,9 @@ def train_model_nac(i=0, out_dir=None, mode='training'):
         json.dump(outhist, f)
 
     print("Info: Saving auto-scaler to file...")
-    scaler.save(os.path.join(out_dir, "scaler_weights.json"))
+    scaler.save_weights(os.path.join(out_dir, "scaler_weights.json"))
 
+    # Plot stats
     yval_plot = y_in[i_val]
     ytrain_plot = y_in[i_train]
     # Revert standard but keep unit conversion

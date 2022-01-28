@@ -53,7 +53,6 @@ def train_model_nac(i=0, out_dir=None, mode='training'):
 
     Returns:
         error_val (list): Validation error for NAC.
-
     """
     i = int(i)
     # Load everything from folder
@@ -98,6 +97,7 @@ def train_model_nac(i=0, out_dir=None, mode='training'):
             cbks.append(cb(**x["config"]))
 
     # Make all Models
+    assert model_config["class_name"] == "NACModel", "Training script only for NACModel"
     out_model = NACModel(**model_config["config"])
     out_model.precomputed_features = True
 
@@ -105,6 +105,7 @@ def train_model_nac(i=0, out_dir=None, mode='training'):
     if not initialize_weights:
         out_model.load_weights(os.path.join(out_dir, "model_weights.h5"))
         print("Info: Load old weights at:", os.path.join(out_dir, "model_weights.h5"))
+        print("Info: Transferring weights...")
     else:
         print("Info: Making new initialized weights..")
 
@@ -134,18 +135,20 @@ def train_model_nac(i=0, out_dir=None, mode='training'):
                       metrics=[scaled_metric, lr_metric, r2_metric])
 
     # Pre -fit
+    print("")
+    print("Start fit.")
     if pre_epo > 0:
-        print("Start Pre-fit without phaseless-loss.")
+        print("Start Pre-fit without phase-less loss.")
         print("Used loss:", out_model.loss)
         out_model.summary()
-        out_model.fit(x=xtrain, y=ytrain, epochs=pre_epo, batch_size=batch_size, verbose=2, validation_freq=epostep,
-                      validation_data=(xval, yval))
+        out_model.fit(x=xtrain, y=ytrain, epochs=pre_epo, batch_size=batch_size, validation_freq=epostep,
+                      validation_data=(xval, yval), verbose=2)
         print("End fit.")
         print("")
 
     print("Start fit.")
     if phase_less_loss:
-        print("Recompiling with phaseless loss.")
+        print("Recompiling with phase-less loss.")
         out_model.compile(
             loss=NACphaselessLoss(number_state=num_outstates, shape_nac=(num_atoms, 3), name='phaseless_loss'),
             optimizer=optimizer,
@@ -205,7 +208,6 @@ def train_model_nac(i=0, out_dir=None, mode='training'):
                        unit_predicted=unit_label_nac, filename='fit' + str(i) + "_nc",
                        dir_save=dir_save, save_plot_to_file=True, filetypeout='.png',
                        x_label='NACs xyz * #atoms * #states ', plot_title="NAC max error")
-
     # error out
     error_val = None
 

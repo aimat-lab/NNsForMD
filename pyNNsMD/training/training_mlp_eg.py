@@ -101,6 +101,7 @@ def train_model_energy_gradient(i=0, out_dir=None, mode='training'):
     print("Info: Train-Test split at Train:", len(i_train), "Test", len(i_val), "Total", len(x))
 
     # Make all Model
+    assert model_config["class_name"] == "EnergyGradientModel", "Training script only for EnergyGradientModel"
     out_model = EnergyGradientModel(**model_config["config"])
     out_model.precomputed_features = True
     out_model.output_as_dict = True

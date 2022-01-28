@@ -97,6 +97,7 @@ def train_model_energy(i=0, out_dir=None, mode='training'):
 
     # Make Model
     # Only works for Energy model here
+    assert model_config["class_name"] == "EnergyModel", "Training script only for EnergyModel"
     out_model = EnergyModel(**model_config["config"])
     out_model.precomputed_features = True
 

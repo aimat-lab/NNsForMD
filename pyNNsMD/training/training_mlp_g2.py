@@ -96,6 +96,7 @@ def train_model_energy_gradient(i=0, out_dir=None, mode='training'):
             cbks.append(cb(**x["config"]))
 
     # Make all Model
+    assert model_config["class_name"] == "GradientModel2", "Training script only for GradientModel2"
     out_model = GradientModel2(**model_config["config"])
     out_model.precomputed_features = True
 
