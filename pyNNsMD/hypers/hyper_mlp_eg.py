@@ -3,7 +3,7 @@ DEFAULT_HYPER_PARAM_ENERGY_GRADS = {
     'model': {
         "class_name": "EnergyGradientModel",
         "config": {
-            # 'atoms': 12,  # number of atoms
+            # 'atoms': 12,  # Must be set for each molecule; number of atoms
             # 'states': 2,  # (batch,states) and (batch,states,atoms,3)
             'nn_size': 100,  # size of each layer
             'depth': 3,  # number of layers

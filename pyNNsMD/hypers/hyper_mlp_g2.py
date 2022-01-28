@@ -3,7 +3,7 @@ DEFAULT_HYPER_PARAM_GRADS2 = {
     'model': {
         "class_name": "GradientModel2",
         "config": {
-            # 'atoms': 12,  # number of atoms
+            # 'atoms': 12,  # number of atoms, must be set for each molecule
             # 'states': 2,  # (batch,states) and (batch,states,atoms,3)
             'nn_size': 100,  # size of each layer
             'depth': 3,  # number of layers
