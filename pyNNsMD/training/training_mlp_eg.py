@@ -32,7 +32,7 @@ import pyNNsMD.utils.activ
 from pyNNsMD.models.mlp_eg import EnergyGradientModel
 from pyNNsMD.scaler.energy import EnergyGradientStandardScaler
 from pyNNsMD.utils.loss import get_lr_metric, ScaledMeanAbsoluteError, r2_metric, ZeroEmptyLoss
-from pyNNsMD.utils.data import load_json_file, read_xyz_file
+from pyNNsMD.utils.data import load_json_file, read_xyz_file, save_json_file
 from pyNNsMD.plots.loss import plot_loss_curves, plot_learning_curve
 from pyNNsMD.plots.pred import plot_scatter_prediction
 from pyNNsMD.plots.error import plot_error_vec_mean, plot_error_vec_max
@@ -230,10 +230,11 @@ def train_model_energy_gradient(i=0, out_dir=None, mode='training'):
     print("Gradient", np.max(np.abs(ptrain[1] - ptrain2[1])))
     error_val = [np.mean(np.abs(pval[0] - y[0][i_val])), np.mean(np.abs(pval[1] - y[1][i_val]))]
     error_train = [np.mean(np.abs(ptrain[0] - y[0][i_train])), np.mean(np.abs(ptrain[1] - y[1][i_train]))]
-    np.save(os.path.join(out_dir, "fiterr_valid" + '_v%i' % i + ".npy"), error_val)
-    np.save(os.path.join(out_dir, "fiterr_train" + '_v%i' % i + ".npy"), error_train)
     print("error_val:", error_val)
     print("error_train:", error_train)
+    error_dict = {"train": [error_train[0].tolist(), error_train[1].tolist()],
+                  "valid": [error_val[0].tolist(), error_val[1].tolist()]}
+    save_json_file(error_dict, os.path.join(out_dir, "fit_error.json"))
 
     print("Info: Saving model to file...")
     out_model.precomputed_features = False

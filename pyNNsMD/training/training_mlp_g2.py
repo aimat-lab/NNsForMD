@@ -34,7 +34,7 @@ import pyNNsMD.utils.callbacks
 import pyNNsMD.utils.activ
 from pyNNsMD.models.mlp_g2 import GradientModel2
 from pyNNsMD.scaler.energy import GradientStandardScaler
-from pyNNsMD.utils.data import load_json_file, read_xyz_file
+from pyNNsMD.utils.data import load_json_file, read_xyz_file, save_json_file
 from pyNNsMD.utils.loss import get_lr_metric, ScaledMeanAbsoluteError, r2_metric
 from pyNNsMD.plots.loss import plot_loss_curves, plot_learning_curve
 from pyNNsMD.plots.pred import plot_scatter_prediction
@@ -206,10 +206,10 @@ def train_model_energy_gradient(i=0, out_dir=None, mode='training'):
     print("Gradient", np.max(np.abs(ptrain - ptrain2)))
     error_val = np.mean(np.abs(pval - y[i_val]))
     error_train = np.mean(np.abs(ptrain- y[i_train]))
-    np.save(os.path.join(out_dir, "fiterr_valid" + '_v%i' % i + ".npy"), error_val)
-    np.save(os.path.join(out_dir, "fiterr_train" + '_v%i' % i + ".npy"), error_train)
     print("error_val:", error_val)
     print("error_train:", error_train)
+    error_dict = {"train": error_train.tolist(), "valid": error_val.tolist()}
+    save_json_file(error_dict, os.path.join(out_dir, "fit_error.json"))
 
     print("Info: Saving model to file...")
     out_model.precomputed_features = False
