@@ -364,9 +364,16 @@ class NeuralNetEnsemble:
         self.load()
 
         # We must check if fit was successful
+        fit_error = []
+        for i in range(self._number_models):
+            fit_error_path = os.path.join(self._get_model_path(i), "fit_error.json")
+            if not os.path.exists(fit_error_path):
+                self.logger.error("Fit %s was not successful, could not find `fit_error.json`, check logfile." % i)
+                fit_error.append(None)
+            else:
+                fit_error.append(load_json_file(fit_error_path))
 
-
-        return None
+        return fit_error
 
     def predict(self, x, **kwargs):
         y_list = []

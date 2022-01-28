@@ -175,9 +175,6 @@ def train_model_energy(i=0, out_dir=None, mode='training'):
 
     plot_learning_curve(hist.history['lr'], filename='fit' + str(i), dir_save=dir_save)
 
-
-    error_val = None
-
     # Safe fitting Error MAE
     pval = out_model.predict(xval)
     ptrain = out_model.predict(xtrain)

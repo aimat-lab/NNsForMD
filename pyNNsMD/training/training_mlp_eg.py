@@ -214,9 +214,6 @@ def train_model_energy_gradient(i=0, out_dir=None, mode='training'):
                        dir_save=dir_save, save_plot_to_file=True, filetypeout='.png',
                        x_label='Gradients xyz * #atoms * #states ', plot_title="Gradient max error")
 
-
-    error_val = None
-
     pval = out_model.predict(xval)
     ptrain = out_model.predict(xtrain)
     _, pval = scaler.inverse_transform(y=[pval['energy'], pval['force']])

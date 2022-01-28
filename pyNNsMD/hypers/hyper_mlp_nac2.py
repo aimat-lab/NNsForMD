@@ -18,6 +18,7 @@ DEFAULT_HYPER_PARAM_NAC = {
             'invd_index': True,  # not used yet
             'angle_index': [],  # list-only of shape (N,3) angle: 0-1-2  or alpha(1->0,1->2)
             'dihed_index': [],  # list of dihedral angles (N,4) with index ijkl angle is between ijk and jkl
+            'normalization_mode': 1,  # Normalization False/0 for no normalization/unity mulitplication
             "model_module": "mlp_nac2"
         }
     },

@@ -11,3 +11,6 @@ dist
 /examples/butene_energy_force/*
 /examples/butene_energy_force
 /examples/kt_test/
+/examples/butene_nac2/
+/examples/TestEnergy/
+/examples/TestEnergyGradient/

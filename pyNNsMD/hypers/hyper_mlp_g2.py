@@ -3,8 +3,8 @@ DEFAULT_HYPER_PARAM_GRADS2 = {
     'model': {
         "class_name": "GradientModel2",
         "config": {
-            'atoms': 12,  # number of atoms
-            'states': 2,  # (batch,states) and (batch,states,atoms,3)
+            # 'atoms': 12,  # number of atoms
+            # 'states': 2,  # (batch,states) and (batch,states,atoms,3)
             'nn_size': 100,  # size of each layer
             'depth': 3,  # number of layers
             'activ': {'class_name': "pyNNsMD>leaky_softplus", "config": {'alpha': 0.03}},  # activation function
@@ -18,6 +18,7 @@ DEFAULT_HYPER_PARAM_GRADS2 = {
             'invd_index': True,  # not used yet
             'angle_index': [],  # list-only of shape (N,3) angle: 0-1-2  or alpha(1->0,1->2)
             'dihed_index': [],  # list of dihedral angles with index ijkl angle is between ijk and jkl
+            'normalization_mode': 1,  # Normalization False/0 for no normalization/unity mulitplication
             "model_module": "mlp_g2"
         }
     },

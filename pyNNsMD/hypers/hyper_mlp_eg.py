@@ -3,8 +3,8 @@ DEFAULT_HYPER_PARAM_ENERGY_GRADS = {
     'model': {
         "class_name": "EnergyGradientModel",
         "config": {
-            'atoms': 12,  # number of atoms
-            'states': 2,  # (batch,states) and (batch,states,atoms,3)
+            # 'atoms': 12,  # number of atoms
+            # 'states': 2,  # (batch,states) and (batch,states,atoms,3)
             'nn_size': 100,  # size of each layer
             'depth': 3,  # number of layers
             'activ': {'class_name': "pyNNsMD>leaky_softplus", "config": {'alpha': 0.03}},  # activation function
