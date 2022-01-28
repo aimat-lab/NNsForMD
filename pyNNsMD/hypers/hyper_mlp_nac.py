@@ -3,8 +3,8 @@ DEFAULT_HYPER_PARAM_NAC = {
     'model': {
         "class_name": "NACModel",
         "config": {
-            'atoms': 12,
-            'states': 2,  # (batch,states*(states-1)/2,atoms,3)
+            # 'atoms': 12,
+            # 'states': 2,  # (batch, states*(states-1)/2, atoms, 3)
             'depth': 3,
             'activ': {'class_name': "pyNNsMD>leaky_softplus", "config": {'alpha': 0.03}},  # activation function,
             'nn_size': 100,

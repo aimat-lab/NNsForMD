@@ -14,3 +14,5 @@ dist
 /examples/butene_nac2/
 /examples/TestEnergy/
 /examples/TestEnergyGradient/
+/examples/TestGradient2/
+/examples/TestNAC/
