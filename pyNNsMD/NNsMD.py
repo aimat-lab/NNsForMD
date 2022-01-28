@@ -289,6 +289,8 @@ class NeuralNetEnsemble:
             np.save(os.path.join(dir_path, "energies.npy"), energies)
         if forces is not None:
             np.save(os.path.join(dir_path, "forces.npy"), forces)
+        if couplings is not None:
+            np.save(os.path.join(dir_path, "couplings.npy"), couplings)
 
     def train_test_split(self, dataset_size, n_splits: int = 5, shuffle: bool = True, random_state: int = None):
         if n_splits < self._number_models:
@@ -360,6 +362,9 @@ class NeuralNetEnsemble:
         # Look for fit-error in folder
         self.logger.info("Searching Folder for fit results...")
         self.load()
+
+        # We must check if fit was successful
+
 
         return None
 

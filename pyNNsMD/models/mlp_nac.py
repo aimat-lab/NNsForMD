@@ -6,6 +6,7 @@ from pyNNsMD.layers.features import FeatureGeometric
 from pyNNsMD.layers.mlp import MLP
 from pyNNsMD.layers.normalize import DummyLayer
 
+
 class NACModel(ks.Model):
     """Subclassed tf.keras.model for NACs which outputs NACs from coordinates.
 
@@ -55,6 +56,7 @@ class NACModel(ks.Model):
 
         out_dim = int(states * (states - 1) / 2)
         indim = int(atoms)
+
         # Allow for all distances, backward compatible
         if isinstance(invd_index, bool):
             if invd_index:

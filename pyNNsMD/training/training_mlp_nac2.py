@@ -1,6 +1,3 @@
-"""
-The main training script for NAC model. Called with ArgumentParse.
-"""
 import numpy as np
 import tensorflow as tf
 # from sklearn.utils import shuffle

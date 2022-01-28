@@ -1,9 +1,10 @@
 import json
 
 import numpy as np
+from pyNNsMD.scaler.base import SaclerBase
 
 
-class NACStandardScaler:
+class NACStandardScaler(SaclerBase):
     def __init__(self,
                  use_x_std=False,
                  use_x_mean=False,
@@ -77,7 +78,7 @@ class NACStandardScaler:
         self.nac_mean = np.array(indict['nac_mean'])
         self.nac_std = np.array(indict['nac_std'])
 
-    def get_params(self):
+    def get_config(self):
         conf = {
             'scaler_module': self.scaler_module,
             'use_x_std': self.use_x_std,

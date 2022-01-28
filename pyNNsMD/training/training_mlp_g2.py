@@ -103,7 +103,7 @@ def train_model_energy_gradient(i=0, out_dir=None, mode='training'):
     npeps = np.finfo(float).eps
     if not initialize_weights:
         out_model.load_weights(os.path.join(out_dir, "model_weights.h5"))
-        print("Info: Load old weights at:", os.path.join(out_dir, "weights" + '_v%i' % i + '.h5'))
+        print("Info: Load old weights at:", os.path.join(out_dir, "model_weights.h5"))
         print("Info: Transferring weights...")
     else:
         print("Info: Making new initialized weights.")

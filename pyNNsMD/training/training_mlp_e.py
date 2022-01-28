@@ -199,6 +199,7 @@ def train_model_energy(i=0, out_dir=None, mode='training'):
     out_model.precomputed_features = False
     out_model.save_weights(os.path.join(out_dir, "model_weights.h5"))
     out_model.save(os.path.join(out_dir, "model_tf"))
+
     return error_val
 
 
