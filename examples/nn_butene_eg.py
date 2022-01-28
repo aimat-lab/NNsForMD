@@ -26,9 +26,9 @@ print(geos.shape, energy.shape, grads.shape, nac.shape)
 
 hyper["model"]["config"].update({"atoms": 12, "states": 2})
 
-datapath = "TestEnergyGradient/"
+ensemble_path = "TestEnergyGradient/"
 
-nn = NeuralNetEnsemble(datapath, 2)
+nn = NeuralNetEnsemble(ensemble_path, 2)
 nn.create(models=[hyper["model"]]*2,
           scalers=[hyper["scaler"]]*2)
 nn.save()

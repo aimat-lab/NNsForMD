@@ -26,21 +26,28 @@ print(geos.shape, energy.shape, grads.shape, nac.shape)
 
 hyper["model"]["config"].update({"atoms": 12, "states": 2})
 
-datapath = "TestEnergy/"
+ensemble_path = "TestEnergy/"
 
-nn = NeuralNetEnsemble(datapath, 2)
+nn = NeuralNetEnsemble(ensemble_path, 2)
 nn.create(models=[hyper["model"]]*2,
           scalers=[hyper["scaler"]]*2)
 nn.save()
 
+# nn.data_path()
 nn.data(atoms=atoms, geometries=geos, energies=energy)
 
-nn.train_test_split(dataset_size=len(energy), n_splits=5)
+nn.train_test_split(dataset_size=len(energy), n_splits=5, shuffle=False)
+# nn.train_test_indices(train=[np.array(), np.array()], test=[np.array(), np.array()])
+
 nn.training([hyper["training"]]*2, fit_mode="training")
+
 fit_error = nn.fit(["training_mlp_e"]*2, fit_mode="training", gpu_dist=[0, 0], proc_async=True)
 print(fit_error)
 
 nn.load()
 
 test = nn.predict(geos)
+# test = nn.call(geos)
 print("Error prediction on all data:", np.mean(np.abs(test[0]/2 + test[1]/2 - energy)))
+
+# nn.clean()

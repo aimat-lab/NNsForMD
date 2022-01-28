@@ -219,7 +219,7 @@ class Dihedral(ks.layers.Layer):
 
         """
         config = super(Dihedral, self).get_config()
-        config.update({"dihed_shape": self.angle_shape})
+        config.update({"dihed_shape": self.dihed_shape})
         return config
 
 
