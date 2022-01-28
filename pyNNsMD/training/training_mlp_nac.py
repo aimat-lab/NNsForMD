@@ -1,15 +1,6 @@
-"""
-The main training script for NAC model. Called with ArgumentParse.
-"""
 import numpy as np
 import tensorflow as tf
-# from sklearn.utils import shuffle
 import matplotlib as mpl
-# from sklearn.utils import shuffle
-import matplotlib as mpl
-import numpy as np
-import tensorflow as tf
-
 mpl.use('Agg')
 import os
 import json
@@ -25,8 +16,6 @@ parser.add_argument("-f", "--filepath", required=True, help="Filepath to weights
 parser.add_argument("-g", "--gpus", default=-1, required=True, help="Index of gpu to use")
 parser.add_argument("-m", "--mode", default="training", required=True, help="Which mode to use train or retrain")
 args = vars(parser.parse_args())
-# args = {"filepath":"E:/Benutzer/Patrick/PostDoc/Projects ML/NeuralNet4/NNfit0/nac_0",'index' : 0,"gpus":0}
-
 
 fstdout = open(os.path.join(args['filepath'], "fitlog.txt"), 'w')
 sys.stderr = fstdout
