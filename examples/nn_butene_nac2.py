@@ -17,7 +17,7 @@ anglist = [[1, 0, 2], [1, 0, 4], [2, 0, 4], [0, 1, 3], [0, 1, 8], [3, 1, 8], [0,
 dihedlist = [[5, 1, 2, 9], [3, 1, 2, 4]]
 
 # Load data
-atoms = [["C","C","C","C", "F", "F", "F", "F","F", "F", "H", "H"]]*2701
+atoms = [["C", "C", "H", "H", "C", "F", "F", "F", "C", "F", "H", "H"]]*2701
 geos = np.load("butene/butene_x.npy")
 energy = np.load("butene/butene_energy.npy")
 grads = np.load("butene/butene_force.npy")
@@ -46,4 +46,4 @@ print(fit_error)
 nn.load()
 
 test = nn.predict(geos)
-print("Error prediction on all data:", np.mean(np.abs(test[0]/2 + test[1]/2 - grads)))
+print("Error prediction on all data:", np.mean(np.abs(test[0]/2 + test[1]/2 - nac)))

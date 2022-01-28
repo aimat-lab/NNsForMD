@@ -17,14 +17,16 @@ anglist = [[1, 0, 2], [1, 0, 4], [2, 0, 4], [0, 1, 3], [0, 1, 8], [3, 1, 8], [0,
 dihedlist = [[5, 1, 2, 9], [3, 1, 2, 4]]
 
 # Load data
-atoms = [["C","C","C","C", "F", "F", "F", "F","F", "F", "H", "H"]]*2701
+atoms = [["C", "C", "H", "H", "C", "F", "F", "F", "C", "F", "H", "H"]]*2701
 geos = np.load("butene/butene_x.npy")
 energy = np.load("butene/butene_energy.npy")
 grads = np.load("butene/butene_force.npy")
 nac = np.load("butene/butene_nac.npy")
 print(geos.shape, energy.shape, grads.shape, nac.shape)
 
-hyper["model"]["config"].update({"atoms": 12, "states": 2})
+hyper["model"]["config"].update({"atoms": 12, "states": 2, "nn_size": 400,
+                                 'angle_index': anglist,
+                                 'dihed_index': dihedlist})
 
 ensemble_path = "TestEnergyGradient/"
 
