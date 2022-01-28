@@ -110,7 +110,7 @@ def train_model_nac(i=0, out_dir=None, mode='training'):
         print("Info: Making new initialized weights..")
 
     scaler = NACStandardScaler(**scaler_config["config"])
-    scaler.fit(x, y_in)
+    scaler.fit(x[i_train], y_in[i_train])
     x_rescale, y = scaler.transform(x=x, y=y_in)
 
     # Calculate features
@@ -168,7 +168,7 @@ def train_model_nac(i=0, out_dir=None, mode='training'):
         json.dump(outhist, f)
 
     print("Info: Saving auto-scaler to file...")
-    scaler.save_weights(os.path.join(out_dir, "scaler_weights.json"))
+    scaler.save_weights(os.path.join(out_dir, "scaler_weights.npy"))
 
     # Plot stats
     yval_plot = y_in[i_val]

@@ -28,7 +28,7 @@ class NACModel(ks.Model):
                  use_dropout=False,
                  dropout=0.01,
                  normalization_mode=1,
-                 precomputed_features = False,
+                 precomputed_features=False,
                  model_module="mlp_nac",
                  **kwargs):
         """Initialize a NACModel with hyperparameters.
@@ -113,8 +113,7 @@ class NACModel(ks.Model):
         self.precomputed_features = precomputed_features
 
     def call(self, data, training=False, **kwargs):
-        """
-        Call the model output, forward pass.
+        """Call the model output, forward pass.
 
         Args:
             data (tf.tensor): Coordinates.
@@ -205,12 +204,12 @@ class NACModel(ks.Model):
         })
         return conf
 
-    def save(self,filepath,**kwargs):
+    def save(self, filepath, **kwargs):
         # copy to new model
         self_conf = self.get_config()
         self_conf['precomputed_features'] = False
         copy_model = NACModel(**self_conf)
         copy_model.set_weights(self.get_weights())
         # Make graph and test with training data
-        copy_model.predict(np.ones((1,self.nac_atoms,3)))
-        tf.keras.models.save_model(copy_model,filepath,**kwargs)
+        copy_model.predict(np.ones((1, self.nac_atoms, 3)))
+        tf.keras.models.save_model(copy_model, filepath, **kwargs)

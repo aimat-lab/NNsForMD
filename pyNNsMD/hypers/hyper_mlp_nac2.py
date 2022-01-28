@@ -1,7 +1,7 @@
 
 DEFAULT_HYPER_PARAM_NAC = {
     'model': {
-        "class_name": "NACModel",
+        "class_name": "NACModel2",
         "config": {
             'atoms': 12,
             'states': 2,  # (batch,states*(states-1)/2,atoms,3)
@@ -18,7 +18,7 @@ DEFAULT_HYPER_PARAM_NAC = {
             'invd_index': True,  # not used yet
             'angle_index': [],  # list-only of shape (N,3) angle: 0-1-2  or alpha(1->0,1->2)
             'dihed_index': [],  # list of dihedral angles (N,4) with index ijkl angle is between ijk and jkl
-            "model_module": "mlp_nac"
+            "model_module": "mlp_nac2"
         }
     },
     "scaler": {
@@ -29,7 +29,7 @@ DEFAULT_HYPER_PARAM_NAC = {
     },
     'training': {
         'initialize_weights': True,
-        'learning_rate': 0.5e-3,
+        'learning_rate': 1e-3,
         'phase_less_loss': True,
         'epo': 3000,
         'pre_epo': 50,  # number of epochs without phaseless loss

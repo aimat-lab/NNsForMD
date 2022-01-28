@@ -118,7 +118,7 @@ def train_model_energy_gradient(i=0, out_dir=None, mode='training'):
 
     # Scale x,y
     scaler = EnergyGradientStandardScaler(**scaler_config["config"])
-    scaler.fit(x, y)
+    scaler.fit(x[i_train], [y[0][i_train], y[1][i_train]])
     x_rescale, y_rescale = scaler.transform(x, y)
     y1, y2 = y_rescale
 

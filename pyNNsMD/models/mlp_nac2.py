@@ -126,8 +126,7 @@ class NACModel2(ks.Model):
         self.precomputed_features = precomputed_features
 
     def call(self, data, training=False, **kwargs):
-        """
-        Call the model output, forward pass.
+        """Call the model output, forward pass.
 
         Args:
             data (tf.tensor): Coordinates.
@@ -185,7 +184,6 @@ class NACModel2(ks.Model):
 
         np_x = np.concatenate(np_x, axis=0)
         np_grad = np.concatenate(np_grad, axis=0)
-        # self.set_const_normalization_from_features(np_x, normalization_mode=normalization_mode)
         return np_x, np_grad
 
     def fit(self, **kwargs):
