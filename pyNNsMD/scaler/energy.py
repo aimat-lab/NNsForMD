@@ -37,13 +37,13 @@ class EnergyStandardScaler(SaclerBase):
         return x_res, y_res
 
     def inverse_transform(self, x=None, y=None):
-        y_res = y
-        x_res = x
         if y is not None:
-            y_res = y * self.energy_std + self.energy_mean
-        if x is not None:
-            x_res = x * self.x_std + self.x_mean
-        return x_res, y_res
+            y = y * self.energy_std + self.energy_mean
+        if x is not None and self.use_x_std:
+            x = x * self.x_std
+        if x is not None and self.use_x_mean:
+            x = x + self.x_mean
+        return x, y
 
     def fit(self, x=None, y=None):
         npeps = np.finfo(float).eps

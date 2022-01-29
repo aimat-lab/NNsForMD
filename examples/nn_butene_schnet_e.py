@@ -19,18 +19,17 @@ pprint.pprint(hyper)
 anglist = [[1, 0, 2], [1, 0, 4], [2, 0, 4], [0, 1, 3], [0, 1, 8], [3, 1, 8], [0, 4, 5], [0, 4, 6], [0, 4, 7], [6, 4, 7],
            [5, 4, 7], [5, 4, 6], [9, 8, 10], [1, 8, 10], [9, 8, 11], [1, 8, 9], [1, 8, 11], [10, 8, 11]]
 dihedlist = [[5, 1, 2, 9], [3, 1, 2, 4]]
+range_dist = hyper["model"]["config"]["schnet_kwargs"]["gauss_args"]["distance"]
 
 # Load data
 atoms = [["C", "C", "H", "H", "C", "F", "F", "F", "C", "F", "H", "H"]]*2701
 atomic_number = [np.array([global_proton_dict[atom] for atom in x]) for x in atoms]
 geos = np.load("butene/butene_x.npy")
-range_indices = [define_adjacency_from_distance(coordinates_to_distancematrix(x), max_distance=4)[1] for x in geos]
+range_indices = [define_adjacency_from_distance(coordinates_to_distancematrix(x), max_distance=range_dist)[1] for x in geos]
 energy = np.load("butene/butene_energy.npy")
 grads = np.load("butene/butene_force.npy")
 nac = np.load("butene/butene_nac.npy")
 print(geos.shape, energy.shape, grads.shape, nac.shape)
-
-hyper["model"]["config"].update({})
 
 ensemble_path = "TestEnergySchnet/"
 
@@ -52,7 +51,7 @@ print(fit_error)
 
 nn.load()
 
-test = nn.predict([atomic_number, geos])
+test = nn.predict([atomic_number, geos, range_indices])
 # test = nn.call(geos)
 print("Error prediction on all data:", np.mean(np.abs(test[0]/2 + test[1]/2 - energy)))
 

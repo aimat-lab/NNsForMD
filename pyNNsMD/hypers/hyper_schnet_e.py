@@ -29,7 +29,7 @@ DEFAULT_HYPER_PARAM_SCHNET_E = {
         "class_name": "EnergyStandardScaler",
         "config": {
             "scaler_module": "energy",
-            "use_x_mean": False,
+            "use_x_mean": False,  # Not possible or necessary for Schnet input.
             "use_x_std": False
         }
     },

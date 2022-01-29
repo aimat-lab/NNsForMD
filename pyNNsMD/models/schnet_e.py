@@ -12,14 +12,12 @@ class SchnetEnergy(ks.Model):
     """
 
     def __init__(self,
-                 cutoff_radius=4,
                  model_module="schnet_e",
                  schnet_kwargs=None,
                  **kwargs):
         super(SchnetEnergy, self).__init__(**kwargs)
         self.schnet_kwargs = schnet_kwargs
         self.model_module = model_module
-        self.cutoff_radius = cutoff_radius
 
         self._schnet_model = make_model(**schnet_kwargs)
         self.predict([tf.ragged.constant([[0]]),
@@ -47,7 +45,6 @@ class SchnetEnergy(ks.Model):
         conf.update({
             "model_module": self.model_module,
             "schnet_kwargs": self.schnet_kwargs,
-            "cutoff_radius": self.cutoff_radius
         })
         return conf
 
