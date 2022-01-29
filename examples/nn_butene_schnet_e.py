@@ -10,6 +10,7 @@ from pyNNsMD.NNsMD import NeuralNetEnsemble
 from pyNNsMD.models.schnet_e import SchnetEnergy
 from pyNNsMD.utils.loss import ScaledMeanAbsoluteError
 from pyNNsMD.hypers.hyper_schnet_e import DEFAULT_HYPER_PARAM_SCHNET_E as hyper
+from kgcnn.mol.methods import global_proton_dict
 
 pprint.pprint(hyper)
 
@@ -20,6 +21,7 @@ dihedlist = [[5, 1, 2, 9], [3, 1, 2, 4]]
 
 # Load data
 atoms = [["C", "C", "H", "H", "C", "F", "F", "F", "C", "F", "H", "H"]]*2701
+atomic_number = [np.array([global_proton_dict(atom) for atom in x]) for x in atoms]
 geos = np.load("butene/butene_x.npy")
 energy = np.load("butene/butene_energy.npy")
 grads = np.load("butene/butene_force.npy")
@@ -48,7 +50,7 @@ print(fit_error)
 
 nn.load()
 
-test = nn.predict(geos)
+test = nn.predict([atomic_number, geos])
 # test = nn.call(geos)
 print("Error prediction on all data:", np.mean(np.abs(test[0]/2 + test[1]/2 - energy)))
 

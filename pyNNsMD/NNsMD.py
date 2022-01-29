@@ -213,7 +213,7 @@ class NeuralNetEnsemble:
 
         # Load model
         if load_model:
-            _models = tf.keras.models.load_model(os.path.join(model_path, "model_tf"))
+            _models = tf.keras.models.load_model(os.path.join(model_path, "model_tf"), compile=False)
 
         if not load_model:
             self.logger.warning("Recreating model from config and loading weights...")

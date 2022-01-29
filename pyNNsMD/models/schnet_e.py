@@ -2,6 +2,7 @@ import tensorflow.keras as ks
 import tensorflow as tf
 
 from kgcnn.literature.Schnet import make_model
+from kgcnn.utils.data import ragged_tensor_from_nested_numpy
 
 
 class SchnetEnergy(ks.Model):
@@ -18,6 +19,7 @@ class SchnetEnergy(ks.Model):
         super(SchnetEnergy, self).__init__(**kwargs)
         self.schnet_kwargs = schnet_kwargs
         self.model_module = model_module
+        self.cutoff_radius = cutoff_radius
 
         self._schnet_model = make_model(**schnet_kwargs)
         self.predict([tf.ragged.constant([[0]]),
@@ -44,6 +46,14 @@ class SchnetEnergy(ks.Model):
         conf = {}
         conf.update({
             "model_module": self.model_module,
-            "schnet_kwargs": self.schnet_kwargs
+            "schnet_kwargs": self.schnet_kwargs,
+            "cutoff_radius": self.cutoff_radius
         })
         return conf
+
+    def to_tensor_input(self, x):
+        atoms = ragged_tensor_from_nested_numpy(x[0])
+        coords = ragged_tensor_from_nested_numpy(x[1])
+        return [atoms, coords]
+
+
