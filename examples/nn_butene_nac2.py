@@ -28,9 +28,9 @@ hyper["model"]["config"].update({"atoms": 12, "states": 2, "nn_size": 300,
                                  'angle_index': anglist,
                                  'dihed_index': dihedlist})
 
-datapath = "TestNAC2/"
+ensemble_path = "TestNAC2/"
 
-nn = NeuralNetEnsemble(datapath, 2)
+nn = NeuralNetEnsemble(ensemble_path, 2)
 nn.create(models=[hyper["model"]]*2,
           scalers=[hyper["scaler"]]*2)
 nn.save()
