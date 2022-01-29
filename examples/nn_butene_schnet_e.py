@@ -23,13 +23,17 @@ range_dist = hyper["model"]["config"]["schnet_kwargs"]["gauss_args"]["distance"]
 
 # Load data
 atoms = [["C", "C", "H", "H", "C", "F", "F", "F", "C", "F", "H", "H"]]*2701
-atomic_number = [np.array([global_proton_dict[atom] for atom in x]) for x in atoms]
 geos = np.load("butene/butene_x.npy")
-range_indices = [define_adjacency_from_distance(coordinates_to_distancematrix(x), max_distance=range_dist)[1] for x in geos]
 energy = np.load("butene/butene_energy.npy")
 grads = np.load("butene/butene_force.npy")
 nac = np.load("butene/butene_nac.npy")
 print(geos.shape, energy.shape, grads.shape, nac.shape)
+
+
+atomic_number = [np.array([global_proton_dict[atom] for atom in x]) for x in atoms]
+geos = [x for x in geos]
+range_indices = [
+    define_adjacency_from_distance(coordinates_to_distancematrix(x), max_distance=range_dist)[1] for x in geos]
 
 ensemble_path = "TestEnergySchnet/"
 
