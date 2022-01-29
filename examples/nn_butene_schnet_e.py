@@ -11,6 +11,7 @@ from pyNNsMD.models.schnet_e import SchnetEnergy
 from pyNNsMD.utils.loss import ScaledMeanAbsoluteError
 from pyNNsMD.hypers.hyper_schnet_e import DEFAULT_HYPER_PARAM_SCHNET_E as hyper
 from kgcnn.mol.methods import global_proton_dict
+from kgcnn.utils.adj import coordinates_to_distancematrix, define_adjacency_from_distance
 
 pprint.pprint(hyper)
 
@@ -23,6 +24,7 @@ dihedlist = [[5, 1, 2, 9], [3, 1, 2, 4]]
 atoms = [["C", "C", "H", "H", "C", "F", "F", "F", "C", "F", "H", "H"]]*2701
 atomic_number = [np.array([global_proton_dict[atom] for atom in x]) for x in atoms]
 geos = np.load("butene/butene_x.npy")
+range_indices = [define_adjacency_from_distance(coordinates_to_distancematrix(x), max_distance=4)[1] for x in geos]
 energy = np.load("butene/butene_energy.npy")
 grads = np.load("butene/butene_force.npy")
 nac = np.load("butene/butene_nac.npy")

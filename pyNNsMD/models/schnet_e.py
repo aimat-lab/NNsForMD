@@ -54,6 +54,7 @@ class SchnetEnergy(ks.Model):
     def to_tensor_input(self, x):
         atoms = ragged_tensor_from_nested_numpy(x[0])
         coords = ragged_tensor_from_nested_numpy(x[1])
-        return [atoms, coords]
+        edge_idx = ragged_tensor_from_nested_numpy(x[2])
+        return [atoms, coords, edge_idx]
 
 
