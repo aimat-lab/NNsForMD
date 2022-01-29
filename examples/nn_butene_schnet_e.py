@@ -21,7 +21,7 @@ dihedlist = [[5, 1, 2, 9], [3, 1, 2, 4]]
 
 # Load data
 atoms = [["C", "C", "H", "H", "C", "F", "F", "F", "C", "F", "H", "H"]]*2701
-atomic_number = [np.array([global_proton_dict(atom) for atom in x]) for x in atoms]
+atomic_number = [np.array([global_proton_dict[atom] for atom in x]) for x in atoms]
 geos = np.load("butene/butene_x.npy")
 energy = np.load("butene/butene_energy.npy")
 grads = np.load("butene/butene_force.npy")
