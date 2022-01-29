@@ -403,11 +403,12 @@ class NeuralNetEnsemble:
     def predict(self, x, **kwargs):
         y_list = []
         for i, (model, scaler) in enumerate(zip(self._models, self._scalers)):
+            x_i = x
             if scaler is not None:
-                x, _ = scaler.inverse_transform(x=x, y=None)
+                x_i, _ = scaler.inverse_transform(x=x, y=None)
             if hasattr(model, "to_tensor_input"):
-                x = model.to_tensor_input(x)
-            y = model.predict(x, **kwargs)
+                x_i = model.to_tensor_input(x_i)
+            y = model.predict(x_i, **kwargs)
             if scaler is not None:
                 _, y = scaler.inverse_transform(x=x, y=y)
             y_list.append(y)
