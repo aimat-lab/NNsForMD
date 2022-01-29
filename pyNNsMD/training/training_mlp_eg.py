@@ -80,8 +80,8 @@ def train_model_energy_gradient(i=0, out_dir=None, mode='training'):
     x = np.array([x[1] for x in xyz])
     if x.shape[1] != num_atoms:
         raise ValueError(f"Mismatch Shape between {x.shape} model and data {num_atoms}")
-    y1 = np.load(os.path.join(data_dir, "energies.npy"))
-    y2 = np.load(os.path.join(data_dir, "forces.npy"))
+    y1 = np.array(load_json_file(os.path.join(data_dir, "energies.json")))
+    y2 = np.array(load_json_file(os.path.join(data_dir, "forces.json")))
     print("INFO: Shape of y", y1.shape, y2.shape)
     y = [y1, y2]
 

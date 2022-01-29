@@ -3,6 +3,7 @@
 *.txt
 *.zip
 *.npz
+.idea/
 /develop/
 build
 dist
@@ -17,3 +18,4 @@ dist
 /examples/TestGradient2/
 /examples/TestNAC/
 /examples/TestNAC2/
+/examples/TestEnergySchnet/

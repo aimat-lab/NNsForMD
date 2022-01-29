@@ -271,6 +271,14 @@ class NeuralNetEnsemble:
 
         return self
 
+    @staticmethod
+    def _make_nested_list(in_array):
+        if isinstance(in_array, np.ndarray):
+            return in_array.tolist()
+        elif isinstance(in_array, list):
+            return [x.tolist() if isinstance(x, np.ndarray) else x for x in in_array]
+        return in_array
+
     def data(self, atoms: list = None, geometries: list = None, forces: list = None, energies: list = None,
              couplings: list = None):
         kwargs = dict(locals())
@@ -286,16 +294,19 @@ class NeuralNetEnsemble:
         if atoms is not None and geometries is not None:
             write_list_to_xyz_file(os.path.join(dir_path, "geometries.xyz"), [x for x in zip(atoms, geometries)])
         if energies is not None:
-            np.save(os.path.join(dir_path, "energies.npy"), energies)
+            save_json_file(self._make_nested_list(energies), os.path.join(dir_path, "energies.json"))
         if forces is not None:
-            np.save(os.path.join(dir_path, "forces.npy"), forces)
+            save_json_file(self._make_nested_list(forces), os.path.join(dir_path, "forces.json"))
         if couplings is not None:
-            np.save(os.path.join(dir_path, "couplings.npy"), couplings)
+            save_json_file(self._make_nested_list(couplings), os.path.join(dir_path, "couplings.json"))
 
     def train_test_split(self, dataset_size, n_splits: int = 5, shuffle: bool = True, random_state: int = None):
         if n_splits < self._number_models:
             raise ValueError("Number of splits must be at least number of model but got %s" % n_splits)
+
         kf = KFold(n_splits=n_splits, shuffle=shuffle, random_state=random_state)
+        train_indices = []
+        test_indices = []
         i = 0
         for train_index, test_index in kf.split(np.expand_dims(np.arange(dataset_size), axis=-1)):
             if i >= self._number_models:
@@ -303,6 +314,20 @@ class NeuralNetEnsemble:
             np.save(os.path.join(self._get_model_path(i), "train_index.npy"), train_index)
             np.save(os.path.join(self._get_model_path(i), "test_index.npy"), test_index)
             i = i + 1
+            train_indices.append(np.array(train_index))
+            test_indices.append(np.array(test_index))
+
+        return train_indices, test_indices
+
+    def train_test_indices(self, train: list, test: list):
+        if len(train) != self._number_models:
+            raise ValueError("Number of indices must match models %s" % self._number_models)
+        if len(test) != self._number_models:
+            raise ValueError("Number of indices must match models %s" % self._number_models)
+
+        for i, (train_index, test_index) in enumerate(zip(train, test)):
+            np.save(os.path.join(self._get_model_path(i), "train_index.npy"), train_index)
+            np.save(os.path.join(self._get_model_path(i), "test_index.npy"), test_index)
 
     def training(self, training_hyper: list, fit_mode: str = "training"):
         if len(training_hyper) != self._number_models:

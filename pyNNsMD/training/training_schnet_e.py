@@ -33,12 +33,30 @@ print("Logic Devices:", tf.config.experimental.list_logical_devices('GPU'))
 
 import pyNNsMD.utils.callbacks
 import pyNNsMD.utils.activ
-from pyNNsMD.models.mlp_e import EnergyModel
+from pyNNsMD.models.schnet_e import SchnetEnergy
 from pyNNsMD.utils.data import load_json_file, read_xyz_file, save_json_file
 from pyNNsMD.scaler.energy import EnergyStandardScaler
 from pyNNsMD.utils.loss import ScaledMeanAbsoluteError, get_lr_metric, r2_metric
 from pyNNsMD.plots.loss import plot_loss_curves, plot_learning_curve
 from pyNNsMD.plots.pred import plot_scatter_prediction
+from kgcnn.utils.adj import define_adjacency_from_distance, coordinates_to_distancematrix
+from kgcnn.utils.data import ragged_tensor_from_nested_numpy
+
+global_proton_dict = {'H': 1, 'He': 2, 'Li': 3, 'Be': 4, 'B': 5, 'C': 6, 'N': 7, 'O': 8, 'F': 9, 'Ne': 10, 'Na': 11,
+                      'Mg': 12, 'Al': 13, 'Si': 14, 'P': 15, 'S': 16, 'Cl': 17, 'Ar': 18, 'K': 19, 'Ca': 20,
+                      'Sc': 21, 'Ti': 22, 'V': 23, 'Cr': 24, 'Mn': 25, 'Fe': 26, 'Co': 27, 'Ni': 28, 'Cu': 29,
+                      'Zn': 30, 'Ga': 31, 'Ge': 32, 'As': 33, 'Se': 34, 'Br': 35, 'Kr': 36, 'Rb': 37, 'Sr': 38,
+                      'Y': 39, 'Zr': 40, 'Nb': 41, 'Mo': 42, 'Tc': 43, 'Ru': 44, 'Rh': 45, 'Pd': 46, 'Ag': 47,
+                      'Cd': 48, 'In': 49, 'Sn': 50, 'Sb': 51, 'Te': 52, 'I': 53, 'Xe': 54, 'Cs': 55, 'Ba': 56,
+                      'La': 57, 'Ce': 58, 'Pr': 59, 'Nd': 60, 'Pm': 61, 'Sm': 62, 'Eu': 63, 'Gd': 64, 'Tb': 65,
+                      'Dy': 66, 'Ho': 67, 'Er': 68, 'Tm': 69, 'Yb': 70, 'Lu': 71, 'Hf': 72, 'Ta': 73, 'W': 74,
+                      'Re': 75, 'Os': 76, 'Ir': 77, 'Pt': 78, 'Au': 79, 'Hg': 80, 'Tl': 81, 'Pb': 82, 'Bi': 83,
+                      'Po': 84, 'At': 85, 'Rn': 86, 'Fr': 87, 'Ra': 88, 'Ac': 89, 'Th': 90, 'Pa': 91, 'U': 92,
+                      'Np': 93, 'Pu': 94, 'Am': 95, 'Cm': 96, 'Bk': 97, 'Cf': 98, 'Es': 99, 'Fm': 100, 'Md': 101,
+                      'No': 102, 'Lr': 103, 'Rf': 104, 'Db': 105, 'Sg': 106, 'Bh': 107, 'Hs': 108, 'Mt': 109,
+                      'Ds': 110, 'Rg': 111, 'Cn': 112, 'Nh': 113, 'Fl': 114, 'Mc': 115, 'Lv': 116, 'Ts': 117,
+                      'Og': 118, 'Uue': 119}
+inverse_global_proton_dict = {value: key for key, value in global_proton_dict.items()}
 
 
 def train_model_energy(i=0, out_dir=None, mode='training'):
@@ -66,7 +84,6 @@ def train_model_energy(i=0, out_dir=None, mode='training'):
     scaler_config = load_json_file(os.path.join(out_dir, "scaler_config.json"))
 
     # training parameters
-    num_atoms = int(model_config["config"]["atoms"])
     unit_label_energy = training_config['unit_energy']
     epo = training_config['epo']
     batch_size = training_config['batch_size']
@@ -78,9 +95,9 @@ def train_model_energy(i=0, out_dir=None, mode='training'):
     # Load data.
     data_dir = os.path.dirname(out_dir)
     xyz = read_xyz_file(os.path.join(data_dir, "geometries.xyz"))
-    x = np.array([x[1] for x in xyz])
-    if x.shape[1] != num_atoms:
-        raise ValueError(f"Mismatch Shape between {x.shape} model and data {num_atoms}")
+    coords = [np.array(x[1]) for x in xyz]
+    atoms = [np.array([global_proton_dict[at] for at in x[0]]) for x in xyz]
+    range_indices = [define_adjacency_from_distance(coordinates_to_distancematrix(x), max_distance=4)[1] for x in coords]
     y = load_json_file(os.path.join(data_dir, "energies.json"))
     y = np.array(y)
 
@@ -98,9 +115,8 @@ def train_model_energy(i=0, out_dir=None, mode='training'):
 
     # Make Model
     # Only works for Energy model here
-    assert model_config["class_name"] == "EnergyModel", "Training script only for EnergyModel"
-    out_model = EnergyModel(**model_config["config"])
-    out_model.precomputed_features = True
+    assert model_config["class_name"] == "SchnetEnergy", "Training script only for SchnetEnergy"
+    out_model = SchnetEnergy(**model_config["config"])
 
     # Look for loading weights
     if not initialize_weights:
@@ -111,16 +127,21 @@ def train_model_energy(i=0, out_dir=None, mode='training'):
 
     # Recalculate standardization
     scaler = EnergyStandardScaler(**scaler_config["config"])
-    scaler.fit(x[i_train], y[i_train])
-    x_rescale, y1 = scaler.transform(x, y)
-
-    # Model + Model precompute layer +feat
-    feat_x, feat_grad = out_model.precompute_feature_in_chunks(x_rescale, batch_size=batch_size)
+    scaler.fit(x=None, y=y[i_train])
+    _, y1 = scaler.transform(x=None, y=y)
 
     # Train Test split
-    xtrain = [feat_x[i_train], feat_grad[i_train]]
+    xtrain = [
+        ragged_tensor_from_nested_numpy([atoms[i] for i in i_train]),
+        ragged_tensor_from_nested_numpy([coords[i] for i in i_train]),
+        ragged_tensor_from_nested_numpy([range_indices[i] for i in i_train])
+    ]
+    xval = [
+        ragged_tensor_from_nested_numpy([atoms[i] for i in i_val]),
+        ragged_tensor_from_nested_numpy([coords[i] for i in i_val]),
+        ragged_tensor_from_nested_numpy([range_indices[i] for i in i_val])
+    ]
     ytrain = y1[i_train]
-    xval = [feat_x[i_val], feat_grad[i_val]]
     yval = y1[i_val]
 
     # Compile model
@@ -181,12 +202,7 @@ def train_model_energy(i=0, out_dir=None, mode='training'):
     ptrain = out_model.predict(xtrain)
     _, pval = scaler.inverse_transform(y=pval)
     _, ptrain = scaler.inverse_transform(y=ptrain)
-    out_model.precomputed_features = False
-    ptrain2 = out_model.predict(x_rescale[i_train])
-    _, ptrain2 = scaler.inverse_transform(y=ptrain2)
 
-    print("Info: Max error between precomputed and direct gradient:")
-    print("Energy", np.max(np.abs(ptrain - ptrain2)))
     error_val = np.mean(np.abs(pval - y[i_val]))
     error_train = np.mean(np.abs(ptrain - y[i_train]))
     print("error_val:", error_val)
