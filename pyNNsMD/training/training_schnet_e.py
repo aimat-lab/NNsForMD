@@ -76,13 +76,15 @@ def train_model_energy(i=0, out_dir=None, mode='training'):
     initialize_weights = training_config['initialize_weights']
     learning_rate = training_config['learning_rate']
     use_callbacks = training_config['callbacks']
+    range_dist = model_config["config"]["schnet_kwargs"]["gauss_args"]["distance"]
 
     # Load data.
     data_dir = os.path.dirname(out_dir)
     xyz = read_xyz_file(os.path.join(data_dir, "geometries.xyz"))
     coords = [np.array(x[1]) for x in xyz]
     atoms = [np.array([global_proton_dict[at] for at in x[0]]) for x in xyz]
-    range_indices = [define_adjacency_from_distance(coordinates_to_distancematrix(x), max_distance=4)[1] for x in coords]
+    range_indices = [define_adjacency_from_distance(coordinates_to_distancematrix(x),
+                                                    max_distance=range_dist)[1] for x in coords]
     y = load_json_file(os.path.join(data_dir, "energies.json"))
     y = np.array(y)
 

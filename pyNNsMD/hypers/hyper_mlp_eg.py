@@ -32,7 +32,7 @@ DEFAULT_HYPER_PARAM_ENERGY_GRADS = {
         'initialize_weights': True,
         'energy_only': False,
         'loss_weights': [1, 10],  # weights between energy and gradients
-        'learning_rate': 1e-3,  # learning rate, can be modified by callbacks
+        'learning_rate': 0.5e-3,  # learning rate, can be modified by callbacks
         'epo': 3000,  # total epochs
         'batch_size': 64,  # batch size
         'epostep': 10,  # steps of epochs for validation, also steps for changing callbacks

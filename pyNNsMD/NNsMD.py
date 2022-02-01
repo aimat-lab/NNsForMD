@@ -416,3 +416,7 @@ class NeuralNetEnsemble:
 
     def __getitem__(self, item):
         return self._models[item]
+
+    def data_path(self, file_path):
+        with open(os.path.join(self._directory, "data_path.txt"), "w") as f:
+            f.write(str(os.path.realpath(file_path)))
