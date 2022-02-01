@@ -94,7 +94,7 @@ def train_model_nac(i=0, out_dir=None, mode='training'):
         if isinstance(x, dict):
             # tf.keras.utils.get_registered_object()
             cb = tf.keras.utils.deserialize_keras_object(x)
-            cbks.append(cb(**x["config"]))
+            cbks.append(cb)
 
     # Make all Models
     assert model_config["class_name"] == "NACModel", "Training script only for NACModel"

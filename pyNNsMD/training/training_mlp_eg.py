@@ -95,7 +95,7 @@ def train_model_energy_gradient(i=0, out_dir=None, mode='training'):
         if isinstance(x, dict):
             # tf.keras.utils.get_registered_object()
             cb = tf.keras.utils.deserialize_keras_object(x)
-            cbks.append(cb(**x["config"]))
+            cbks.append(cb)
 
     # Index train test split
     print("Info: Train-Test split at Train:", len(i_train), "Test", len(i_val), "Total", len(x))

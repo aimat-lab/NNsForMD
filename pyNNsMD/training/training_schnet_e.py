@@ -98,7 +98,7 @@ def train_model_energy(i=0, out_dir=None, mode='training'):
         if isinstance(x, dict):
             # tf.keras.utils.get_registered_object()
             cb = tf.keras.utils.deserialize_keras_object(x)
-            cbks.append(cb(**x["config"]))
+            cbks.append(cb)
 
     # Make Model
     # Only works for Energy model here
