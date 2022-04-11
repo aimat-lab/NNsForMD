@@ -43,6 +43,8 @@ Auto-documentation generated at https://pynnsmd.readthedocs.io/en/latest/index.h
 
 <a name="usage"></a>
 # Usage
+
+#### Ensemble
 The main class ``pyNNsMD.NNsMD.NeuralNetEnsemble`` holds a list of keras models and custom scaler classes to transform or standardize input/output.
 Construction of ``NeuralNetEnsemble`` requires a filepath and the number of model instances to keep.
 
@@ -54,6 +56,7 @@ nn = NeuralNetEnsemble("TestEnergy/", 2)
 Adding the models and scaler classes to ``NeuralNetEnsemble`` via `create`. 
 Custom classes can be added to the modules in ``pyNNsMD.models`` and ``pyNNsMD.scalers``, 
 but which must implement proper config and weight handling. 
+Note that data format between model and scaler must be compatible.
 Instead of class instances a deserialization via keras config-dictionaries is supported for `create`.
 
 ```python
@@ -63,8 +66,27 @@ nn.create(models=[EnergyModel(atoms=12, states=2), EnergyModel(atoms=12, states=
           scalers=[EnergyStandardScaler(), EnergyStandardScaler()])
 ```
 
+The models and scaler must be saved to disk to prepare for training, which includes config and weights.
 
+```python
+nn.save()
+```
 
+#### Data
+
+The data is stored to the directory specified in ``NeuralNetEnsemble``.
+Data format passed to ``NeuralNetEnsemble.data`` must be nested python-only lists.
+The geometries are stored as `.xyz` and everything else as `.json`.
+
+```python
+import numpy as np
+atoms = [["C", "C"]]
+geos = [[[0.147, 0.024, -0.680], [-0.165, -0.037, 0.652]]]
+energy = [[-20386.37, -20383.93]]
+
+nn.data(atoms=atoms, geometries=geos, energies=energy)
+# nn.data_path("data_dir/") if data can't be saved in working directory.
+```
 <a name="examples"></a>
 # Examples
 
