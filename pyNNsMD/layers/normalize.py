@@ -2,12 +2,11 @@ import tensorflow as tf
 import tensorflow.keras as ks
 import numpy as np
 
-class ConstLayerNormalization(ks.layers.Layer):
-    """
-    Layer normalization with constant scaler of input.
 
-    Note that this sould be replaced with keras normalization layer where trainable could be altered.
-    The standardization is done via 'std' and 'mean' tf.variable and uses not very flexible broadcasting.
+class ConstLayerNormalization(ks.layers.Layer):
+    """Layer normalization with constant scaler of input.
+
+    Note that this should be replaced with keras normalization layer where trainable could be altered.
     """
 
     def __init__(self, axis=-1, **kwargs):

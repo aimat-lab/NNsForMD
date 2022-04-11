@@ -11,9 +11,8 @@ Neural network class for molecular dynamics to predict potential energy, gradien
 * [General](#general)
 * [Installation](#installation)
 * [Documentation](#documentation)
-* [Implementation details](#implementation-details)
-* [Examples](#examples)
 * [Usage](#usage)
+* [Examples](#examples)
 * [Citing](#citing)
 * [References](#references)
 
@@ -42,18 +41,23 @@ pip install pyNNsMD
 
 Auto-documentation generated at https://pynnsmd.readthedocs.io/en/latest/index.html
 
-<a name="implementation-details"></a>
-# Implementation details
-TBA
+<a name="usage"></a>
+# Usage
+The main class ``NNsMD.NeuralNetEnsemble`` holds a list of keras models and custom scaler classes to transform or normalize input/output.
+Construction of ``NeuralNetEnsemble`` requires a filepath and the number of model instances to use.
+
+
+```python
+from pyNNsMD.NNsMD import NeuralNetEnsemble
+nn = NeuralNetEnsemble("TestEnergy/", 2)
+```
+
+
 
 <a name="examples"></a>
 # Examples
 
 A set of examples can be found in [examples](examples), that demonstrate usage and typical tasks for projects.
-
-<a name="usage"></a>
-# Usage
-TBA
 
 <a name="citing"></a>
 # Citing

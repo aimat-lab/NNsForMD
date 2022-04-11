@@ -410,6 +410,24 @@ class NeuralNetEnsemble:
             if hasattr(model, "to_tensor_input"):
                 x_i = model.to_tensor_input(x_i)
             y = model.predict(x_i, **kwargs)
+            if hasattr(model, "to_numpy_output"):
+                y = model.to_numpy_output(y)
+            if scaler is not None:
+                _, y = scaler.inverse_transform(x=x, y=y)
+            y_list.append(y)
+        return y_list
+
+    def call(self, x, **kwargs):
+        y_list = []
+        for i, (model, scaler) in enumerate(zip(self._models, self._scalers)):
+            x_i = x
+            if scaler is not None:
+                x_i, _ = scaler.inverse_transform(x=x, y=None)
+            if hasattr(model, "to_tensor_input"):
+                x_i = model.to_tensor_input(x_i)
+            y = model(x_i, **kwargs)
+            if hasattr(model, "to_numpy_output"):
+                y = model.to_numpy_output(y)
             if scaler is not None:
                 _, y = scaler.inverse_transform(x=x, y=y)
             y_list.append(y)

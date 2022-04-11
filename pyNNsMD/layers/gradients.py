@@ -27,11 +27,10 @@ class EmptyGradient(ks.layers.Layer):
 
     def call(self, inputs, **kwargs):
         """
-        Generate any empty gradient placehodler.
+        Generate any empty gradient placeholder.
 
         Args:
             inputs (tf.tensor): Energy tensor.
-            **kwargs:
 
         Returns:
 

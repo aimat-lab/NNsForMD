@@ -1,22 +1,19 @@
 import tensorflow as tf
-import tensorflow.keras as ks
+
+ks = tf.keras
 
 
 class InverseDistanceIndexed(ks.layers.Layer):
-    """
-    Compute inverse distances from coordinates.
+    """Compute inverse distances from coordinates.
     
     The index-list of atoms to compute distances from is added as a static non-trainable weight.
-    This should be cleaner than always have to move the index within the model.
     """
 
     def __init__(self, invd_shape, **kwargs):
-        """
-        Init the layer. The index list is initialized to zero.
+        """Initialize layer. The index list is initialized to zero.
 
         Args:
-            invd_shape (list): Shape of the index piar list without batch dimension (N,2).
-            **kwargs.
+            invd_shape (list): Shape of the index-pair list without batch dimension (N, 2).
             
         """
         super(InverseDistanceIndexed, self).__init__(**kwargs)
@@ -29,8 +26,7 @@ class InverseDistanceIndexed(ks.layers.Layer):
                                          trainable=False)
 
     def build(self, input_shape):
-        """
-        Build model. Index list is built in init.
+        """Build model. Index list is built in init.
 
         Args:
             input_shape (list): Input shape.
@@ -39,14 +35,13 @@ class InverseDistanceIndexed(ks.layers.Layer):
         super(InverseDistanceIndexed, self).build(input_shape)
 
     def call(self, inputs, **kwargs):
-        """
-        Forward pass.
+        """Forward pass.
 
         Args:
-            inputs (tf.tensor): Coordinate input as (batch,N,3).
+            inputs (tf.tensor): Coordinate input as (batch, N, 3).
 
         Returns:
-            angs_rad (tf.tensor): Flatten list of angles from index.
+            invd (tf.tensor): Flatten list of inverse distances from index.
 
         """
         cordbatch = inputs
@@ -59,8 +54,7 @@ class InverseDistanceIndexed(ks.layers.Layer):
         return invd_out
 
     def get_config(self):
-        """
-        Return config for layer.
+        """Return config for layer.
 
         Returns:
             config (dict): Config from base class plus angle invd shape.
@@ -72,20 +66,16 @@ class InverseDistanceIndexed(ks.layers.Layer):
 
 
 class Angles(ks.layers.Layer):
-    """
-    Compute angles from coordinates.
+    """Compute angles from coordinates.
     
     The index-list of atoms to compute angles from is added as a static non-trainable weight.
-    This should be cleaner than always have to move the index within the model.
     """
 
     def __init__(self, angle_shape, **kwargs):
-        """
-        Init the layer. The angle list is initialized to zero.
+        """Initialize layer. The index list is initialized to zero.
 
         Args:
-            angle_shape (list): Shape of the angle list without batch dimension (N,3).
-            **kwargs.
+            angle_shape (list): Shape of the angle index-list without batch dimension (N, 3).
             
         """
         super(Angles, self).__init__(**kwargs)
@@ -99,8 +89,7 @@ class Angles(ks.layers.Layer):
         self.angle_shape = angle_shape
 
     def build(self, input_shape):
-        """
-        Build model. Angle list is built in init.
+        """Build model. Angle list is built in init.
 
         Args:
             input_shape (list): Input shape.
@@ -109,11 +98,10 @@ class Angles(ks.layers.Layer):
         super(Angles, self).build(input_shape)
 
     def call(self, inputs, **kwargs):
-        """
-        Forward pass.
+        """Forward pass.
 
         Args:
-            inputs (tf.tensor): Coordinate input as (batch,N,3).
+            inputs (tf.tensor): Coordinate input as (batch, N, 3).
 
         Returns:
             angs_rad (tf.tensor): Flatten list of angles from index.
@@ -146,20 +134,16 @@ class Angles(ks.layers.Layer):
 
 
 class Dihedral(ks.layers.Layer):
-    """
-    Compute dihedral angles from coordinates.
+    """Compute dihedral angles from coordinates.
     
     The index-list of atoms to compute angles from is added as a static non-trainable weight.
-    This should be cleaner than always have to move the index within the model.
     """
 
     def __init__(self, dihed_shape, **kwargs):
-        """
-        Init the layer. The angle list is initialized to zero.
+        """Initialize layer. The index list is initialized to zero.
 
         Args:
-            angle_shape (list): Shape of the angle list without batch dimension of (N,4).
-            **kwargs
+            dihed_shape (list): Shape of the angle index-list without batch dimension of (N, 4).
 
         """
         super(Dihedral, self).__init__(**kwargs)
@@ -173,8 +157,7 @@ class Dihedral(ks.layers.Layer):
         self.dihed_shape = dihed_shape
 
     def build(self, input_shape):
-        """
-        Build model. Angle list is built in init.
+        """Build model. Angle list is built in init.
 
         Args:
             input_shape (list): Input shape.
@@ -183,14 +166,13 @@ class Dihedral(ks.layers.Layer):
         super(Dihedral, self).build(input_shape)
 
     def call(self, inputs, **kwargs):
-        """
-        Forward pass.
+        """Forward pass.
 
         Args:
-            inputs (tf.tensor): Coordinates of shape (batch, N,3).
+            inputs (tf.tensor): Coordinates of shape (batch, N, 3).
 
         Returns:
-            angs_rad (tf.tensor): Dihydral angles from index list and coordinates of shape (batch,M).
+            angs_rad (tf.tensor): Dihedral angles from index-list and coordinates of shape (batch, M).
 
         """
         # implementation from
@@ -211,8 +193,7 @@ class Dihedral(ks.layers.Layer):
         return angs_rad
 
     def get_config(self):
-        """
-        Return config for layer.
+        """Return config for layer.
 
         Returns:
             config (dict): Config from base class plus angle index shape.
@@ -224,11 +205,9 @@ class Dihedral(ks.layers.Layer):
 
 
 class FeatureGeometric(ks.layers.Layer):
-    """
-    Feautre representation consisting of inverse distances, angles and dihedral angles.
+    """Feature representation consisting of inverse distances, angles and dihedral angles.
     
-    Uses InverseDistance, Angle, Dihydral layer definition if input index is not empty.
-    
+    Uses InverseDistanceIndexed, Angles, Dihedral layer definition if input index is not empty.
     """
 
     def __init__(self,
@@ -241,8 +220,8 @@ class FeatureGeometric(ks.layers.Layer):
 
         Args:
             invd_shape (list, optional): Index-Shape of atoms to calculate inverse distances. Defaults to None.
-            angle_shape (list, optional): Index-Shape of atoms to calculate angles between. Defaults to None.
-            dihed_shape (list, optional): Index-Shape of atoms to calculate dihed between. Defaults to None.
+            angle_shape (list, optional): Index-Shape of atoms to calculate angles. Defaults to None.
+            dihed_shape (list, optional): Index-Shape of atoms to calculate dihedral angles. Defaults to None.
             **kwargs
 
         """
@@ -256,7 +235,7 @@ class FeatureGeometric(ks.layers.Layer):
         self.dihed_shape = dihed_shape
 
         if not self.use_invdist and not self.use_bond_angles and not self.use_dihed_angles:
-            raise ValueError("Feature Layer: One geometric feature type must be defined or features = [].")
+            raise ValueError("Feature Layer: One geometric feature type must be defined or features are empty.")
 
         if self.use_invdist:
             self.invd_layer = InverseDistanceIndexed(invd_shape)
@@ -312,13 +291,12 @@ class FeatureGeometric(ks.layers.Layer):
         return out
 
     def set_mol_index(self, invd_index, angle_index, dihed_index):
-        """
-        Set weights for atomic index for distance and angles.
+        """Set weights for atomic index for distance and angles.
 
         Args:
-            invd_index (np.array): Index for inverse distances. Shape (N,2)
-            angle_index (np.array): Index for angles. Shape (N,3).
-            dihed_index (np.array):Index for dihed angles. Shape (N,4).
+            invd_index (np.array): Indices for inverse distances. Shape (N, 2).
+            angle_index (np.array): Indices for angles. Shape (N, 3).
+            dihed_index (np.array): Indices for dihed angles. Shape (N, 4).
 
         """
         if self.use_invdist:
@@ -329,8 +307,7 @@ class FeatureGeometric(ks.layers.Layer):
             self.ang_layer.set_weights([angle_index])
 
     def get_config(self):
-        """
-        Return config for layer.
+        """Return config for layer.
 
         Returns:
             config (dict): Config from base class plus index info.
@@ -344,8 +321,7 @@ class FeatureGeometric(ks.layers.Layer):
         return config
 
     def get_feature_type_segmentation(self):
-        """
-        Get the feature output segmentation length [invd,angle,dihys]
+        """Get the feature output segmentation length of `[invd, angle, dihed]`
 
         Returns:
              feat_segments (list): Segmentation length

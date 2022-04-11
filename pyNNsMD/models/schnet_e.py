@@ -6,7 +6,7 @@ from kgcnn.utils.data import ragged_tensor_from_nested_numpy
 
 
 class SchnetEnergy(ks.Model):
-    """Subclassed tf.keras.model for NACs which outputs NACs from coordinates.
+    """Subclassed SchNet which outputs energies from coordinates.
 
     The model is supposed to be saved and exported.
     """
@@ -20,6 +20,8 @@ class SchnetEnergy(ks.Model):
         self.model_module = model_module
 
         self._schnet_model = make_model(**schnet_kwargs)
+
+        # Build the model with example data.
         self.predict([tf.ragged.constant([[0]]),
                     tf.ragged.constant([[[0.0, 0.0, 0.0]]], ragged_rank=1, inner_shape=(3,)),
                     tf.ragged.constant([[[0, 0]]], ragged_rank=1, inner_shape=(2,))
@@ -29,11 +31,11 @@ class SchnetEnergy(ks.Model):
         """Call the model output, forward pass.
 
         Args:
-            data (list): Atoms, coordinates.
+            data (list): Atoms, coordinates, indices.
             training (bool, optional): Training Mode. Defaults to False.
 
         Returns:
-            y_pred (tf.tensor): predicted Energy.
+            y (tf.tensor): predicted Energy.
         """
         x = data
         out = self._schnet_model(x)
