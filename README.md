@@ -79,7 +79,6 @@ Data format passed to ``NeuralNetEnsemble.data`` must be nested python-only list
 The geometries are stored as `.xyz` and everything else as `.json`.
 
 ```python
-import numpy as np
 atoms = [["C", "C"]]
 geos = [[[0.147, 0.024, -0.680], [-0.165, -0.037, 0.652]]]
 energy = [[-20386.37, -20383.93]]
