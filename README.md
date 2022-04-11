@@ -52,7 +52,7 @@ nn = NeuralNetEnsemble("TestEnergy/", 2)
 ```
 
 Adding the models and scaler classes to ``NeuralNetEnsemble`` via `create`. 
-Possible classes can be added to ``pyNNsMD.models`` and ``pyNNsMD.scalers``, 
+Custom classes can be added to the modules in ``pyNNsMD.models`` and ``pyNNsMD.scalers``, 
 but which must implement proper config and weight handling. 
 Instead of class instances a deserialization via keras config-dictionaries is supported for `create`.
 
