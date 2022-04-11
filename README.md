@@ -43,13 +43,24 @@ Auto-documentation generated at https://pynnsmd.readthedocs.io/en/latest/index.h
 
 <a name="usage"></a>
 # Usage
-The main class ``NNsMD.NeuralNetEnsemble`` holds a list of keras models and custom scaler classes to transform or normalize input/output.
-Construction of ``NeuralNetEnsemble`` requires a filepath and the number of model instances to use.
-
+The main class ``pyNNsMD.NNsMD.NeuralNetEnsemble`` holds a list of keras models and custom scaler classes to transform or standardize input/output.
+Construction of ``NeuralNetEnsemble`` requires a filepath and the number of model instances to keep.
 
 ```python
 from pyNNsMD.NNsMD import NeuralNetEnsemble
 nn = NeuralNetEnsemble("TestEnergy/", 2)
+```
+
+Adding the models and scaler classes to ``NeuralNetEnsemble`` via `create`. 
+Possible classes can be added to ``pyNNsMD.models`` and ``pyNNsMD.scalers``, 
+but which must implement proper config and weight handling. 
+Instead of class instances a deserialization via keras config-dictionaries is supported for `create`.
+
+```python
+from pyNNsMD.models.mlp_e import EnergyModel
+from pyNNsMD.scaler.energy import EnergyStandardScaler
+nn.create(models=[EnergyModel(atoms=12, states=2), EnergyModel(atoms=12, states=2)],
+          scalers=[EnergyStandardScaler(), EnergyStandardScaler()])
 ```
 
 

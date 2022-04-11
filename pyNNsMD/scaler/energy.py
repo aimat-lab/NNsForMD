@@ -1,9 +1,9 @@
 import numpy as np
 
-from pyNNsMD.scaler.base import SaclerBase
+from pyNNsMD.scaler.base import ScalerBase
 
 
-class EnergyStandardScaler(SaclerBase):
+class EnergyStandardScaler(ScalerBase):
 
     def __init__(self,
                  scaler_module="energy",
@@ -95,7 +95,7 @@ class EnergyStandardScaler(SaclerBase):
         np.save(file_path, outdict)
 
 
-class EnergyGradientStandardScaler(SaclerBase):
+class EnergyGradientStandardScaler(ScalerBase):
     def __init__(self,
                  scaler_module="energy",
                  use_energy_mean=True,
@@ -228,7 +228,7 @@ class EnergyGradientStandardScaler(SaclerBase):
         return outdict
 
 
-class GradientStandardScaler(SaclerBase):
+class GradientStandardScaler(ScalerBase):
 
     def __init__(self,
                  scaler_module="energy",

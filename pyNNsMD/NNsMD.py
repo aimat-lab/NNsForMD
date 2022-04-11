@@ -7,7 +7,7 @@ import tensorflow as tf
 
 from pyNNsMD.utils.data import save_json_file, load_json_file, write_list_to_xyz_file
 from pyNNsMD.src.fit import fit_model_by_script
-from pyNNsMD.scaler.base import SaclerBase
+from pyNNsMD.scaler.base import ScalerBase
 from sklearn.model_selection import KFold
 
 logging.basicConfig()
@@ -95,7 +95,7 @@ class NeuralNetEnsemble:
             self.logger.warning("Expected scaler kwargs, got `None` instead. Not using scaler.")
             return None
 
-        if isinstance(kw, SaclerBase):
+        if isinstance(kw, ScalerBase):
             self.logger.info("Got scaler for model index i" % i)
             return kw
 
@@ -118,7 +118,7 @@ class NeuralNetEnsemble:
 
             return make_class(**kw["config"])
 
-        raise ValueError("Could not make model from %s" % kw)
+        raise ValueError("Could not make scaler from %s" % kw)
 
     def create(self, models: list, scalers: list):
         """Initialize and build a list of keras models. Missing hyperparameter are filled from default.

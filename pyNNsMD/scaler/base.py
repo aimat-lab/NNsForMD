@@ -1,6 +1,6 @@
 
 
-class SaclerBase:
+class ScalerBase:
 
     def __init__(self, **kwargs):
         pass

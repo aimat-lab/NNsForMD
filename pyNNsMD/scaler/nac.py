@@ -1,10 +1,10 @@
 import json
 
 import numpy as np
-from pyNNsMD.scaler.base import SaclerBase
+from pyNNsMD.scaler.base import ScalerBase
 
 
-class NACStandardScaler(SaclerBase):
+class NACStandardScaler(ScalerBase):
     def __init__(self,
                  use_x_std=False,
                  use_x_mean=False,
