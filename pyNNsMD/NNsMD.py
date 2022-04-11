@@ -36,8 +36,9 @@ class NeuralNetEnsemble:
         r"""Initialize empty :obj:`NeuralNetPes` instance.
 
         Args:
-            directory (str): Directory where models, hyper-parameter, logs and fit results are stored.
-            number_models (int, optional): Number of NN instances to create for error estimate. The default is 2.
+            directory (str): Directory where models, hyperparameter, logging and fit results are stored.
+            number_models (int, optional): Number of Neural network instances to create for error estimate.
+                The default is 2.
             logger: Logger for this class.
         """
         self.logger = module_logger if logger is None else logger
@@ -50,7 +51,7 @@ class NeuralNetEnsemble:
         self._directory = os.path.realpath(directory)
         self._number_models = number_models
 
-        # Private members.
+        # Private members of model and scaler list.
         self._models = []
         self._scalers = []
 
@@ -120,10 +121,10 @@ class NeuralNetEnsemble:
         raise ValueError("Could not make model from %s" % kw)
 
     def create(self, models: list, scalers: list):
-        """Initialize and build a list of keras models. Missing hyper-parameter are filled from default.
+        """Initialize and build a list of keras models. Missing hyperparameter are filled from default.
 
         Args:
-            models (list): Dictionary with model hyper-parameter.
+            models (list): Dictionary with model hyperparameter.
                 In each dictionary, information of module and model class must be provided.
             scalers (list):
 
@@ -203,7 +204,7 @@ class NeuralNetEnsemble:
 
         return self
 
-    def _load_single_model(self, model_path, i, load_model: bool = True):
+    def _load_single_model(self, model_path, i, load_model: bool = False):
 
         _models = None
         # Load the separate model kwargs.
@@ -222,7 +223,7 @@ class NeuralNetEnsemble:
 
         return _models
 
-    def _load_single_scaler(self, model_path, i, load_scaler):
+    def _load_single_scaler(self, model_path, i, load_scaler: bool = False):
         _scaler = None
 
         if not os.path.exists(os.path.join(model_path, "scaler_config.json")):
@@ -244,10 +245,10 @@ class NeuralNetEnsemble:
 
         return _scaler
 
-    def load(self, load_model: bool = True, load_scaler: bool = True):
+    def load(self, load_model: bool = False, load_scaler: bool = False):
         """Load model from file that are stored in class folder.
         
-        The tensorflow.keras.model is not loaded itself but created new from hyperparameters.
+        The tensorflow.keras.model is not loaded itself but created new from hyperparameter.
 
         Raises:
             FileNotFoundError: If Directory not found.
@@ -346,7 +347,7 @@ class NeuralNetEnsemble:
         return proc
 
     def fit(self, training_scripts: list, gpu_dist: list = None, proc_async=True, fit_mode="training"):
-        """Fit NN to data. Model weights and hyper parameters must always saved to file before fit.
+        """Fit NN to data. Model weights and hyperparameter must always be saved to file before fit.
 
         The fit routine calls training scripts on the data_folder in parallel.
         The type of execution is found in src.fit with the training src.training_ scripts.

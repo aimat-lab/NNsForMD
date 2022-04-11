@@ -53,7 +53,7 @@ nn.training([hyper["training"]]*2, fit_mode="training")
 fit_error = nn.fit(["training_schnet_e"]*2, fit_mode="training", gpu_dist=[0, 0], proc_async=False)
 print(fit_error)
 
-nn.load(load_model=False, load_scaler=True)
+nn.load()
 
 test = nn.predict([atomic_number, geos, range_indices])
 # test = nn.call(geos)
