@@ -138,7 +138,7 @@ The model's prediction can be obtained from the corresponding input data via `pr
 The both input and output is rescaled by the scaler to match the model standardized input and output.
 Furthermore, the subclassed model should implement ``call_to_tensor_input`` and ``call_to_numpy_output`` or optionally
 `predict_to_tensor_input` and `predict_to_numpy_output`, 
-if the model requires a specific tensor input as in `call()`.
+if the model requires a specific tensor input as in `call()` and the scaler class usually works on numpy data. 
 
 ```python
 test = nn.predict(geos)

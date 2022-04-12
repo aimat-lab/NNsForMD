@@ -213,3 +213,12 @@ class EnergyModel(ks.Model):
         # Make graph and test with training data
         copy_model.predict(np.ones((1, self.in_atoms, 3)))
         tf.keras.models.save_model(copy_model, filepath, **kwargs)
+
+    def call_to_tensor_input(self, x):
+        # No precomputed features necessary
+        return tf.convert_to_tensor(x, dtype=tf.float32)
+
+    def call_to_numpy_output(self, y):
+        if not self.energy_only:
+            return [y[0].numpy(), y[1].numpy()]
+        return y.numpy()

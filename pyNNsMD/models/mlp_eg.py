@@ -257,3 +257,14 @@ class EnergyGradientModel(ks.Model):
         # Make graph and test with training data
         copy_model.predict(np.ones((1,self.eg_atoms,3)))
         tf.keras.models.save_model(copy_model,filepath,**kwargs)
+
+    def call_to_tensor_input(self, x):
+        # No precomputed features necessary
+        return tf.convert_to_tensor(x, dtype=tf.float32)
+
+    def call_to_numpy_output(self, y):
+        if self.output_as_dict:
+            out = {'energy': y[0].numpy(), 'force': y[1].numpy()}
+        else:
+            out = [y[0].numpy(), y[1].numpy()]
+        return out
