@@ -16,7 +16,7 @@ module_logger.setLevel(logging.INFO)
 
 
 class NeuralNetEnsemble:
-    """Main class NeuralNetPes that keeps multiple keras models and manages training and prediction.
+    r"""Main class NeuralNetPes that keeps multiple keras models and manages training and prediction.
 
     Main class for neural network (NN) container to provide multiple NN instances.
 
@@ -28,12 +28,15 @@ class NeuralNetEnsemble:
 
     The information and models are passed via file to training scripts.
 
-    ...:
+    .. code-block:: python
+
+        from pyNNsMD.NNsMD import NeuralNetEnsemble
+        nn = NeuralNetEnsemble("TestEnergy/", 2)
 
     """
 
     def __init__(self, directory: str, number_models: int = 2, logger=None):
-        r"""Initialize empty :obj:`NeuralNetPes` instance.
+        r"""Initialize empty :obj:`NeuralNetEnsemble` instance.
 
         Args:
             directory (str): Directory where models, hyperparameter, logging and fit results are stored.
@@ -58,6 +61,7 @@ class NeuralNetEnsemble:
     def _create_single_model(self, kw, i):
         # The module location could be inferred from keras path or module system using '>'
         # For now keep at extra argument that models must store in their config.
+        # Could refactor serialization to models module.
         if kw is None:
             # Must have model.
             raise ValueError("Expected model kwargs, got `None` instead.")
@@ -91,6 +95,8 @@ class NeuralNetEnsemble:
         raise ValueError("Could not make model from %s" % kw)
 
     def _create_single_scaler(self, kw, i):
+        # Could refactor serialization to models module.
+        # Scaler must implement config and weights methods.
         if kw is None:
             self.logger.warning("Expected scaler kwargs, got `None` instead. Not using scaler.")
             return None
@@ -124,10 +130,10 @@ class NeuralNetEnsemble:
         """Initialize and build a list of keras models. Missing hyperparameter are filled from default.
 
         Args:
-            models (list): Dictionary with model hyperparameter.
+            models (list): List of models or dictionary with model hyperparameter.
                 In each dictionary, information of module and model class must be provided.
-            scalers (list):
-
+            scalers (list): List of scalers or dictionary with scaler hyperparameter.
+                In each dictionary, information of module and model class must be provided.
         Returns:
             self
         """
@@ -146,6 +152,7 @@ class NeuralNetEnsemble:
         return self
 
     def _save_single_model(self, model, i, model_path, save_weights, save_model):
+        # Model config saved as json.
 
         model_serialization = {"class_name": self._get_name_of_class(model),
                                "config": model.get_config()}
@@ -188,8 +195,17 @@ class NeuralNetEnsemble:
                 raise AttributeError("Scaler must implement `save()` which is not defined for %s" % i)
             scaler.save(os.path.join(model_path, "scaler_class"))
 
-    def save(self, save_model: bool = True, save_weights: bool = True, save_scaler: bool = True):
-        """Save models, scaler and hyper-parameter into class folder."""
+    def save(self, save_weights: bool = True, save_model: bool = True, save_scaler: bool = True):
+        """Save models, scaler and hyperparameter into class folder.
+
+        Args:
+            save_weights (bool): Whether to save weights separately. Default is True.
+            save_model (bool): Whether to save model as keras model. Default is True.
+            save_scaler (bool): Whether to save scaler as scaler (not supported). Default is True.
+
+        Returns:
+            self
+        """
 
         directory = os.path.realpath(self._directory)
         os.makedirs(directory, exist_ok=True)
@@ -250,11 +266,15 @@ class NeuralNetEnsemble:
         
         The tensorflow.keras.model is not loaded itself but created new from hyperparameter.
 
+        Args:
+            load_model (bool): Whether to load model without remaking the model. Default is False.
+            load_scaler (bool): Whether to load model without remaking the scaler. Default is False.
+
         Raises:
             FileNotFoundError: If Directory not found.
 
         Returns:
-            list: Loaded Models.
+            self.
 
         """
         directory = os.path.realpath(self._directory)
@@ -302,6 +322,9 @@ class NeuralNetEnsemble:
             save_json_file(self._make_nested_list(couplings), os.path.join(dir_path, "couplings.json"))
 
     def train_test_split(self, dataset_size, n_splits: int = 5, shuffle: bool = True, random_state: int = None):
+        """Generate split and save indices to model instances.
+
+        """
         if n_splits < self._number_models:
             raise ValueError("Number of splits must be at least number of model but got %s" % n_splits)
 
@@ -407,11 +430,11 @@ class NeuralNetEnsemble:
             x_i = x
             if scaler is not None:
                 x_i, _ = scaler.inverse_transform(x=x, y=None)
-            if hasattr(model, "to_tensor_input"):
-                x_i = model.to_tensor_input(x_i)
+            if hasattr(model, "predict_to_tensor_input"):
+                x_i = model.predict_to_tensor_input(x_i)
             y = model.predict(x_i, **kwargs)
-            if hasattr(model, "to_numpy_output"):
-                y = model.to_numpy_output(y)
+            if hasattr(model, "predict_to_numpy_output"):
+                y = model.predict_to_numpy_output(y)
             if scaler is not None:
                 _, y = scaler.inverse_transform(x=x, y=y)
             y_list.append(y)
@@ -423,11 +446,11 @@ class NeuralNetEnsemble:
             x_i = x
             if scaler is not None:
                 x_i, _ = scaler.inverse_transform(x=x, y=None)
-            if hasattr(model, "to_tensor_input"):
-                x_i = model.to_tensor_input(x_i)
+            if hasattr(model, "call_to_tensor_input"):
+                x_i = model.call_to_tensor_input(x_i)
             y = model(x_i, **kwargs)
-            if hasattr(model, "to_numpy_output"):
-                y = model.to_numpy_output(y)
+            if hasattr(model, "call_to_numpy_output"):
+                y = model.call_to_numpy_output(y)
             if scaler is not None:
                 _, y = scaler.inverse_transform(x=x, y=y)
             y_list.append(y)

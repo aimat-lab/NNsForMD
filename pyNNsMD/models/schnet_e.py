@@ -1,3 +1,4 @@
+import numpy as np
 import tensorflow.keras as ks
 import tensorflow as tf
 
@@ -50,10 +51,16 @@ class SchnetEnergy(ks.Model):
         })
         return conf
 
-    def to_tensor_input(self, x):
+    def predict_to_tensor_input(self, x):
         atoms = ragged_tensor_from_nested_numpy(x[0])
         coords = ragged_tensor_from_nested_numpy(x[1])
         edge_idx = ragged_tensor_from_nested_numpy(x[2])
         return [atoms, coords, edge_idx]
 
+    def call_to_tensor_input(self, x):
+        return self.predict_to_tensor_input(x)
 
+    def call_to_numpy_output(self, y):
+        if isinstance(y, np.ndarray):
+            return y
+        return y.numpy()

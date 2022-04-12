@@ -56,7 +56,7 @@ print(fit_error)
 nn.load()
 
 test = nn.predict([atomic_number, geos, range_indices])
-# test = nn.call(geos)
+test_call = nn.call([atomic_number[:32], geos[:32], range_indices[:32]])
 print("Error prediction on all data:", np.mean(np.abs(test[0]/2 + test[1]/2 - energy)))
-
+print("Error call on batch:", np.mean(np.abs(test_call[:32][0]/2 + test_call[:32][1]/2 - energy[:32])))
 # nn.clean()
