@@ -14,7 +14,6 @@ Neural network class for molecular dynamics to predict potential energy, gradien
 
    intro
    installation
-   implementation
    usage
 
 Package Content

@@ -81,7 +81,7 @@ def train_model_nac(i=0, out_dir=None, mode='training'):
     x = np.array([x[1] for x in xyz])
     if x.shape[1] != num_atoms:
         raise ValueError(f"Mismatch Shape between {x.shape} model and data {num_atoms}")
-    y_in = np.load(os.path.join(data_dir, "couplings.npy"))
+    y_in = np.array(load_json_file(os.path.join(data_dir, "couplings.json")))
     print("INFO: Shape of y", y_in.shape)
 
     # Set stat dir

@@ -126,14 +126,14 @@ class NACModel2(ks.Model):
         self.precomputed_features = precomputed_features
 
     def call(self, data, training=False, **kwargs):
-        """Call the model output, forward pass.
+        """Call the model, forward pass.
 
         Args:
             data (tf.tensor): Coordinates.
             training (bool, optional): Training Mode. Defaults to False.
 
         Returns:
-            y_pred (tf.tensor): predicted NACs.
+            tf.tensor: predicted NACs.
 
         """
         x = data
@@ -221,3 +221,12 @@ class NACModel2(ks.Model):
         # Make graph and test with training data
         copy_model.predict(np.ones((1, self.y_atoms, 3)))
         tf.keras.models.save_model(copy_model, filepath, **kwargs)
+
+    def call_to_tensor_input(self, x):
+        # No precomputed features necessary
+        return tf.convert_to_tensor(x, dtype=tf.float32)
+
+    def call_to_numpy_output(self, y):
+        if isinstance(y, np.ndarray):
+            return y
+        return y.numpy()
