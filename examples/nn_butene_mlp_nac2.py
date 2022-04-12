@@ -46,4 +46,5 @@ print(fit_error)
 nn.load()
 
 test = nn.predict(geos)
+test_batch = nn.call(geos[:32])
 print("Error prediction on all data:", np.mean(np.abs(test[0]/2 + test[1]/2 - nac)))
