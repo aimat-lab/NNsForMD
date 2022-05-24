@@ -14,12 +14,13 @@ class SchnetEnergy(ks.Model):
 
     def __init__(self,
                  model_module="schnet_e",
+                 predict_gradient: bool = False,
                  schnet_kwargs=None,
                  **kwargs):
         super(SchnetEnergy, self).__init__(**kwargs)
         self.schnet_kwargs = schnet_kwargs
         self.model_module = model_module
-
+        self.predict_gradient = predict_gradient
         self._schnet_model = make_model(**schnet_kwargs)
 
         # Build the model with example data.
@@ -39,7 +40,22 @@ class SchnetEnergy(ks.Model):
             y (tf.tensor): predicted Energy.
         """
         x = data
-        out = self._schnet_model(x)
+        if not self.predict_gradient:
+            out = self._schnet_model(x)
+        else:
+            geos = x[1]
+            with tf.GradientTape(persistent=True) as tape2:
+                tape2.watch(geos.values)
+                temp_e = self._schnet_model(x)
+            temp_g = tape2.jacobian(temp_e, geos.values)
+            temp_g = tf.transpose(temp_g, [0, 2, 1, 3])
+            temp_g = tf.map_fn(lambda l_arg: tf.gather(l_arg[0], tf.range(l_arg[1], l_arg[1] + l_arg[2]), axis=0),
+                               [temp_g, geos.row_starts(), geos.row_lengths()],
+                               fn_output_signature=tf.RaggedTensorSpec(shape=[None, temp_e.shape[1], 3],
+                                                                       ragged_rank=0,
+                                                                       dtype=tf.float32))
+            out = [temp_e, temp_g]
+
         return out
 
     def get_config(self):
@@ -48,6 +64,7 @@ class SchnetEnergy(ks.Model):
         conf.update({
             "model_module": self.model_module,
             "schnet_kwargs": self.schnet_kwargs,
+            "predict_gradient": self.predict_gradient
         })
         return conf
 
@@ -61,6 +78,10 @@ class SchnetEnergy(ks.Model):
         return self.predict_to_tensor_input(x)
 
     def call_to_numpy_output(self, y):
-        if isinstance(y, np.ndarray):
-            return y
-        return y.numpy()
+        if not self.predict_gradient:
+            out = y if isinstance(y, np.ndarray) else y.numpy()
+        else:
+            y0 = y[0] if isinstance(y[0], np.ndarray) else y[0].numpy()
+            y1 = [g.numpy() for g in y[1]]
+            out = [y0, y1]
+        return out

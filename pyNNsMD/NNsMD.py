@@ -462,3 +462,6 @@ class NeuralNetEnsemble:
     def data_path(self, file_path):
         with open(os.path.join(self._directory, "data_path.txt"), "w") as f:
             f.write(str(os.path.realpath(file_path)))
+
+    def __len__(self):
+        return len(self._models)
