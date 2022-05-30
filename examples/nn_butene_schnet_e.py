@@ -64,5 +64,5 @@ print("Error call on batch:", np.mean(np.abs(test_call[:32][0]/2 + test_call[:32
 # Check gradients ...
 # They are not compatible with scaler in this form
 for i in range(len(nn)):
-    nn[i].predict_gradient = True
+    nn[i].energy_only = False
 test_call_g = nn[0](nn[0].call_to_tensor_input([atomic_number[:32], geos[:32], range_indices[:32]]))

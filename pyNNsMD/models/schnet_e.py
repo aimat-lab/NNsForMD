@@ -14,13 +14,13 @@ class SchnetEnergy(ks.Model):
 
     def __init__(self,
                  model_module="schnet_e",
-                 predict_gradient: bool = False,
+                 energy_only: bool = True,
                  schnet_kwargs=None,
                  **kwargs):
         super(SchnetEnergy, self).__init__(**kwargs)
         self.schnet_kwargs = schnet_kwargs
         self.model_module = model_module
-        self.predict_gradient = predict_gradient
+        self.energy_only = energy_only
         self._schnet_model = make_model(**schnet_kwargs)
 
         # Build the model with example data.
@@ -40,7 +40,7 @@ class SchnetEnergy(ks.Model):
             y (tf.tensor): predicted Energy.
         """
         x = data
-        if not self.predict_gradient:
+        if self.energy_only:
             out = self._schnet_model(x)
         else:
             geos = x[1]
@@ -64,7 +64,7 @@ class SchnetEnergy(ks.Model):
         conf.update({
             "model_module": self.model_module,
             "schnet_kwargs": self.schnet_kwargs,
-            "predict_gradient": self.predict_gradient
+            "energy_only": self.energy_only
         })
         return conf
 
@@ -78,7 +78,7 @@ class SchnetEnergy(ks.Model):
         return self.predict_to_tensor_input(x)
 
     def call_to_numpy_output(self, y):
-        if not self.predict_gradient:
+        if self.energy_only:
             out = y if isinstance(y, np.ndarray) else y.numpy()
         else:
             y0 = y[0] if isinstance(y[0], np.ndarray) else y[0].numpy()
