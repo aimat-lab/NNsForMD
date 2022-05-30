@@ -87,9 +87,20 @@ class SchnetEnergy(ks.Model):
 
     def call_to_numpy_output(self, y):
         if self.energy_only:
+            if self.output_as_dict:
+                y = y['energy']
             out = y if isinstance(y, np.ndarray) else y.numpy()
+            if self.output_as_dict:
+                out = {"energy": out}
         else:
+            if self.output_as_dict:
+                y = [y["energy"], y["force"]]
             y0 = y[0] if isinstance(y[0], np.ndarray) else y[0].numpy()
-            y1 = [g.numpy() for g in y[1]]
-            out = [y0, y1]
+            y1 = np.array([np.swapaxes(g.numpy(), (0, 1)) for g in y[1]])
+            out = [y1, y0]
+            if self.output_as_dict:
+                out = {'energy': out[0], 'force': out[1]}
         return out
+
+    def predict_to_numpy_output(self, y):
+        return self.call_to_numpy_output(y)

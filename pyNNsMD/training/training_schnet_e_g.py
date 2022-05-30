@@ -29,7 +29,7 @@ print("Logic Devices:", tf.config.experimental.list_logical_devices('GPU'))
 
 import pyNNsMD.utils.callbacks
 import pyNNsMD.utils.activ
-from pyNNsMD.models.schnet_eg import SchnetEnergyGradient
+from pyNNsMD.models.schnet_e import SchnetEnergy
 from pyNNsMD.scaler.energy import EnergyGradientStandardScaler
 from pyNNsMD.utils.loss import get_lr_metric, ScaledMeanAbsoluteError, r2_metric, ZeroEmptyLoss
 from pyNNsMD.utils.data import load_json_file, read_xyz_file, save_json_file
@@ -113,7 +113,7 @@ def train_model_energy_gradient(i=0, out_dir=None, mode='training'):
 
     # Make all Model
     assert model_config["class_name"] == "SchnetEnergyGradient", "Training script only for EnergyGradientModel"
-    out_model = SchnetEnergyGradient(**model_config["config"])
+    out_model = SchnetEnergy(**model_config["config"])
     out_model.energy_only = energies_only
     out_model.output_as_dict = False
 
@@ -180,13 +180,13 @@ def train_model_energy_gradient(i=0, out_dir=None, mode='training'):
     ytrain_plot = [y[0][i_train], y[1][i_train]]
 
     # Convert back scaler
-    out_model = SchnetEnergyGradient(**model_config["config"])
+    out_model = SchnetEnergy(**model_config["config"])
     out_model.energy_only = False
     out_model.output_as_dict = True
     out_model.load_weights(os.path.join(out_dir, "model_weights.h5"))
 
-    pval = out_model.predict(xval)
-    ptrain = out_model.predict(xtrain)
+    pval = out_model.predict_to_numpy_output(out_model.predict(xval))
+    ptrain = out_model.predict_to_numpy_output(out_model.predict(xtrain))
     _, pval = scaler.inverse_transform(y=[pval['energy'], pval['force']])
     _, ptrain = scaler.inverse_transform(y=[ptrain['energy'], ptrain['force']])
 

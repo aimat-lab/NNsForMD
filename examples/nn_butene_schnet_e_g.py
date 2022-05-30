@@ -54,6 +54,9 @@ fit_error = nn.fit(["training_schnet_e_g"]*2, fit_mode="training", gpu_dist=[0, 
 print(fit_error)
 
 nn.load()
+for i in range(len(nn)):
+    nn[i].energy_only = False
+    nn[i].output_as_dict = True
 
 test = nn.predict([atomic_number, geos, range_indices])
 test_call = nn.call([atomic_number[:32], geos[:32], range_indices[:32]])

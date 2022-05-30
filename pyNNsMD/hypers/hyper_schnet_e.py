@@ -3,6 +3,8 @@ DEFAULT_HYPER_PARAM_SCHNET_E = {
         "class_name": "SchnetEnergy",
         "config": {
             "model_module": "schnet_e",
+            "output_as_dict": False,
+            "energy_only": True,
             "schnet_kwargs": {
                 'name': "Schnet",
                 'inputs': [{'shape': (None,), 'name': "node_attributes", 'dtype': 'float32', 'ragged': True},
