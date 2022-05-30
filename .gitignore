@@ -19,3 +19,4 @@ dist
 /examples/TestNAC/
 /examples/TestNAC2/
 /examples/TestEnergySchnet/
+/examples/TestEnergyGradientSchnet/

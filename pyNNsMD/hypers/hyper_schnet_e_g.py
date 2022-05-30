@@ -1,9 +1,9 @@
-DEFAULT_HYPER_PARAM_SCHNET_EG = {
+DEFAULT_HYPER_PARAM_SCHNET_E_G = {
     'model': {
-        "class_name": "SchnetEnergyGradient",
+        "class_name": "SchnetEnergy",
         "config": {
-            "model_module": "schnet_eg",
-            "energy_only": False,
+            "model_module": "schnet_e",
+            "energy_only": True,
             "schnet_kwargs": {
                 'name': "Schnet",
                 'inputs': [{'shape': (None,), 'name': "node_attributes", 'dtype': 'float32', 'ragged': True},
@@ -29,7 +29,9 @@ DEFAULT_HYPER_PARAM_SCHNET_EG = {
     "scaler": {
         "class_name": "EnergyGradientStandardScaler",
         "config": {
-            "scaler_module": "energy"
+            "scaler_module": "energy",
+            "use_x_mean": False,  # Not possible or necessary for Schnet input.
+            "use_x_std": False
         }
     },
     "training": {
