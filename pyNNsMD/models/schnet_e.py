@@ -15,12 +15,14 @@ class SchnetEnergy(ks.Model):
     def __init__(self,
                  model_module="schnet_e",
                  energy_only: bool = True,
+                 output_as_dict: bool = True,
                  schnet_kwargs=None,
                  **kwargs):
         super(SchnetEnergy, self).__init__(**kwargs)
         self.schnet_kwargs = schnet_kwargs
         self.model_module = model_module
         self.energy_only = energy_only
+        self.output_as_dict = output_as_dict
         self._schnet_model = make_model(**schnet_kwargs)
 
         # Build the model with example data.
@@ -42,6 +44,8 @@ class SchnetEnergy(ks.Model):
         x = data
         if self.energy_only:
             out = self._schnet_model(x)
+            if self.output_as_dict:
+                out = {'energy': out}
         else:
             geos = x[1]
             with tf.GradientTape(persistent=True) as tape2:
@@ -54,7 +58,10 @@ class SchnetEnergy(ks.Model):
                                fn_output_signature=tf.RaggedTensorSpec(shape=[None, temp_e.shape[1], 3],
                                                                        ragged_rank=0,
                                                                        dtype=tf.float32))
-            out = [temp_e, temp_g]
+            if self.output_as_dict:
+                out = {'energy': temp_e, 'force': temp_g}
+            else:
+                out = [temp_e, temp_g]
 
         return out
 
@@ -64,7 +71,8 @@ class SchnetEnergy(ks.Model):
         conf.update({
             "model_module": self.model_module,
             "schnet_kwargs": self.schnet_kwargs,
-            "energy_only": self.energy_only
+            "energy_only": self.energy_only,
+            "output_as_dict": self.output_as_dict,
         })
         return conf
 

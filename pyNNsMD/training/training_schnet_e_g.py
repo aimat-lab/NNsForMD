@@ -115,6 +115,7 @@ def train_model_energy_gradient(i=0, out_dir=None, mode='training'):
     assert model_config["class_name"] == "SchnetEnergyGradient", "Training script only for EnergyGradientModel"
     out_model = SchnetEnergyGradient(**model_config["config"])
     out_model.energy_only = energies_only
+    out_model.output_as_dict = False
 
     # Look for loading weights
     npeps = np.finfo(float).eps
@@ -177,7 +178,13 @@ def train_model_energy_gradient(i=0, out_dir=None, mode='training'):
     # Plot and Save
     yval_plot = [y[0][i_val], y[1][i_val]]
     ytrain_plot = [y[0][i_train], y[1][i_train]]
+
     # Convert back scaler
+    out_model = SchnetEnergyGradient(**model_config["config"])
+    out_model.energy_only = False
+    out_model.output_as_dict = True
+    out_model.load_weights(os.path.join(out_dir, "model_weights.h5"))
+
     pval = out_model.predict(xval)
     ptrain = out_model.predict(xtrain)
     _, pval = scaler.inverse_transform(y=[pval['energy'], pval['force']])

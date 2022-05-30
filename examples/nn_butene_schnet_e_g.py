@@ -50,7 +50,7 @@ nn.train_test_split(dataset_size=len(energy), n_splits=5, shuffle=True)
 
 nn.training([hyper["training"]]*2, fit_mode="training")
 
-fit_error = nn.fit(["training_schnet_e_g"]*2, fit_mode="training", gpu_dist=[-1, -1], proc_async=False)
+fit_error = nn.fit(["training_schnet_e_g"]*2, fit_mode="training", gpu_dist=[0, 0], proc_async=False)
 print(fit_error)
 
 nn.load()
