@@ -124,7 +124,10 @@ class EnergyGradientStandardScaler(ScalerBase):
         x_res = x
         y_res = y
         if x is not None:
-            x_res = (x - self.x_mean) / self.x_std
+            if self.use_x_mean:
+                x_res = x - self.x_mean
+            if self.use_x_std:
+                x_res = x_res / self.x_std
         if y is not None:
             if isinstance(y, list):
                 energy = y[0]
@@ -143,7 +146,10 @@ class EnergyGradientStandardScaler(ScalerBase):
         x_res = x
         y_res = y
         if x is not None:
-            x_res = x * self.x_std + self.x_mean
+            if self.use_x_std:
+                x_res = x_res * self.x_std
+            if self.use_x_mean:
+                x_res = x_res + self.x_mean
         if y is not None:
             if isinstance(y, list):
                 energy = y[0]
