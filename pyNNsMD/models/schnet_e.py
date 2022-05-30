@@ -96,8 +96,8 @@ class SchnetEnergy(ks.Model):
             if self.output_as_dict:
                 y = [y["energy"], y["force"]]
             y0 = y[0] if isinstance(y[0], np.ndarray) else y[0].numpy()
-            y1 = np.array([np.swapaxes(g.numpy(), (0, 1)) for g in y[1]])
-            out = [y1, y0]
+            y1 = np.array([np.swapaxes(g.numpy(), 0, 1) for g in y[1]])
+            out = [y0, y1]
             if self.output_as_dict:
                 out = {'energy': out[0], 'force': out[1]}
         return out
