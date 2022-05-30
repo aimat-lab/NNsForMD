@@ -179,7 +179,8 @@ def train_model_energy_gradient(i=0, out_dir=None, mode='training'):
     yval_plot = [y[0][i_val], y[1][i_val]]
     ytrain_plot = [y[0][i_train], y[1][i_train]]
 
-    # Convert back scaler
+    # Convert back scaler and predict with new model
+    out_model.save_weights(os.path.join(out_dir, "model_weights.h5"))
     out_model = SchnetEnergy(**model_config["config"])
     out_model.energy_only = False
     out_model.output_as_dict = True
@@ -195,15 +196,13 @@ def train_model_energy_gradient(i=0, out_dir=None, mode='training'):
     print("Info: Plot fit stats...")
 
     # Plot
-    plot_loss_curves([hist.history['energy_mean_absolute_error'], hist.history['force_mean_absolute_error']],
-                     [hist.history['val_energy_mean_absolute_error'],
-                      hist.history['val_force_mean_absolute_error']],
-                     label_curves=["energy", "force"],
+    plot_loss_curves(hist.history['mean_absolute_error'],
+                     hist.history['val_mean_absolute_error'],
                      val_step=epostep, save_plot_to_file=True, dir_save=dir_save,
                      filename='fit' + str(i), filetypeout='.png', unit_loss=unit_label_energy, loss_name="MAE",
                      plot_title="Energy")
 
-    plot_learning_curve(hist.history['energy_lr'], filename='fit' + str(i), dir_save=dir_save)
+    plot_learning_curve(hist.history['lr'], filename='fit' + str(i), dir_save=dir_save)
 
     plot_scatter_prediction(pval[0], yval_plot[0], save_plot_to_file=True, dir_save=dir_save,
                             filename='fit' + str(i) + "_energy",
@@ -227,17 +226,6 @@ def train_model_energy_gradient(i=0, out_dir=None, mode='training'):
                        dir_save=dir_save, save_plot_to_file=True, filetypeout='.png',
                        x_label='Gradients xyz * #atoms * #states ', plot_title="Gradient max error")
 
-    pval = out_model.predict(xval)
-    ptrain = out_model.predict(xtrain)
-    _, pval = scaler.inverse_transform(y=[pval['energy'], pval['force']])
-    _, ptrain = scaler.inverse_transform(y=[ptrain['energy'], ptrain['force']])
-    out_model.precomputed_features = False
-    out_model.output_as_dict = False
-    ptrain2 = out_model.predict(x_rescale[i_train])
-    _, ptrain2 = scaler.inverse_transform(y=[ptrain2[0], ptrain2[1]])
-    print("Info: Max error precomputed and full gradient computation:")
-    print("Energy", np.max(np.abs(ptrain[0] - ptrain2[0])))
-    print("Gradient", np.max(np.abs(ptrain[1] - ptrain2[1])))
     error_val = [np.mean(np.abs(pval[0] - y[0][i_val])), np.mean(np.abs(pval[1] - y[1][i_val]))]
     error_train = [np.mean(np.abs(ptrain[0] - y[0][i_train])), np.mean(np.abs(ptrain[1] - y[1][i_train]))]
     print("error_val:", error_val)
@@ -247,7 +235,6 @@ def train_model_energy_gradient(i=0, out_dir=None, mode='training'):
     save_json_file(error_dict, os.path.join(out_dir, "fit_error.json"))
 
     print("Info: Saving model to file...")
-    out_model.precomputed_features = False
     out_model.save_weights(os.path.join(out_dir, "model_weights.h5"))
     out_model.save(os.path.join(out_dir, "model_tf"))
 
