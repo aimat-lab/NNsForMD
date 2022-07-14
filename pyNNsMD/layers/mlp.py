@@ -1,7 +1,6 @@
-# import tensorflow as tf
-import tensorflow.keras as ks
-
+import tensorflow as tf
 from pyNNsMD.utils.activ import leaky_softplus, shifted_softplus
+ks = tf.keras
 
 
 class MLP(ks.layers.Layer):

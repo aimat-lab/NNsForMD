@@ -7,7 +7,7 @@ from pyNNsMD.src.device import set_gpu
 set_gpu([-1])
 
 from pyNNsMD.NNsMD import NeuralNetEnsemble
-from pyNNsMD.models.schnet_e import SchnetEnergy
+from pyNNsMD.models.schnet_eg import SchNetEnergy
 from pyNNsMD.utils.loss import ScaledMeanAbsoluteError
 from pyNNsMD.hypers.hyper_schnet_e import DEFAULT_HYPER_PARAM_SCHNET_E as hyper
 from kgcnn.mol.methods import global_proton_dict
@@ -19,7 +19,6 @@ pprint.pprint(hyper)
 anglist = [[1, 0, 2], [1, 0, 4], [2, 0, 4], [0, 1, 3], [0, 1, 8], [3, 1, 8], [0, 4, 5], [0, 4, 6], [0, 4, 7], [6, 4, 7],
            [5, 4, 7], [5, 4, 6], [9, 8, 10], [1, 8, 10], [9, 8, 11], [1, 8, 9], [1, 8, 11], [10, 8, 11]]
 dihedlist = [[5, 1, 2, 9], [3, 1, 2, 4]]
-range_dist = hyper["model"]["config"]["schnet_kwargs"]["gauss_args"]["distance"]
 
 # Load data
 atoms = [["C", "C", "H", "H", "C", "F", "F", "F", "C", "F", "H", "H"]]*2701
@@ -32,8 +31,6 @@ print(geos.shape, energy.shape, grads.shape, nac.shape)
 
 atomic_number = [np.array([global_proton_dict[atom] for atom in x]) for x in atoms]
 geos = [x for x in geos]
-range_indices = [
-    define_adjacency_from_distance(coordinates_to_distancematrix(x), max_distance=range_dist)[1] for x in geos]
 
 ensemble_path = "TestEnergySchnet/"
 
@@ -55,14 +52,8 @@ print(fit_error)
 
 nn.load()
 
-test = nn.predict([atomic_number, geos, range_indices])
-test_call = nn.call([atomic_number[:32], geos[:32], range_indices[:32]])
+test = nn.predict([atomic_number, geos])
+test_call = nn.call([atomic_number[:32], geos[:32]])
 print("Error prediction on all data:", np.mean(np.abs(test[0]/2 + test[1]/2 - energy)))
 print("Error call on batch:", np.mean(np.abs(test_call[:32][0]/2 + test_call[:32][1]/2 - energy[:32])))
 # nn.clean()
-
-# Check gradients ...
-# They are not compatible with scaler in this form
-for i in range(len(nn)):
-    nn[i].energy_only = False
-test_call_g = nn[0](nn[0].call_to_tensor_input([atomic_number[:32], geos[:32], range_indices[:32]]))

@@ -33,7 +33,7 @@ print("Logic Devices:", tf.config.experimental.list_logical_devices('GPU'))
 
 import pyNNsMD.utils.callbacks
 import pyNNsMD.utils.activ
-from pyNNsMD.models.schnet_e import SchnetEnergy
+from pyNNsMD.models.schnet_eg import SchNetEnergy
 from pyNNsMD.utils.data import load_json_file, read_xyz_file, save_json_file
 from pyNNsMD.scaler.energy import EnergyStandardScaler
 from pyNNsMD.utils.loss import ScaledMeanAbsoluteError, get_lr_metric, r2_metric
@@ -42,6 +42,18 @@ from pyNNsMD.plots.pred import plot_scatter_prediction
 from kgcnn.utils.adj import define_adjacency_from_distance, coordinates_to_distancematrix
 from kgcnn.utils.data import ragged_tensor_from_nested_numpy
 from kgcnn.mol.methods import global_proton_dict
+
+
+def padd_batch_dim(values):
+    max_shape = np.amax([x.shape for x in values], axis=0)
+    final_shape = np.concatenate([np.array([len(values)]), max_shape])
+    padded = np.zeros(final_shape, dtype=values[0].dtype)
+    mask = np.zeros(final_shape, dtype="bool")
+    for i, x in enumerate(values):
+        index = [i] + [slice(0, int(j)) for j in x.shape]
+        padded[tuple(index)] = x
+        mask[tuple(index)] = True
+    return padded, mask
 
 
 def train_model_energy(i=0, out_dir=None, mode='training'):
@@ -76,17 +88,8 @@ def train_model_energy(i=0, out_dir=None, mode='training'):
     initialize_weights = training_config['initialize_weights']
     learning_rate = training_config['learning_rate']
     use_callbacks = training_config['callbacks']
-    range_dist = model_config["config"]["schnet_kwargs"]["gauss_args"]["distance"]
-
-    # Load data.
-    data_dir = os.path.dirname(out_dir)
-    xyz = read_xyz_file(os.path.join(data_dir, "geometries.xyz"))
-    coords = [np.array(x[1]) for x in xyz]
-    atoms = [np.array([global_proton_dict[at] for at in x[0]]) for x in xyz]
-    range_indices = [define_adjacency_from_distance(coordinates_to_distancematrix(x),
-                                                    max_distance=range_dist)[1] for x in coords]
-    y = load_json_file(os.path.join(data_dir, "energies.json"))
-    y = np.array(y)
+    range_dist = model_config["config"]["gauss_args"]["distance"]
+    max_neighbours = model_config["config"]["max_neighbours"]
 
     # Fit stats dir
     dir_save = os.path.join(out_dir, "fit_stats")
@@ -102,8 +105,8 @@ def train_model_energy(i=0, out_dir=None, mode='training'):
 
     # Make Model
     # Only works for Energy model here
-    assert model_config["class_name"] == "SchnetEnergy", "Training script only for SchnetEnergy"
-    out_model = SchnetEnergy(**model_config["config"])
+    assert model_config["class_name"] == "SchNetEnergy", "Training script only for SchNetEnergy"
+    out_model = SchNetEnergy(**model_config["config"])
 
     # Look for loading weights
     if not initialize_weights:
@@ -112,22 +115,23 @@ def train_model_energy(i=0, out_dir=None, mode='training'):
     else:
         print("Info: Making new initialized weights.")
 
+    # Load data.
+    data_dir = os.path.dirname(out_dir)
+    xyz = read_xyz_file(os.path.join(data_dir, "geometries.xyz"))
+    coords = [np.array(x[1]) for x in xyz]
+    atoms = [np.array([global_proton_dict[at] for at in x[0]]) for x in xyz]
+    X = out_model.predict_to_tensor_input([atoms, coords])
+    y = load_json_file(os.path.join(data_dir, "energies.json"))
+    y = np.array(y)
+
     # Recalculate standardization
     scaler = EnergyStandardScaler(**scaler_config["config"])
     scaler.fit(x=None, y=y[i_train])
     _, y1 = scaler.transform(x=None, y=y)
 
     # Train Test split
-    xtrain = [
-        ragged_tensor_from_nested_numpy([atoms[i] for i in i_train]),
-        ragged_tensor_from_nested_numpy([coords[i] for i in i_train]),
-        ragged_tensor_from_nested_numpy([range_indices[i] for i in i_train])
-    ]
-    xval = [
-        ragged_tensor_from_nested_numpy([atoms[i] for i in i_val]),
-        ragged_tensor_from_nested_numpy([coords[i] for i in i_val]),
-        ragged_tensor_from_nested_numpy([range_indices[i] for i in i_val])
-    ]
+    xtrain = [x[i_train] for x in X]
+    xval = [x[i_val] for x in X]
     ytrain = y1[i_train]
     yval = y1[i_val]
 

@@ -139,7 +139,7 @@ def train_model_energy_gradient(i=0, out_dir=None, mode='training'):
     mae_energy.set_scale(scaler.energy_std)
     mae_force.set_scale(scaler.gradient_std)
     if energies_only:
-        train_loss = {'energy': 'mean_squared_error', 'force' : ZeroEmptyLoss()}
+        train_loss = {'energy': 'mean_squared_error'}
     else:
         train_loss = {'energy': 'mean_squared_error', 'force': 'mean_squared_error'}
     out_model.compile(optimizer=optimizer,

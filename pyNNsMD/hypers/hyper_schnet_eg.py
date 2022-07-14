@@ -1,29 +1,30 @@
-DEFAULT_HYPER_PARAM_SCHNET_E_G = {
+DEFAULT_HYPER_PARAM_SCHNET_EG = {
     'model': {
-        "class_name": "SchnetEnergy",
+        "class_name": "SchNetEnergy",
         "config": {
-            "model_module": "schnet_e",
-            "energy_only": True,
-            "schnet_kwargs": {
-                'name': "Schnet",
-                'inputs': [{'shape': (None,), 'name': "node_attributes", 'dtype': 'float32', 'ragged': True},
-                           {'shape': (None, 3), 'name': "node_coordinates", 'dtype': 'float32', 'ragged': True},
-                           {'shape': (None, 2), 'name': "edge_indices", 'dtype': 'int64', 'ragged': True}],
-                'input_embedding': {"node": {"input_dim": 95, "output_dim": 64}},
-                "make_distance": True, 'expand_distance': True,
-                'interaction_args': {"units": 128, "use_bias": True,
-                                     "activation": 'kgcnn>shifted_softplus', "cfconv_pool": 'sum'},
-                'node_pooling_args': {"pooling_method": "sum"},
-                'depth': 4,
-                'gauss_args': {"bins": 20, "distance": 4, "offset": 0.0, "sigma": 0.4},
-                'verbose': 10,
-                'last_mlp': {"use_bias": [True, True], "units": [128, 64],
-                             "activation": ['kgcnn>shifted_softplus', 'kgcnn>shifted_softplus']},
-                'output_embedding': 'graph',
-                "use_output_mlp": True,
-                'output_mlp': {"use_bias": [True, True], "units": [64, 2],
-                               "activation": ['kgcnn>shifted_softplus', "linear"]}
-            }
+            "model_module": "schnet_eg",
+            "output_as_dict": True,
+            "energy_only": False,
+            'name': "Schnet",
+            'inputs': [{'shape': (None, 3), 'name': "node_coordinates", 'dtype': 'float32'},
+                       {'shape': (None,), 'name': "node_number", 'dtype': 'int64'},
+                       {'shape': (None, None), 'name': "edge_indices", 'dtype': 'int64'},
+                       {'shape': (None, 1), 'name': "mask_node", 'dtype': 'bool'},
+                       {'shape': (None, None, 1), 'name': "mask_edge", 'dtype': 'bool'}],
+            'input_embedding': {"node": {"input_dim": 95, "output_dim": 64}},
+            'interaction_args': {"units": 128, "use_bias": True,
+                                 "activation": 'kgcnn>shifted_softplus', "cfconv_pool": 'sum'},
+            'node_pooling_args': {"pooling_method": "sum"},
+            'depth': 4,
+            'gauss_args': {"bins": 20, "distance": 4, "offset": 0.0, "sigma": 0.4},
+            'verbose': 10,
+            'last_mlp': {"use_bias": [True, True], "units": [128, 64],
+                         "activation": ['kgcnn>shifted_softplus', 'kgcnn>shifted_softplus']},
+            'output_embedding': 'graph',
+            "max_neighbours": 10,
+            "use_output_mlp": True,
+            'output_mlp': {"use_bias": [True, True], "units": [64, 2],
+                           "activation": ['kgcnn>shifted_softplus', "linear"]}
         }
     },
     "scaler": {
