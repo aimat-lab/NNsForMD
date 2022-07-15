@@ -20,3 +20,5 @@ dist
 /examples/TestNAC2/
 /examples/TestEnergySchnet/
 /examples/TestEnergyGradientSchnet/
+/examples/TestEnergyGradientSchnetKGCNN/
+/examples/TestEnergySchnetKGCNN/
