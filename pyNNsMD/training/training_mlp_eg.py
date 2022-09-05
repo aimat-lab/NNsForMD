@@ -91,10 +91,10 @@ def train_model_energy_gradient(i=0, out_dir=None, mode='training'):
 
     # cbks, Learning rate schedule
     cbks = []
-    for x in use_callbacks:
-        if isinstance(x, dict):
+    for cb_item in use_callbacks:
+        if isinstance(cb_item, dict):
             # tf.keras.utils.get_registered_object()
-            cb = tf.keras.utils.deserialize_keras_object(x)
+            cb = tf.keras.utils.deserialize_keras_object(cb_item)
             cbks.append(cb)
 
     # Index train test split
