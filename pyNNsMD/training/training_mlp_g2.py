@@ -1,6 +1,7 @@
 import matplotlib as mpl
 import numpy as np
 import tensorflow as tf
+ks = tf.keras
 
 mpl.use('Agg')
 import os
