@@ -46,10 +46,10 @@ DEFAULT_HYPER_PARAM_SCHNET_E = {
             {"class_name": 'pyNNsMD>StepWiseLearningScheduler',
              "config": {'epoch_step_reduction': [100, 100, 100, 100], 'learning_rate_step': [1e-3, 1e-4, 1e-5, 1e-6]}}
         ],
-        # {"class_name": 'StepWiseLearningScheduler', "config": {'epoch_step_reduction': [500, 1500, 500, 500], 'learning_rate_step': [1e-3, 1e-4, 1e-5, 1e-6]}}
-        # {"class_name": 'LinearLearningRateScheduler', "config": {'learning_rate_start': 1e-3, 'learning_rate_stop': 1e-6, 'epo_min': 100, 'epo': 1000}}
-        # {"class_name": 'EarlyStopping', "config": {'use': False, 'epomin': 5000, 'patience': 600, 'max_time': 600, 'min_delta': 1e-5, 'loss_monitor': 'val_loss', 'factor_lr': 0.1, 'learning_rate_start': 1e-3, 'learning_rate_stop': 1e-6, 'epostep': 1}}
-        # {"class_name": 'LinearWarmupExponentialLearningRateScheduler', "config": {'epo_warmup': 10, 'decay_gamma': 0.1, 'lr_start': 1e-3, 'lr_min': 0.0}}
+        # {"class_name": 'pyNNsMD>StepWiseLearningScheduler', "config": {'epoch_step_reduction': [500, 1500, 500, 500], 'learning_rate_step': [1e-3, 1e-4, 1e-5, 1e-6]}}
+        # {"class_name": 'pyNNsMD>LinearLearningRateScheduler', "config": {'learning_rate_start': 1e-3, 'learning_rate_stop': 1e-6, 'epo_min': 100, 'epo': 1000}}
+        # {"class_name": 'pyNNsMD>EarlyStopping', "config": {'use': False, 'epomin': 5000, 'patience': 600, 'max_time': 600, 'min_delta': 1e-5, 'loss_monitor': 'val_loss', 'factor_lr': 0.1, 'learning_rate_start': 1e-3, 'learning_rate_stop': 1e-6, 'epostep': 1}}
+        # {"class_name": 'pyNNsMD>LinearWarmupExponentialLearningRateScheduler', "config": {'epo_warmup': 10, 'decay_gamma': 0.1, 'lr_start': 1e-3, 'lr_min': 0.0}}
         'unit_energy': "eV",  # Just for plotting
         'unit_gradient': "eV/A"  # Just for plotting
     }
