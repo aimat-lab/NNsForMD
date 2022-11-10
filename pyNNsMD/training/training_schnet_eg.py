@@ -108,9 +108,9 @@ def train_model_energy_gradient(i=0, out_dir=None, mode='training'):
     atoms = [np.array([global_proton_dict[at] for at in x[0]]) for x in xyz]
     X = out_model.predict_to_tensor_input([atoms, coords])
     y1 = load_json_file(os.path.join(data_dir, "energies.json"))
-    y1 = SchNetEnergy.padd_batch_dim([np.array(x) for x in y1])
+    y1, _ = SchNetEnergy.padd_batch_dim([np.array(x) for x in y1])
     y2 = load_json_file(os.path.join(data_dir, "forces.json"))
-    y2 = SchNetEnergy.padd_batch_dim([np.array(x) for x in y2])
+    y2, _ = SchNetEnergy.padd_batch_dim([np.array(x) for x in y2])
     print("INFO: Shape of y", y1.shape, y2.shape)
     y = [y1, y2]
 
