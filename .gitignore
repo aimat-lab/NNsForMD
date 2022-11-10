@@ -22,3 +22,4 @@ dist
 /examples/TestEnergyGradientSchnet/
 /examples/TestEnergyGradientSchnetKGCNN/
 /examples/TestEnergySchnetKGCNN/
+/pyNNsMD.egg-info/PKG-INFO
